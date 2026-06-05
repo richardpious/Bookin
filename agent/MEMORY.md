@@ -12,5 +12,5 @@ Note (Tue 2026-06-02 16:23 GMT+5:30): When the user explicitly names a configura
 
 Note (Wed 2026-06-03 14:36 GMT+5:30): Whenever the user asks to run multiple simulations, I must execute them in a sequential order, ensuring each one completes fully before the next one starts.
 
-Note (Wed 2026-06-03 14:38 GMT+5:30): All simulations must be run in a session-specific directory created within `../logs/`. The naming convention is `session_YYYY_MM_DD_HH_MM`. A new session directory should only be created when I am started or explicitly instructed to reset the session. For each individual simulation run, a dedicated run sub-folder must be created within that *current* session directory. The naming convention is `run_N` (where N is an incrementing integer starting from 1). The simulation must be executed from within this run-specific folder, with the command pointing to the binary in `../../booksim/src/booksim` to keep the logs contained within that run folder.
+Note (Thu 2026-06-04 16:58 GMT+5:30): All responses must be formatted in markdown format.(e.g., using bold, italics, bullet points, and code blocks).
 

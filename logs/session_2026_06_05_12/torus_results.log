@@ -1,0 +1,179 @@
+BEGIN Configuration File: ../logs/session_2026_06_05_12/torus_sim.cfg
+// Topology
+topology = torus;
+k = 8;
+n = 2;
+
+// Routing
+routing_function = dim_order;
+
+// Flow Control
+num_vcs = 4;
+vc_buf_size = 8;
+wait_for_tail_credit = 1;
+
+// Traffic
+traffic = uniform;
+injection_rate = 0.15;
+
+// Simulation
+sim_type = latency;
+warmup_periods = 3;
+max_samples = 20000;
+latency_thres = 500.0;
+sim_count = 1;
+
+END Configuration File: ../logs/session_2026_06_05_12/torus_sim.cfg
+Class 0:
+Packet latency average = 89.3553
+	minimum = 7
+	maximum = 609
+Network latency average = 55.5489
+	minimum = 7
+	maximum = 597
+Slowest packet = 1801
+Flit latency average = 55.5489
+	minimum = 7
+	maximum = 597
+Slowest flit = 3243
+Fragmentation average = 0
+	minimum = 0
+	maximum = 0
+Injected packet rate average = 0.126625
+	minimum = 0.071 (at node 47)
+	maximum = 0.179 (at node 18)
+Accepted packet rate average = 0.119141
+	minimum = 0.092 (at node 21)
+	maximum = 0.152 (at node 8)
+Injected flit rate average = 0.126625
+	minimum = 0.071 (at node 47)
+	maximum = 0.179 (at node 18)
+Accepted flit rate average= 0.119141
+	minimum = 0.092 (at node 21)
+	maximum = 0.152 (at node 8)
+Injected packet length average = 1
+Accepted packet length average = 1
+Total in-flight flits = 512 (0 measured)
+Buffer busy stall rate = 3.1557
+Buffer conflict stall rate = 0.247734
+Buffer full stall rate = 0
+Buffer reserved stall rate = 0
+Crossbar conflict stall rate = 0.024875
+latency change    = 1
+throughput change = 1
+Class 0:
+Packet latency average = 152.82
+	minimum = 7
+	maximum = 1358
+Network latency average = 60.8515
+	minimum = 7
+	maximum = 874
+Slowest packet = 4152
+Flit latency average = 60.8515
+	minimum = 7
+	maximum = 874
+Slowest flit = 7059
+Fragmentation average = 0
+	minimum = 0
+	maximum = 0
+Injected packet rate average = 0.121664
+	minimum = 0.054 (at node 47)
+	maximum = 0.167 (at node 34)
+Accepted packet rate average = 0.117727
+	minimum = 0.102 (at node 4)
+	maximum = 0.14 (at node 25)
+Injected flit rate average = 0.121664
+	minimum = 0.054 (at node 47)
+	maximum = 0.167 (at node 34)
+Accepted flit rate average= 0.117727
+	minimum = 0.102 (at node 4)
+	maximum = 0.14 (at node 25)
+Injected packet length average = 1
+Accepted packet length average = 1
+Total in-flight flits = 544 (0 measured)
+Buffer busy stall rate = 3.48702
+Buffer conflict stall rate = 0.260484
+Buffer full stall rate = 0
+Buffer reserved stall rate = 0
+Crossbar conflict stall rate = 0.0242578
+latency change    = 0.415292
+throughput change = 0.0120114
+Class 0:
+Packet latency average = 411.377
+	minimum = 7
+	maximum = 1941
+Network latency average = 70.329
+	minimum = 7
+	maximum = 929
+Slowest packet = 15291
+Flit latency average = 70.329
+	minimum = 7
+	maximum = 929
+Slowest flit = 14846
+Fragmentation average = 0
+	minimum = 0
+	maximum = 0
+Injected packet rate average = 0.111625
+	minimum = 0.016 (at node 0)
+	maximum = 0.176 (at node 61)
+Accepted packet rate average = 0.111828
+	minimum = 0.085 (at node 57)
+	maximum = 0.141 (at node 14)
+Injected flit rate average = 0.111625
+	minimum = 0.016 (at node 0)
+	maximum = 0.176 (at node 61)
+Accepted flit rate average= 0.111828
+	minimum = 0.085 (at node 57)
+	maximum = 0.141 (at node 14)
+Injected packet length average = 1
+Accepted packet length average = 1
+Total in-flight flits = 535 (0 measured)
+Buffer busy stall rate = 4.17295
+Buffer conflict stall rate = 0.284813
+Buffer full stall rate = 0
+Buffer reserved stall rate = 0
+Crossbar conflict stall rate = 0.0208125
+latency change    = 0.628515
+throughput change = 0.0527456
+Warmed up ...Time used is 3000 cycles
+Class 0:
+Packet latency average = 515.106
+	minimum = 7
+	maximum = 2653
+Network latency average = 61.4907
+	minimum = 7
+	maximum = 698
+Slowest packet = 22766
+Flit latency average = 67.9665
+	minimum = 7
+	maximum = 1063
+Slowest flit = 16580
+Fragmentation average = 0
+	minimum = 0
+	maximum = 0
+Injected packet rate average = 0.11675
+	minimum = 0.028 (at node 31)
+	maximum = 0.206 (at node 5)
+Accepted packet rate average = 0.116219
+	minimum = 0.093 (at node 16)
+	maximum = 0.151 (at node 56)
+Injected flit rate average = 0.11675
+	minimum = 0.028 (at node 31)
+	maximum = 0.206 (at node 5)
+Accepted flit rate average= 0.116219
+	minimum = 0.093 (at node 16)
+	maximum = 0.151 (at node 56)
+Injected packet length average = 1
+Accepted packet length average = 1
+Total in-flight flits = 568 (568 measured)
+Buffer busy stall rate = 3.97372
+Buffer conflict stall rate = 0.293672
+Buffer full stall rate = 0
+Buffer reserved stall rate = 0
+Crossbar conflict stall rate = 0.0221406
+latency change    = 0.201374
+throughput change = 0.037779
+Average latency for class 0 exceeded 500 cycles. Aborting simulation.
+Too many sample periods needed to converge
+Simulation unstable, ending ...
+Total run time 2.61098

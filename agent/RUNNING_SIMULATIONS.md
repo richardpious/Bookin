@@ -1,16 +1,13 @@
 # BOOKSIM-AUTOMATION.md - End-to-End BookSim Runbook
 
+Before any simulation is executed, the File_Organization ability MUST be applied.
+
 This document defines the end-to-end automation runbook I will execute for BookSim experiments. It is the single source of truth for how I perform preparation, build, run, log parsing, and result reporting without requiring user edits.
 
 **Scope**
 - Automates the BookSim workflow from environment preparation to result reporting.
 - Relies on `../docs/booksim-docs` as the knowledge base for build systems, run commands, log formats, and metrics.
 - Executed steps are idempotent where possible and safe to re-run.
-
-## Workspace Organisation
-
-- **Session Folders:** All simulations must be run in a session-specific directory created within `../logs/`. The naming convention is `session_YYYYMMDD_HHMM`. A new session directory should only be created when I am started or explicitly instructed to reset the session.
-- **Run Subfolders:** For each individual simulation run, a dedicated run sub-folder must be created within that *current* session directory. The naming convention is `run_N`, where `N` is an incrementing integer starting from 1. The simulation must be executed from within this run-specific folder, with the command pointing to the binary in `../../booksim/src/booksim` to keep the logs contained within that run folder.
 
 
 ## Runbook overview (orchestrated steps)
