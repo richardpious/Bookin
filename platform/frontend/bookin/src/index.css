@@ -50,6 +50,25 @@
   }
 }
 
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #393939; /* Darker color */
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555555; /* Slightly lighter on hover */
+}
+
 body {
   margin: 0;
 }

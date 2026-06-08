@@ -1,10 +1,16 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+import sys
+import os
+
+# Ensure the parent directory is in sys.path so we can import 'models'
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from models.chat_request import ChatRequest
+from models.agent_bridge import OpenClawAgentBridge
 import asyncio
 import uvicorn
 import json
-import os
 
 app = FastAPI()
 
@@ -15,43 +21,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class ChatRequest(BaseModel):
-    message: str
-    session_id: str = "default"
-
-
-class OpenClawAgentBridge:
-    async def send_message(
-        self,
-        message: str,
-        session_key: str,
-    ) -> str:
-
-        proc = await asyncio.create_subprocess_exec(
-            "openclaw",
-            "agent",
-            "--agent",
-            "main",
-            "--session-key",
-            session_key,
-            "--message",
-            message,
-            "--json",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        stdout, stderr = await proc.communicate()
-
-        if proc.returncode != 0:
-            raise Exception(stderr.decode())
-
-        result = json.loads(stdout.decode())
-
-        return result["result"]["payloads"][0]["text"]
-    
 
 
 agent_bridge = OpenClawAgentBridge()
@@ -109,26 +78,41 @@ async def list_files(path: str = "."):
     return {"files": files}
 
 
+@app.get("/file")
+async def get_file(path: str):
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    target_path = os.path.normpath(os.path.join(root_dir, path))
+
+    if not target_path.startswith(root_dir):
+        return {"error": "Access denied"}
+
+    if not os.path.isfile(target_path):
+        return {"error": "Not a file"}
+    try:
+        with open(target_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return {"content": content}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
 
     session_key = f"webchat:{request.session_id}"
-
     try:
         response = await agent_bridge.send_message(
             request.message,
-            session_key,
-        )
+                    session_key,
+                )
 
         return {
             "message": response
         }
-
     except Exception as e:
         return {
             "error": str(e)
         }
-
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(

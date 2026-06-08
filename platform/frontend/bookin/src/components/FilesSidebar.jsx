@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Folder, FileText, ChevronRight, ChevronDown } from 'lucide-react'
 import { fetchFiles } from '../utils/fileUtils'
 
-const FileNode = ({ name, path, isDir }) => {
+const FileNode = ({ name, path, isDir, onFileClick, activeFile }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [children, setChildren] = useState([])
   const [loading, setLoading] = useState(false)
+  const isActive = path === activeFile
 
-  const toggleFolder = async () => {
+  const handleClick = async (e) => {
+    e.stopPropagation();
     if (isDir) {
       if (!isOpen) {
         setLoading(true)
@@ -21,15 +23,25 @@ const FileNode = ({ name, path, isDir }) => {
         }
       }
       setIsOpen(!isOpen)
+    } else {
+      onFileClick(path)
     }
   }
 
   return (
     <div>
       <div 
-        className="file-item" 
-        onClick={toggleFolder}
-        style={{display: 'flex', alignItems: 'center', gap: '4px', padding: '4px', cursor: 'pointer'}}
+        className={`file-item ${isActive ? 'active' : ''}`}
+        onClick={handleClick}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '4px',
+          cursor: 'pointer',
+          backgroundColor: isActive ? '#323232' : 'transparent',
+          color: isActive ? '#ffffff' : 'inherit'
+        }}
       >
         {isDir && (isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />)}
         {!isDir && <div style={{width: 16}} />}
@@ -39,7 +51,7 @@ const FileNode = ({ name, path, isDir }) => {
       {isOpen && isDir && (
         <div style={{ marginLeft: '20px' }}>
           {children.map((child) => (
-            <FileNode key={child.path} {...child} />
+            <FileNode key={child.path} {...child} onFileClick={onFileClick} activeFile={activeFile} />
           ))}
         </div>
       )}
@@ -47,7 +59,7 @@ const FileNode = ({ name, path, isDir }) => {
   )
 }
 
-export const FilesSidebar = ({ width }) => {
+export const FilesSidebar = ({ width, onFileClick, activeFile }) => {
   const [files, setFiles] = useState([])
 
   useEffect(() => {
@@ -62,7 +74,7 @@ export const FilesSidebar = ({ width }) => {
         <div className="project-section">
           <h3>Project Files</h3>
           {files.map((file) => (
-            <FileNode key={file.path} {...file} />
+            <FileNode key={file.path} {...file} onFileClick={onFileClick} activeFile={activeFile} />
           ))}
         </div>
       </div>

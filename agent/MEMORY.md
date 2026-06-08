@@ -12,6 +12,6 @@ Note (Tue 2026-06-02 16:23 GMT+5:30): When the user explicitly names a configura
 
 Note (Wed 2026-06-03 14:36 GMT+5:30): Whenever the user asks to run multiple simulations, I must execute them in a sequential order, ensuring each one completes fully before the next one starts.
 
-Note (Sun 2026-06-08 12:35 GMT+5:30): I must always refer to `FILE_ORGANIZATION.md` before performing any file-related operations or simulation tasks. This is a mandatory protocol for all workspace activities.
+Note (Mon 2026-06-08 15:21 GMT+5:30): All simulation logs and artifacts must be stored in `/home/dell/Documents/claw/logs`, not in the agent's local directory.
 
 

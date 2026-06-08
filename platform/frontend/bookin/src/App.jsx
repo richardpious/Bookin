@@ -4,6 +4,7 @@ import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
 import { FilesSidebar } from './components/FilesSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
+import { readFileContent } from './utils/fileUtils'
 
 import { setupWebSocket } from './utils/wsUtils'
 import './App.css'
@@ -16,6 +17,9 @@ function App() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [socket, setSocket] = useState(null)
+  const [activeFile, setActiveFile] = useState(null)
+  const [fileContent, setFileContent] = useState('')
+
   const messagesEndRef = useRef(null)
   
   const [leftWidth, setLeftWidth] = useState(260)
@@ -30,6 +34,16 @@ function App() {
     return () => ws.close()
   }, [])
 
+  const handleFileClick = async (path) => {
+    setActiveFile(path)
+    try {
+      const content = await readFileContent(path)
+      setFileContent(content)
+    } catch (err) {
+      console.error(err)
+      setFileContent('Error loading file content.')
+    }
+  }
   const handleMouseMove = useCallback((e) => {
     if (isResizingLeft.current) {
       setLeftWidth(Math.max(150, Math.min(e.clientX, 500)))
@@ -67,12 +81,10 @@ function App() {
     <div className="app-container">
       <Header />
       <div className="main-layout">
-        <FilesSidebar width={leftWidth} />
+        <FilesSidebar width={leftWidth} onFileClick={handleFileClick} activeFile={activeFile} />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         
-        <MainContentWindow>
-          <h1>Main Content Area</h1>
-        </MainContentWindow>
+        <MainContentWindow filePath={activeFile} content={fileContent} />
         <Resizer onMouseDown={() => startResizing(isResizingRight)} />
         
         <ChatSidebar 
@@ -90,3 +102,4 @@ function App() {
 }
 
 export default App
+
