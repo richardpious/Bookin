@@ -17,13 +17,16 @@ function App() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [socket, setSocket] = useState(null)
+
+  // Tab management
+  const [openFiles, setOpenFiles] = useState([]) // Array of file paths
   const [activeFile, setActiveFile] = useState(null)
-  const [fileContent, setFileContent] = useState('')
+  const [fileContents, setFileContents] = useState({}) // Map of path -> content
 
   const messagesEndRef = useRef(null)
   
   const [leftWidth, setLeftWidth] = useState(260)
-  const [rightWidth, setRightWidth] = useState(350)
+  const [rightWidth, setRightWidth] = useState(500)
   const isResizingLeft = useRef(false)
   const isResizingRight = useRef(false)
 
@@ -35,13 +38,25 @@ function App() {
   }, [])
 
   const handleFileClick = async (path) => {
-    setActiveFile(path)
-    try {
+    if (!openFiles.includes(path)) {
+      setOpenFiles([...openFiles, path])
+      try {
       const content = await readFileContent(path)
-      setFileContent(content)
+        setFileContents(prev => ({ ...prev, [path]: content }))
     } catch (err) {
       console.error(err)
-      setFileContent('Error loading file content.')
+        setFileContents(prev => ({ ...prev, [path]: 'Error loading file content.' }))
+    }
+  }
+    setActiveFile(path)
+  }
+  const handleCloseFile = (e, path) => {
+    e.stopPropagation()
+    const newOpenFiles = openFiles.filter(f => f !== path)
+    setOpenFiles(newOpenFiles)
+
+    if (activeFile === path) {
+      setActiveFile(newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null)
     }
   }
   const handleMouseMove = useCallback((e) => {
@@ -84,10 +99,16 @@ function App() {
         <FilesSidebar width={leftWidth} onFileClick={handleFileClick} activeFile={activeFile} />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         
-        <MainContentWindow filePath={activeFile} content={fileContent} />
+        <MainContentWindow
+          openFiles={openFiles}
+          activeFile={activeFile}
+          fileContents={fileContents}
+          onTabClick={setActiveFile}
+          onCloseTab={handleCloseFile}
+        />
         <Resizer onMouseDown={() => startResizing(isResizingRight)} />
-        
-        <ChatSidebar 
+
+        <ChatSidebar
           width={rightWidth}
           messages={messages}
           isLoading={isLoading}
@@ -96,7 +117,7 @@ function App() {
           onSend={handleSend}
           messagesEndRef={messagesEndRef}
         />
-      </div>
+    </div>
     </div>
   )
 }

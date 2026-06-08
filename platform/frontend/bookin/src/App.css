@@ -132,10 +132,14 @@ body, html, #root {
 
 /* Input Area */
 .input-area {
-  padding: 1.5rem 1rem;
+  padding: 0.5rem 0.5rem;
   display: flex;
   justify-content: center;
-  background-color: var(--bg-main);
+  background-color: var(--bg-sidebar);
+}
+
+.input-area > div {
+  width: 100%;
 }
 
 .input-wrapper {
