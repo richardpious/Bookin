@@ -1,6 +1,7 @@
-export const sendMessage = async (input, setMessages) => {
+export const sendMessage = async (input, setMessages, setIsLoading) => {
   const userMessage = { id: Date.now(), sender: 'user', text: input };
   setMessages((prev) => [...prev, userMessage]);
+  setIsLoading(true);
 
   try {
     const response = await fetch('http://localhost:8000/chat', {
@@ -14,6 +15,8 @@ export const sendMessage = async (input, setMessages) => {
     setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: data.message }]);
   } catch (error) {
     console.error('Error sending message:', error);
-    setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: error.message }]);
+    setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: 'Sorry, I encountered an error.' }]);
+  } finally {
+    setIsLoading(false);
   }
 };

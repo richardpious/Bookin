@@ -110,15 +110,18 @@ body, html, #root {
 }
 
 .message-row.user .message-bubble {
-  background-color: #323232;
+  background-color: #1c1c1c; /* The "black box" style */
   color: white;
   border-bottom-right-radius: 0.25rem;
+  border-bottom-left-radius: 1rem;
 }
 
 .message-row.bot .message-bubble {
-  background-color: #1c1c1c;
+  background-color: transparent; /* Colorless background */
   color: #ececf1;
+  border: none; /* Removed border */
   border-bottom-left-radius: 0.25rem;
+  border-bottom-right-radius: 1rem;
 }
 
 /* Input Area */
@@ -178,5 +181,23 @@ button:disabled {
 @keyframes pulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
+}
+
+/* Resizers */
+.resizer {
+  width: 4px;
+  background-color: transparent;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+.resizer:hover {
+  background-color: var(--border-light);
+}
+
+/* Agent Chat Sidebar override */
+.agent-chat-sidebar {
+  border-left: 1px solid var(--border-light);
+  padding: 1rem;
 }
 
