@@ -1,15 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 :root {
-  --bg-main: #232323;
-  --bg-input: #3d3d3d;
-  --bg-sidebar: #323232;
-  --text-primary: #ececf1;
-  --text-secondary: #c5c5d2;
-  --border-light: rgba(255, 255, 255, 0.1);
-  --accent: #232323;
+  --bg-main: #121212;         /* Darker background */
+  --bg-input: #1e1e1e;        /* Darker input background */
+  --bg-sidebar: #181818;      /* Darker sidebar background */
+  --text-primary: #e0e0e0;    /* Softer primary text */
+  --text-secondary: #a0a0a0;  /* Softer secondary text */
+  --border-light: rgba(255, 255, 255, 0.05); /* Fainter borders */
+  --accent: #252525;
 }
-
 body, html, #root {
   margin: 0;
   padding: 0;
@@ -64,7 +63,7 @@ body, html, #root {
 }
 
 .file-item:hover {
-  background-color: #2a2b32;
+  background-color: #252525;
   color: white;
 }
 
@@ -110,15 +109,15 @@ body, html, #root {
 }
 
 .message-row.user .message-bubble {
-  background-color: #1c1c1c; /* The "black box" style */
+  background-color: #292929; /* Match input background */
   color: white;
   border-bottom-right-radius: 0.25rem;
   border-bottom-left-radius: 1rem;
 }
 
 .message-row.bot .message-bubble {
-  background-color: transparent; /* Colorless background */
-  color: #ececf1;
+  background-color: transparent;
+  color: #e0e0e0;
   border: none; /* Removed border */
   border-bottom-left-radius: 0.25rem;
   border-bottom-right-radius: 1rem;
@@ -198,6 +197,12 @@ button:disabled {
 /* Agent Chat Sidebar override */
 .agent-chat-sidebar {
   border-left: 1px solid var(--border-light);
+  padding: 1rem;
+}
+
+/* Files Sidebar override */
+.files-sidebar {
+  border-right: 1px solid var(--border-light);
   padding: 1rem;
 }
 
