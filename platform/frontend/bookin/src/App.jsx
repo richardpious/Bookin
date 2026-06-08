@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Sidebar } from './components/Sidebar'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
 import { FilesSidebar } from './components/FilesSidebar'
@@ -64,9 +63,10 @@ function App() {
 
   return (
     <div className="app-container">
-      <FilesSidebar width={leftWidth}>
-        <Sidebar />
-      </FilesSidebar>
+
+
+
+      <FilesSidebar width={leftWidth} />
       <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
       
       <MainContentWindow>

@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import asyncio
 import uvicorn
 import json
+import os
 
 app = FastAPI()
 
@@ -20,9 +21,6 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str = "default"
 
-
-import asyncio
-import json
 
 class OpenClawAgentBridge:
     async def send_message(
@@ -57,6 +55,26 @@ class OpenClawAgentBridge:
 
 
 agent_bridge = OpenClawAgentBridge()
+
+
+@app.get("/files")
+async def list_files():
+    # Define files/directories to explicitly hide
+    hidden_files = [".git", ".venv", "__pycache__", "node_modules", "platform", "package-lock.json", "package.json", "agent"]
+    files = []
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+    for name in os.listdir(root_dir):
+        # Filter out hidden files and those in the hidden list
+        if name.startswith(".") or name in hidden_files:
+            continue
+
+        full_path = os.path.join(root_dir, name)
+        files.append({
+            "name": name,
+            "isDir": os.path.isdir(full_path)
+        })
+    return {"files": files}
 
 
 @app.post("/chat")
@@ -116,3 +134,4 @@ if __name__ == "__main__":
         host="127.0.0.1",
         port=8000,
     )
+
