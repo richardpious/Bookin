@@ -1,24 +1,33 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
 import { FilesSidebar } from './components/FilesSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
-import { sendMessage } from './utils/chatUtils'
+
+import { setupWebSocket } from './utils/wsUtils'
 import './App.css'
 
 function App() {
   const [messages, setMessages] = useState([
-    { id: 1, sender: 'bot', text: 'Hello! How can I help you with BookIn today?' },
+    { id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' },
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [socket, setSocket] = useState(null)
   const messagesEndRef = useRef(null)
   
   const [leftWidth, setLeftWidth] = useState(260)
   const [rightWidth, setRightWidth] = useState(350)
   const isResizingLeft = useRef(false)
   const isResizingRight = useRef(false)
+
+  useEffect(() => {
+
+    const ws = setupWebSocket('default', setMessages, setIsLoading)
+    setSocket(ws)
+    return () => ws.close()
+  }, [])
 
   const handleMouseMove = useCallback((e) => {
     if (isResizingLeft.current) {
@@ -44,10 +53,12 @@ function App() {
   }
 
   const handleSend = async () => {
-    if (input.trim()) {
+    if (input.trim() && socket) {
       const currentInput = input;
       setInput('')
-      await sendMessage(currentInput, setMessages, setIsLoading)
+      setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: currentInput }]);
+      setIsLoading(true);
+      socket.send(currentInput)
     }
   }
 
@@ -77,4 +88,3 @@ function App() {
 }
 
 export default App
-
