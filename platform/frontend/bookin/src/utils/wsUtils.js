@@ -3,8 +3,41 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading) => {
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: data.message }]);
+    console.log("WebSocket message received:", data);
+
+    if (data.type === 'chunk') {
+      setMessages((prev) => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.sender === 'bot' && !lastMessage.isComplete) {
+          return [
+            ...prev.slice(0, -1),
+            { ...lastMessage, text: lastMessage.text + data.message }
+          ];
+        } else {
+          return [...prev, { id: Date.now(), sender: 'bot', text: data.message, isComplete: false }];
+        }
+      });
+    } else if (data.type === 'done') {
+      setMessages((prev) => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.sender === 'bot') {
+          return [
+            ...prev.slice(0, -1),
+            { ...lastMessage, isComplete: true }
+          ];
+        }
+        return prev;
+      });
     setIsLoading(false);
+    } else if (data.type === 'error') {
+      console.error("Agent Error:", data.message);
+      setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: `Error: ${data.message}`, isComplete: true }]);
+      setIsLoading(false);
+    } else if (data.message) {
+        // Fallback for legacy format
+        setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: data.message, isComplete: true }]);
+        setIsLoading(false);
+    }
   };
 
   ws.onopen = () => console.log('WebSocket connected');
@@ -12,3 +45,4 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading) => {
 
   return ws;
 };
+

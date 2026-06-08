@@ -15,7 +15,7 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
+  font: 16px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
@@ -39,7 +39,7 @@
     --code-bg: #1f2028;
     --accent: #c084fc;
     --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
+    --accent-border: rgba(192, 132, 52, 0.5);
     --social-bg: rgba(47, 48, 58, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
@@ -52,6 +52,20 @@
 
 body {
   margin: 0;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
 
 #root {
@@ -73,21 +87,21 @@ h2 {
 }
 
 h1 {
-  font-size: 56px;
+  font-size: 44px;
   letter-spacing: -1.68px;
   margin: 32px 0;
   @media (max-width: 1024px) {
-    font-size: 36px;
+    font-size: 30px;
     margin: 20px 0;
   }
 }
 h2 {
-  font-size: 24px;
+  font-size: 20px;
   line-height: 118%;
   letter-spacing: -0.24px;
   margin: 0 0 8px;
   @media (max-width: 1024px) {
-    font-size: 20px;
+    font-size: 18px;
   }
 }
 p {
@@ -103,9 +117,43 @@ code,
 }
 
 code {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+.app-header {
+  height: 50px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  color: var(--text-primary);
+}
+
+.header-left .logo {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: white;
+}
+
+.header-right {
+  display: flex;
+  gap: 15px;
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.nav-item:hover {
+  color: white;
 }
 

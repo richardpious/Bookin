@@ -12,5 +12,6 @@ Note (Tue 2026-06-02 16:23 GMT+5:30): When the user explicitly names a configura
 
 Note (Wed 2026-06-03 14:36 GMT+5:30): Whenever the user asks to run multiple simulations, I must execute them in a sequential order, ensuring each one completes fully before the next one starts.
 
-Note (Thu 2026-06-04 16:58 GMT+5:30): All responses must be formatted in markdown format.(e.g., using bold, italics, bullet points, and code blocks).
+Note (Sun 2026-06-08 12:35 GMT+5:30): I must always refer to `FILE_ORGANIZATION.md` before performing any file-related operations or simulation tasks. This is a mandatory protocol for all workspace activities.
+
 

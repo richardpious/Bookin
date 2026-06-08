@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { Header } from './components/Header'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
 import { FilesSidebar } from './components/FilesSidebar'
@@ -6,6 +7,7 @@ import { MainContentWindow } from './components/MainContentWindow'
 
 import { setupWebSocket } from './utils/wsUtils'
 import './App.css'
+import './index.css'
 
 function App() {
   const [messages, setMessages] = useState([
@@ -63,26 +65,26 @@ function App() {
 
   return (
     <div className="app-container">
-
-
-
-      <FilesSidebar width={leftWidth} />
-      <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
-      
-      <MainContentWindow>
-        <h1>Main Content Area</h1>
-      </MainContentWindow>
-      <Resizer onMouseDown={() => startResizing(isResizingRight)} />
-      
-      <ChatSidebar 
-        width={rightWidth}
-        messages={messages}
-        isLoading={isLoading}
-        input={input}
-        setInput={setInput}
-        onSend={handleSend}
-        messagesEndRef={messagesEndRef}
-      />
+      <Header />
+      <div className="main-layout">
+        <FilesSidebar width={leftWidth} />
+        <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
+        
+        <MainContentWindow>
+          <h1>Main Content Area</h1>
+        </MainContentWindow>
+        <Resizer onMouseDown={() => startResizing(isResizingRight)} />
+        
+        <ChatSidebar 
+          width={rightWidth}
+          messages={messages}
+          isLoading={isLoading}
+          input={input}
+          setInput={setInput}
+          onSend={handleSend}
+          messagesEndRef={messagesEndRef}
+        />
+      </div>
     </div>
   )
 }
