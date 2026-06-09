@@ -1,11 +1,13 @@
-export const setupWebSocket = (client_id, setMessages, setIsLoading) => {
+export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPreview) => {
   const ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     console.log("WebSocket message received:", data);
 
-    if (data.type === 'chunk') {
+    if (data.type === 'sim-preview') {
+      onSimPreview(data.data);
+    } else if (data.type === 'chunk') {
       setMessages((prev) => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage && lastMessage.sender === 'bot' && !lastMessage.isComplete) {

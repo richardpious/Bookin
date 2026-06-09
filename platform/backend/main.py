@@ -3,6 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
 
+
+
+print("FastAPI PID:", os.getpid())
+
+
+
 # Ensure the parent directory is in sys.path so we can import 'models'
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -156,23 +162,26 @@ async def websocket_endpoint(
     try:
         while True:
             message = await websocket.receive_text()
-
             try:
                 response = await agent_bridge.send_message(
                     message,
                     session_key,
                 )
 
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "type": "chunk",
-                            "message": response
+                # Check if the response starts with the WEB_SOCKET_SEND prefix
+                if response.strip().startswith("WEB_SOCKET_SEND: "):
+                    json_str = response.split("WEB_SOCKET_SEND: ", 1)[1]
+                    await websocket.send_text(json_str)
+                else:
+                    await websocket.send_text(
+                        json.dumps(
+                            {
+                                "type": "chunk",
+                                "message": response
                         }
+                        )
                     )
-                )
-
-                await websocket.send_text(json.dumps({"type": "done"}))
+                    await websocket.send_text(json.dumps({"type": "done"}))
 
             except Exception as e:
                 # Send error message back to client instead of crashing

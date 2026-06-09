@@ -33,7 +33,7 @@ function App() {
   const isResizingRight = useRef(false)
 
   useEffect(() => {
-    const ws = setupWebSocket(sessionId, setMessages, setIsLoading)
+    const ws = setupWebSocket(sessionId, setMessages, setIsLoading, handleOpenSimPreview)
     setSocket(ws)
     return () => ws.close()
   }, [sessionId])
@@ -50,6 +50,17 @@ function App() {
   }
     setActiveFile(path)
   }
+  const handleOpenSimPreview = (previewData) => {
+    const fileName = previewData.config_file || `preview-${Date.now()}.json`;
+    const content = JSON.stringify(previewData, null, 2);
+
+    if (!openFiles.includes(fileName)) {
+      setOpenFiles(prev => [...prev, fileName]);
+      setFileContents(prev => ({ ...prev, [fileName]: content }));
+    }
+    setActiveFile(fileName);
+  };
+
   const handleCloseFile = (e, path) => {
     e.stopPropagation()
     const newOpenFiles = openFiles.filter(f => f !== path)

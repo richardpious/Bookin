@@ -28,5 +28,7 @@ class OpenClawAgentBridge:
             raise Exception(stderr.decode())
 
         result = json.loads(stdout.decode())
+        print(f"DEBUG_RAW_AGENT_RESULT: {result}")
 
         return result["result"]["payloads"][0]["text"]
+
