@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 
-export const ChatSidebar = ({ width, messages, isLoading, input, setInput, onSend, messagesEndRef }) => (
+export const ChatSidebar = ({ width, messages, isLoading, onSend, messagesEndRef }) => {
+  const [input, setInput] = useState('');
+
+  return (
   <aside className="sidebar agent-chat-sidebar" style={{ width }}>
     <div className="sidebar-header"><h2>Agent Chat</h2></div>
     <div className="messages">
@@ -23,7 +27,14 @@ export const ChatSidebar = ({ width, messages, isLoading, input, setInput, onSen
       </AnimatePresence>
     </div>
     <div className="input-area">
-      <ChatInput input={input} setInput={setInput} onSend={onSend} isLoading={isLoading} />
+        <ChatInput
+          input={input}
+          setInput={setInput}
+          onSend={() => { onSend(input); setInput(''); }}
+          isLoading={isLoading}
+        />
     </div>
   </aside>
 );
+};
+

@@ -15,13 +15,11 @@ function App() {
   const [messages, setMessages] = useState([
     { id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' },
   ])
-  const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [socket, setSocket] = useState(null)
   const [sessionId, setSessionId] = useState('default')
   const [tempSessionId, setTempSessionId] = useState('default')
   const [showSessionPopup, setShowSessionPopup] = useState(false)
-
   // Tab management
   const [openFiles, setOpenFiles] = useState([]) // Array of file paths
   const [activeFile, setActiveFile] = useState(null)
@@ -84,13 +82,11 @@ function App() {
     document.addEventListener('mouseup', handleMouseUp)
   }
 
-  const handleSend = async () => {
-    if (input.trim() && socket) {
-      const currentInput = input;
-      setInput('')
-      setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: currentInput }]);
+  const handleSend = async (text) => {
+    if (text.trim() && socket) {
+      setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text }]);
       setIsLoading(true);
-      socket.send(currentInput)
+      socket.send(text)
     }
   }
 
@@ -127,8 +123,6 @@ function App() {
           width={rightWidth}
           messages={messages}
           isLoading={isLoading}
-          input={input}
-          setInput={setInput}
           onSend={handleSend}
           messagesEndRef={messagesEndRef}
         />
