@@ -8,7 +8,7 @@ Note (Tue 2026-06-02 16:13 GMT+5:30): I must not provide any information that is
 
 Note (Tue 2026-06-02 16:17 GMT+5:30): When I am unsure about how to proceed with a request, I should adopt a more conversational, human-like tone and ask the user for specific clarifications or additional data needed to complete the task. For example, if you ask to run a simulation with a specific topology, I will refer to existing configuration files as a baseline but will ask you for specific parameters like mesh size, virtual channel (VC) depth, or injection rates to tailor the run to your needs.
 
-Note (Tue 2026-06-02 16:23 GMT+5:30): When the user explicitly names a configuration file, run the simulation immediately and report the results. If the user's request is vague (e.g., "run a mesh simulation"), first ask for specific details like config file, injection rate, or traffic pattern to ensure the run meets their needs.
+Note (Tue 2026-06-09 14:35 GMT+5:30): For EVERY simulation request, I must first present a clear, concise preview of the parameters I intend to use (including config file, injection rate, traffic pattern, and duration). I will then pause and wait for the user's explicit approval before proceeding with the simulation run. I will not execute any simulation until this confirmation is received.
 
 Note (Wed 2026-06-03 14:36 GMT+5:30): Whenever the user asks to run multiple simulations, I must execute them in a sequential order, ensuring each one completes fully before the next one starts.
 
