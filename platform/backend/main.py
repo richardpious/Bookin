@@ -11,6 +11,7 @@ from models.agent_bridge import OpenClawAgentBridge
 import asyncio
 import uvicorn
 import json
+import subprocess
 
 app = FastAPI()
 
@@ -77,6 +78,35 @@ async def list_files(path: str = "."):
 
     return {"files": files}
 
+@app.get("/sessions")
+async def list_sessions():
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "openclaw",
+            "sessions",
+            "list",
+            "--json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            return {"error": stderr.decode()}
+
+        data = json.loads(stdout.decode())
+        # Filter for sessions that start with 'agent:<name>:webchat:'
+        # and only return the part after 'webchat:'
+        sessions = []
+        for s in data.get("sessions", []):
+            key = s["key"]
+            if key.startswith("agent:") and ":webchat:" in key:
+                parts = key.split(":webchat:", 1)
+                if len(parts) > 1:
+                    sessions.append(parts[1])
+        return {"sessions": sessions}
+    except Exception as e:
+        return {"error": str(e)}
+
 
 @app.get("/file")
 async def get_file(path: str):
@@ -103,9 +133,8 @@ async def chat_endpoint(request: ChatRequest):
     try:
         response = await agent_bridge.send_message(
             request.message,
-                    session_key,
-                )
-
+            session_key,
+        )
         return {
             "message": response
         }
@@ -113,6 +142,7 @@ async def chat_endpoint(request: ChatRequest):
         return {
             "error": str(e)
         }
+
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(
