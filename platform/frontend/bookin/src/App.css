@@ -33,6 +33,62 @@ body, html, #root {
   overflow: hidden;
 }
 
+/* Session Bar */
+.session-bar {
+  padding: 5px 20px;
+  background: var(--bg-sidebar);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.session-bar strong {
+  color: white;
+}
+
+.session-switch-btn {
+  background: var(--accent);
+  border: 1px solid var(--border-light);
+}
+
+/* Popup */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-content {
+  background: var(--bg-sidebar);
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 300px;
+  border: 1px solid var(--border-light);
+}
+
+.popup-content h3 {
+  margin: 0;
+  color: white;
+}
+
+.popup-content input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+}
+
 /* Sidebar */
 .sidebar {
   width: 260px;

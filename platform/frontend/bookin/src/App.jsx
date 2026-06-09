@@ -4,6 +4,7 @@ import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
 import { FilesSidebar } from './components/FilesSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
+import { SessionPopup } from './components/SessionPopup'
 import { readFileContent } from './utils/fileUtils'
 
 import { setupWebSocket } from './utils/wsUtils'
@@ -17,6 +18,9 @@ function App() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [socket, setSocket] = useState(null)
+  const [sessionId, setSessionId] = useState('default')
+  const [tempSessionId, setTempSessionId] = useState('default')
+  const [showSessionPopup, setShowSessionPopup] = useState(false)
 
   // Tab management
   const [openFiles, setOpenFiles] = useState([]) // Array of file paths
@@ -31,12 +35,10 @@ function App() {
   const isResizingRight = useRef(false)
 
   useEffect(() => {
-
-    const ws = setupWebSocket('default', setMessages, setIsLoading)
+    const ws = setupWebSocket(sessionId, setMessages, setIsLoading)
     setSocket(ws)
     return () => ws.close()
-  }, [])
-
+  }, [sessionId])
   const handleFileClick = async (path) => {
     if (!openFiles.includes(path)) {
       setOpenFiles([...openFiles, path])
@@ -92,9 +94,22 @@ function App() {
     }
   }
 
+  const handleDoneSession = () => {
+    setSessionId(tempSessionId);
+    setShowSessionPopup(false);
+  }
+
   return (
     <div className="app-container">
-      <Header />
+      <Header onSwitchSession={() => { setTempSessionId(sessionId); setShowSessionPopup(true); }} />
+
+      <SessionPopup
+        show={showSessionPopup}
+        tempSessionId={tempSessionId}
+        setTempSessionId={setTempSessionId}
+        onDone={handleDoneSession}
+      />
+
       <div className="main-layout">
         <FilesSidebar width={leftWidth} onFileClick={handleFileClick} activeFile={activeFile} />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
