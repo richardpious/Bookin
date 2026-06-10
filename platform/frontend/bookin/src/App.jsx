@@ -2,24 +2,33 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { Header } from './components/Header'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
-import { FilesSidebar } from './components/FilesSidebar'
+import { LeftSidebar } from './components/LeftSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
-import { SessionPopup } from './components/SessionPopup'
 import { readFileContent } from './utils/fileUtils'
+import { fetchChatHistory } from './utils/historyUtils'
 
 import { setupWebSocket } from './utils/wsUtils'
 import './App.css'
 import './index.css'
 
+async function fetchSessions() {
+  try {
+    const response = await fetch('http://localhost:8000/sessions');
+    if (!response.ok) throw new Error('Failed to fetch sessions');
+    const data = await response.json();
+    return data.sessions || [];
+  } catch (error) {
+    console.error('Error fetching sessions:', error);
+    return [];
+  }
+}
+
 function App() {
-  const [messages, setMessages] = useState([
-    { id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' },
-  ])
+  const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [socket, setSocket] = useState(null)
   const [sessionId, setSessionId] = useState('default')
-  const [tempSessionId, setTempSessionId] = useState('default')
-  const [showSessionPopup, setShowSessionPopup] = useState(false)
+  const [sessions, setSessions] = useState([])
   // Tab management
   const [openFiles, setOpenFiles] = useState([]) // Array of file paths
   const [activeFile, setActiveFile] = useState(null)
@@ -31,6 +40,24 @@ function App() {
   const [rightWidth, setRightWidth] = useState(500)
   const isResizingLeft = useRef(false)
   const isResizingRight = useRef(false)
+
+  // Load initial sessions
+  useEffect(() => {
+    const loadSessions = async () => {
+      const data = await fetchSessions()
+      setSessions(data)
+    }
+    loadSessions()
+  }, [])
+
+  // Load chat history when sessionId changes
+  useEffect(() => {
+    const loadHistory = async () => {
+      const history = await fetchChatHistory(sessionId)
+      setMessages(history.length > 0 ? history : [{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }])
+    }
+    loadHistory()
+  }, [sessionId])
 
   useEffect(() => {
     const ws = setupWebSocket(sessionId, setMessages, setIsLoading, handleOpenSimPreview)
@@ -51,12 +78,13 @@ function App() {
     setActiveFile(path)
   }
   const handleOpenSimPreview = (previewData) => {
+    console.log("handleOpenSimPreview called with:", previewData);
     const fileName = previewData.config_file || `preview-${Date.now()}.json`;
-    const content = JSON.stringify(previewData, null, 2);
-
+    // We store the data object directly instead of stringifying it
     if (!openFiles.includes(fileName)) {
+      console.log("Opening new tab for:", fileName);
       setOpenFiles(prev => [...prev, fileName]);
-      setFileContents(prev => ({ ...prev, [fileName]: content }));
+      setFileContents(prev => ({ ...prev, [fileName]: previewData }));
     }
     setActiveFile(fileName);
   };
@@ -101,24 +129,19 @@ function App() {
     }
   }
 
-  const handleDoneSession = () => {
-    setSessionId(tempSessionId);
-    setShowSessionPopup(false);
-  }
-
   return (
     <div className="app-container">
-      <Header onSwitchSession={() => { setTempSessionId(sessionId); setShowSessionPopup(true); }} />
-
-      <SessionPopup
-        show={showSessionPopup}
-        tempSessionId={tempSessionId}
-        setTempSessionId={setTempSessionId}
-        onDone={handleDoneSession}
-      />
-
+      <Header />
       <div className="main-layout">
-        <FilesSidebar width={leftWidth} onFileClick={handleFileClick} activeFile={activeFile} />
+        <LeftSidebar
+            width={leftWidth}
+            onFileClick={handleFileClick}
+          activeFile={activeFile}
+            sessions={sessions}
+            setSessions={setSessions}
+            currentSession={sessionId}
+            onSelectSession={setSessionId}
+        />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         
         <MainContentWindow

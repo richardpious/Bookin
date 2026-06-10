@@ -1,4 +1,5 @@
 import { CodeEditor } from './CodeEditor';
+import { SimPreview } from './SimPreview';
 import { MainContentHome } from './MainContentHome';
 import { X } from 'lucide-react';
 
@@ -37,7 +38,11 @@ export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabCl
       </div>
       <div style={{ flex: 1, position: 'relative' }}>
         {activeFile && (
-          <CodeEditor filePath={activeFile} content={fileContents[activeFile]} />
+          activeFile.startsWith('preview-') ? (
+            <SimPreview data={fileContents[activeFile]} />
+          ) : (
+            <CodeEditor filePath={activeFile} content={fileContents[activeFile]} />
+          )
         )}
       </div>
     </main>
