@@ -164,24 +164,39 @@ async def get_history(session_id: str):
 @app.post("/reset_session/{session_id}")
 async def reset_session(session_id: str):
     try:
-        # Reset in openclaw
-        proc = await asyncio.create_subprocess_exec(
-            "openclaw",
-            "sessions",
-            "reset",
-            f"webchat:{session_id}",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            return {"error": stderr.decode()}
+        # Send '/reset' to the active websocket connection if it exists
+        if session_id in manager.active_connections:
+            print(f"DEBUG: Sending '/reset' to websocket for session {session_id}")
+            await manager.active_connections[session_id].send_text("/reset")
+        else:
+            print(f"DEBUG: No active websocket for session {session_id}, proceeding with DB reset only")
 
         # Reset in DB
+        print(f"DEBUG: Resetting session {session_id} in DB...")
         chat_db.reset_session(session_id)
 
         return {"status": "success"}
     except Exception as e:
+        print(f"DEBUG: Exception during reset: {e}")
+        return {"error": str(e)}
+
+@app.post("/delete_session/{session_id}")
+async def delete_session(session_id: str):
+    try:
+        # Send '/reset' to the active websocket connection if it exists
+        if session_id in manager.active_connections:
+            print(f"DEBUG: Sending '/reset' to websocket for session {session_id}")
+            await manager.active_connections[session_id].send_text("/reset")
+        else:
+            print(f"DEBUG: No active websocket for session {session_id}, proceeding with DB reset only")
+
+        # Reset in DB
+        print(f"DEBUG: Deleting session {session_id} in DB...")
+        chat_db.reset_session(session_id)
+
+        return {"status": "success"}
+    except Exception as e:
+        print(f"DEBUG: Exception during deletion: {e}")
         return {"error": str(e)}
 
 
@@ -222,7 +237,7 @@ async def websocket_endpoint(
                                 "type": "chunk",
                                 "message": response
                         }
-                    )
+    )
                     )
                     await websocket.send_text(json.dumps({"type": "done"}))
 

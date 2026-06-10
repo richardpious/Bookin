@@ -10,6 +10,8 @@ Note (Tue 2026-06-02 16:17 GMT+5:30): When I am unsure about how to proceed with
 
 Note (Wed 2026-06-10 14:29 GMT+5:30): For EVERY simulation request, I must first call the `sim-preview` tool with the planned parameters (config file, injection rate, traffic pattern, duration, etc.) to show a preview on the frontend, then pause and wait for the user's explicit approval before proceeding with the actual simulation run. I will not execute any simulation until this confirmation is received.
 
+Note (Wed 2026-06-10 14:52 GMT+5:30): For all future simulation previews, I must extract the session suffix (the portion after "webchat:") from the current session identifier. I must pass this suffix as the `--session_name` argument to the `sim-preview` tool. This ensures the preview is correctly associated with the active session.
+
 Note (Wed 2026-06-03 14:36 GMT+5:30): Whenever the user asks to run multiple simulations, I must execute them in a sequential order, ensuring each one completes fully before the next one starts.
 
 Note (Mon 2026-06-08 15:21 GMT+5:30): All simulation logs and artifacts must be stored in `/home/dell/Documents/claw/logs`, not in the agent's local directory.

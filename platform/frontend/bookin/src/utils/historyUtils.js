@@ -1,6 +1,6 @@
 export const fetchChatHistory = async (sessionId) => {
   try {
-    const response = await fetch(`http://localhost:8000/history/${sessionId}`);
+    const response = await fetch(`http://localhost:8000/history/${sessionId}?t=${Date.now()}`);
     if (!response.ok) {
       throw new Error('Failed to fetch chat history');
     }
@@ -17,3 +17,4 @@ export const fetchChatHistory = async (sessionId) => {
     return [];
   }
 };
+

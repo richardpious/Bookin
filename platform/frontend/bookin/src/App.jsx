@@ -1,13 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Header } from './components/Header'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
 import { LeftSidebar } from './components/LeftSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
-import { readFileContent } from './utils/fileUtils'
-import { fetchChatHistory } from './utils/historyUtils'
-
-import { setupWebSocket } from './utils/wsUtils'
+import { useResizer } from './hooks/useResizer'
+import { useFileManagement } from './hooks/useFileManagement'
+import { useChatManagement } from './hooks/useChatManagement'
 import './App.css'
 import './index.css'
 
@@ -24,22 +23,13 @@ async function fetchSessions() {
 }
 
 function App() {
-  const [messages, setMessages] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [socket, setSocket] = useState(null)
   const [sessionId, setSessionId] = useState('default')
   const [sessions, setSessions] = useState([])
-  // Tab management
-  const [openFiles, setOpenFiles] = useState([]) // Array of file paths
-  const [activeFile, setActiveFile] = useState(null)
-  const [fileContents, setFileContents] = useState({}) // Map of path -> content
 
-  const messagesEndRef = useRef(null)
-  
-  const [leftWidth, setLeftWidth] = useState(260)
-  const [rightWidth, setRightWidth] = useState(500)
-  const isResizingLeft = useRef(false)
-  const isResizingRight = useRef(false)
+  const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
+  const { openFiles, activeFile, fileContents, handleFileClick, handleOpenSimPreview, handleCloseFile, setActiveFile } = useFileManagement();
+
+  const { messages, isLoading, handleSend, setMessages, messagesEndRef } = useChatManagement(sessionId, handleOpenSimPreview);
 
   // Load initial sessions
   useEffect(() => {
@@ -50,89 +40,27 @@ function App() {
     loadSessions()
   }, [])
 
-  // Load chat history when sessionId changes
-  useEffect(() => {
-    const loadHistory = async () => {
-      const history = await fetchChatHistory(sessionId)
-      setMessages(history.length > 0 ? history : [{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }])
-    }
-    loadHistory()
-  }, [sessionId])
+  const handleDeleteSession = async (session) => {
+    try {
+      const response = await fetch(`http://localhost:8000/delete_session/${session}`, { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to delete session');
 
-  useEffect(() => {
-    const ws = setupWebSocket(sessionId, setMessages, setIsLoading, handleOpenSimPreview)
-    setSocket(ws)
-    return () => ws.close()
-  }, [sessionId])
-  const handleFileClick = async (path) => {
-    if (!openFiles.includes(path)) {
-      setOpenFiles([...openFiles, path])
-      try {
-      const content = await readFileContent(path)
-        setFileContents(prev => ({ ...prev, [path]: content }))
+      const newSessions = await fetchSessions();
+      setSessions(newSessions);
+
+      if (sessionId === session) {
+        setMessages([{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
+      }
     } catch (err) {
-      console.error(err)
-        setFileContents(prev => ({ ...prev, [path]: 'Error loading file content.' }))
-    }
-  }
-    setActiveFile(path)
-  }
-  const handleOpenSimPreview = (previewData) => {
-    console.log("handleOpenSimPreview called with:", previewData);
-    const fileName = previewData.config_file || `preview-${Date.now()}.json`;
-    // We store the data object directly instead of stringifying it
-    if (!openFiles.includes(fileName)) {
-      console.log("Opening new tab for:", fileName);
-      setOpenFiles(prev => [...prev, fileName]);
-      setFileContents(prev => ({ ...prev, [fileName]: previewData }));
-    }
-    setActiveFile(fileName);
-  };
-
-  const handleCloseFile = (e, path) => {
-    e.stopPropagation()
-    const newOpenFiles = openFiles.filter(f => f !== path)
-    setOpenFiles(newOpenFiles)
-
-    if (activeFile === path) {
-      setActiveFile(newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null)
-    }
-  }
-  const handleMouseMove = useCallback((e) => {
-    if (isResizingLeft.current) {
-      setLeftWidth(Math.max(150, Math.min(e.clientX, 500)))
-    } else if (isResizingRight.current) {
-      setRightWidth(Math.max(250, Math.min(window.innerWidth - e.clientX, 600)))
-    }
-  }, [])
-
-  const handleMouseUp = useCallback(() => {
-    isResizingLeft.current = false
-    isResizingRight.current = false
-    document.body.style.userSelect = 'auto'
-    document.removeEventListener('mousemove', handleMouseMove)
-    document.removeEventListener('mouseup', handleMouseUp)
-  }, [handleMouseMove])
-
-  const startResizing = (ref) => {
-    ref.current = true
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }
-
-  const handleSend = async (text) => {
-    if (text.trim() && socket) {
-      setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text }]);
-      setIsLoading(true);
-      socket.send(text)
+      console.error(err);
+      alert('Error deleting session');
     }
   }
 
   return (
     <div className="app-container">
       <Header />
-      <div className="main-layout">
+      <div className="main-layout" style={{ zIndex: 'auto', position: 'relative' }}>
         <LeftSidebar
             width={leftWidth}
             onFileClick={handleFileClick}
@@ -141,9 +69,11 @@ function App() {
             setSessions={setSessions}
             currentSession={sessionId}
             onSelectSession={setSessionId}
+            onResetSession={handleDeleteSession}
         />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         
+        <div style={{ flex: 1, position: 'relative', zIndex: 0 }}>
         <MainContentWindow
           openFiles={openFiles}
           activeFile={activeFile}
@@ -151,6 +81,8 @@ function App() {
           onTabClick={setActiveFile}
           onCloseTab={handleCloseFile}
         />
+    </div>
+
         <Resizer onMouseDown={() => startResizing(isResizingRight)} />
 
         <ChatSidebar
