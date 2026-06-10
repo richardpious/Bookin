@@ -1,13 +1,8 @@
-
-
-
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 import json
 router = APIRouter()
 
 @router.post("/chat")
-
-
 async def chat_endpoint(request: Request):
     data = await request.json()
     session_id = data.get("session_id")
@@ -16,15 +11,14 @@ async def chat_endpoint(request: Request):
     chat_db = request.app.state.chat_db
     agent_bridge = request.app.state.agent_bridge
     try:
-
-
-
         chat_db.add_message(session_id, "user", message)
         response = await agent_bridge.send_message(message, session_key)
         chat_db.add_message(session_id, "agent", response)
         return {"message": response}
     except Exception as e:
-        return {"error": str(e)}
+        error_msg = str(e)
+        chat_db.add_message(session_id, "agent", f"Error: {error_msg}")
+        return {"error": error_msg}
 
 @router.get("/history/{session_id}")
 async def get_history(request: Request, session_id: str):

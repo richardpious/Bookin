@@ -1,8 +1,7 @@
-Simulation Request:
-- Topology: Mesh
-- Configuration: ../booksim/src/examples/mesh4x4_custom.cfg
-- Traffic: Uniform
-- Injection Rate: 0.10
-- Max Samples: 10000
-
-Please approve to proceed.
+Previewing Simulation:
+Config: torus5x5.cfg
+Topology: torus
+Size: 5x5
+Injection Rate: 0.075
+Traffic Pattern: uniform
+Duration: 10000 cycles

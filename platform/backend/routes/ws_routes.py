@@ -27,8 +27,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     await websocket.send_text(json.dumps({"type": "chunk", "message": response}))
                     await websocket.send_text(json.dumps({"type": "done"}))
             except Exception as e:
-                await websocket.send_text(json.dumps({"type": "error", "message": str(e)}))
+                error_msg = str(e)
+                chat_db.add_message(client_id, "agent", f"Error: {error_msg}")
+                await websocket.send_text(json.dumps({"type": "error", "message": error_msg}))
     except WebSocketDisconnect:
         manager.disconnect(client_id)
     except Exception as e:
         manager.disconnect(client_id)
+
