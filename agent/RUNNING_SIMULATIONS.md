@@ -19,15 +19,19 @@ This document defines the end-to-end automation runbook I will execute for BookS
 3)  **Configure and set up a run**:
     *   Select a configuration file from `../booksim/src/examples/`.
     *   Prepare simulation parameters (e.g., `sim_type`, `injection_rate`, `seed`).
-4)  **Run BookSim simulations with organized logging**:
+4)  **Simulation Preview and Approval (CRITICAL)**:
+    *   Before running ANY simulation, ALWAYS show a preview using the `sim-preview` tool.
+    *   When using the `sim-preview` tool, you must pass the **full content** of the configuration file along with any parameters. Extract the session suffix (the portion after "webchat:") from the current session identifier and pass it as `--session_name`.
+    *   ALWAYS explicitly ask for the user's approval after showing the preview. **DO NOT proceed** to run the simulation until the user has explicitly approved it.
+5)  **Run BookSim simulations with organized logging**:
     *   If and only if this is the first simulation in a new session, create a session-specific timestamped directory in `../logs/` with a name `session_[timestamp]`.
     *   For each individual simulation, create a dedicated run sub-folder within the current session's `../logs/[session]` directory with an incremental naming convention..
     *   Execute the simulation from inside the run folder, pointing to the binary at `../../..booksim/src/booksim`.
     *   Record simulation output (including errors) to `simulation.log` within that folder.
-5)  **Generate concise summary/report**:
-    *   Create a human-readable summary and/or machine-readable report containing metrics and run metadata.
-6)  **Return results; optional memory/report updates**:
-    *   Return the summary to the user.
+6)  **Generate concise summary/report**:
+    *   Create a human-readable, informative summary and/or machine-readable report containing metrics and run metadata. Ensure you provide context and clear explanations of the results.
+7)  **Return results; optional memory/report updates**:
+    *   Return the detailed summary to the user.
     *   Append results to a memory file and/or update a persistent report file.
 
 **Learned BookSim Parameters and Modes:**

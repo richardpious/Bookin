@@ -2,9 +2,21 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPrevie
   const ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
 
   ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+    let data;
+    try {
+      data = JSON.parse(event.data);
+    } catch (e) {
+      console.error("Non-JSON message received:", event.data);
+      return;
+    }
     console.log("WebSocket message received:", data);
 
+    if (data.type === 'command' && data.action === 'reset') {
+      console.log("Reset command received");
+      setMessages([]); // Assuming you want to clear the chat UI
+    setIsLoading(false);
+      return;
+    }
     if (data.type === 'sim-preview') {
       onSimPreview(data.data);
     } else if (data.type === 'chunk') {

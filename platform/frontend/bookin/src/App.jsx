@@ -43,17 +43,28 @@ function App() {
   const handleDeleteSession = async (session) => {
     try {
       const response = await fetch(`http://localhost:8000/delete_session/${session}`, { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to delete session');
+      let responseData = {};
+      try {
+        responseData = await response.json();
+      } catch (e) {
+        // ignore JSON parse error
+      }
+
+      if (!response.ok || responseData.error) {
+        throw new Error(responseData.error || responseData.message || 'Failed to delete session');
+      }
 
       const newSessions = await fetchSessions();
+      console.log("Updated sessions:", newSessions);
       setSessions(newSessions);
 
       if (sessionId === session) {
+        setSessionId('default');
         setMessages([{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
       }
     } catch (err) {
       console.error(err);
-      alert('Error deleting session');
+      alert(`Error deleting session: ${err.message}`);
     }
   }
 

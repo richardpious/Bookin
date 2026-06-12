@@ -4,7 +4,9 @@ from datetime import datetime
 
 class ChatHistoryDB:
     def __init__(self, db_path="chat_history.db"):
-        self.db_path = db_path
+        # Get the directory where this script is located
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.db_path = os.path.join(base_dir, db_path)
         self._init_db()
 
     def _init_db(self):

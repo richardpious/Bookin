@@ -7,7 +7,11 @@ export const useChatManagement = (sessionId, handleOpenSimPreview) => {
   const [isLoading, setIsLoading] = useState(false);
   const [socket, setSocket] = useState(null);
   const messagesEndRef = useRef(null);
+  const handleOpenSimPreviewRef = useRef(handleOpenSimPreview);
 
+  useEffect(() => {
+    handleOpenSimPreviewRef.current = handleOpenSimPreview;
+  }, [handleOpenSimPreview]);
   useEffect(() => {
     const loadHistory = async () => {
       const history = await fetchChatHistory(sessionId);
@@ -17,10 +21,10 @@ export const useChatManagement = (sessionId, handleOpenSimPreview) => {
   }, [sessionId]);
 
   useEffect(() => {
-    const ws = setupWebSocket(sessionId, setMessages, setIsLoading, handleOpenSimPreview);
+    const ws = setupWebSocket(sessionId, setMessages, setIsLoading, (data) => handleOpenSimPreviewRef.current(data));
     setSocket(ws);
     return () => ws.close();
-  }, [sessionId, handleOpenSimPreview]);
+  }, [sessionId]);
 
   const handleSend = async (text) => {
     if (text.trim() && socket) {
@@ -32,3 +36,4 @@ export const useChatManagement = (sessionId, handleOpenSimPreview) => {
 
   return { messages, isLoading, handleSend, setMessages, messagesEndRef };
 };
+
