@@ -1,0 +1,6 @@
+# List your python dependencies here
+
+# Backend
+fastapi
+uvicorn
+pydantic

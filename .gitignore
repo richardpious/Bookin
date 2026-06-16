@@ -7,7 +7,7 @@ __pycache__/
 
 # Node/Dependencies
 node_modules/
-package-lock.json
+# package-lock.json
 
 # IDE/Editor
 .vscode/
@@ -24,3 +24,4 @@ dist/
 booksim/src/*.o
 booksim/src/*.a
 booksim/src/booksim
+
