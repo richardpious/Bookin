@@ -7,7 +7,7 @@ The router is the core component of the network. BookSim provides a flexible rou
 
 To explore the router architecture in depth, please refer to the following guides:
 - [IQ Router Pipeline](iq_router_pipeline.md): Cycle-by-cycle execution mechanics of the standard Input-Queued Router.
-- [Allocators and Arbiters](allocators_and_arbiters.md): Contention resolution engines (Switch and VC Allocators).
+- [Allocators](allocators/README.md) and [Arbiters](arbiters/README.md): Contention resolution engines.
 - [Crossbar and Speedup](crossbar_and_speedup.md): Switch traversal mechanics and internal speedup configuration.
 - [Alternative Routers](alternative_routers.md): Details on Event-driven and Chaos routers.
 
@@ -35,12 +35,9 @@ The number of cycles spent in each stage can be configured:
 
 ## Allocators and Arbiters
 
-The efficiency of a router depends heavily on its allocators. BookSim supports several types:
-- `islip`: Iterative Slip allocator.
-- `pim`: Parallel Iterative Matching.
-- `wavefront`: Wavefront allocator.
-- `longitudinal`: Longitudinal allocator.
-
+For detailed information on the available allocators and arbiters, refer to their dedicated documentation:
+- [Allocators](allocators/README.md)
+- [Arbiters](arbiters/README.md)
 Parameters: `vc_allocator`, `sw_allocator`, `alloc_iters`.
 
 ## Internal Speedup
@@ -49,3 +46,4 @@ The crossbar can be clocked faster or have more ports than the input/output link
 - `internal_speedup`: Floating point value (e.g., 2.0).
 - `input_speedup`: Integer multiplier for input ports.
 - `output_speedup`: Integer multiplier for output ports.
+
