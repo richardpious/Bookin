@@ -1,0 +1,26 @@
+# .gitignore
+
+# Python/Environment
+.venv/
+__pycache__/
+*.pyc
+
+# Node/Dependencies
+node_modules/
+package-lock.json
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# Logs and Build
+logs/
+*.log
+*.tmp
+build/
+dist/
+
+# BookSim specific
+booksim/src/*.o
+booksim/src/*.a
+booksim/src/booksim
