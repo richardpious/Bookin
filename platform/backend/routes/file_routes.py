@@ -14,7 +14,7 @@ async def list_files(path: str = "."):
     if not os.path.isdir(target_dir):
         return {"error": "Not a directory"}
 
-    hidden_dirs = [".git", ".venv", "__pycache__", "node_modules", "platform", "agent", "package-lock.json", "package.json", "chat_history.db"]
+    hidden_dirs = [".git", ".venv", "__pycache__", "node_modules", "platform", "agent", "README.md", "requirements.txt", "package-lock.json", "package.json", "chat_history.db"]
     files = []
     try:
         items = sorted(os.listdir(target_dir))

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "paths": {
+      "openclaw/*": ["/home/dell/.openclaw/tools/node-v22.22.0/lib/node_modules/openclaw/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

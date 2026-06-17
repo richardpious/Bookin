@@ -4,6 +4,7 @@ import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
 import { LeftSidebar } from './components/LeftSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
+import ApprovalModal from './components/ApprovalModal'
 import { useResizer } from './hooks/useResizer'
 import { useFileManagement } from './hooks/useFileManagement'
 import { useChatManagement } from './hooks/useChatManagement'
@@ -25,11 +26,19 @@ async function fetchSessions() {
 function App() {
   const [sessionId, setSessionId] = useState('default')
   const [sessions, setSessions] = useState([])
+  const [approvalRequest, setApprovalRequest] = useState(null)
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
   const { openFiles, activeFile, fileContents, handleFileClick, handleOpenSimPreview, handleCloseFile, setActiveFile } = useFileManagement();
 
-  const { messages, isLoading, handleSend, setMessages, messagesEndRef } = useChatManagement(sessionId, handleOpenSimPreview);
+  const handleRequireApproval = (data) => {
+    setApprovalRequest(data);
+  };
+  const { messages, isLoading, handleSend, setMessages, messagesEndRef } = useChatManagement(
+    sessionId,
+    handleOpenSimPreview,
+    handleRequireApproval
+  );
 
   // Load initial sessions
   useEffect(() => {
@@ -71,6 +80,13 @@ function App() {
   return (
     <div className="app-container">
       <Header />
+      <ApprovalModal
+        isOpen={!!approvalRequest}
+        title={approvalRequest?.title || ''}
+        description={approvalRequest?.description || ''}
+        onApprove={() => { console.log('Approve clicked'); setApprovalRequest(null); }}
+        onDeny={() => { console.log('Deny clicked'); setApprovalRequest(null); }}
+      />
       <div className="main-layout" style={{ zIndex: 'auto', position: 'relative' }}>
         <LeftSidebar
             width={leftWidth}

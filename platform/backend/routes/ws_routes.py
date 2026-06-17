@@ -15,6 +15,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     try:
         while True:
             message = await websocket.receive_text()
+            print(f"DEBUG: [WebSocket Received] {message}")
             try:
                 chat_db.add_message(client_id, "user", message)
                 response = await agent_bridge.send_message(message, session_key)
@@ -22,8 +23,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
                 if response.strip().startswith("WEB_SOCKET_SEND: "):
                     json_str = response.split("WEB_SOCKET_SEND: ", 1)[1]
+                    print(f"DEBUG: [WebSocket Sending] {json_str}")
                     await websocket.send_text(json_str)
                 else:
+                    print(f"DEBUG: [WebSocket Sending] chunk/done")
                     await websocket.send_text(json.dumps({"type": "chunk", "message": response}))
                     await websocket.send_text(json.dumps({"type": "done"}))
             except Exception as e:

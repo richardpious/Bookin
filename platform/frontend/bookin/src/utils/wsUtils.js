@@ -1,4 +1,4 @@
-export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPreview) => {
+export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPreview, onRequireApproval) => {
   const ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
 
   ws.onmessage = (event) => {
@@ -17,7 +17,9 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPrevie
     setIsLoading(false);
       return;
     }
-    if (data.type === 'sim-preview') {
+    if (data.type === 'requireApproval') {
+      onRequireApproval(data.data);
+    } else if (data.type === 'sim-preview') {
       onSimPreview(data.data);
     } else if (data.type === 'chunk') {
       setMessages((prev) => {

@@ -1,0 +1,14 @@
+{
+  "name": "tool-approval-plugin",
+  "version": "1.0.0",
+  "description": "Requires user approval before any tool execution",
+  "main": "dist/index.js",
+  "type": "module",
+  "openclaw": {
+    "extensions": ["./dist/index.js"],
+    "hooks": true
+  },
+  "devDependencies": {
+    "openclaw": "file:/home/dell/.openclaw/tools/node-v22.22.0/lib/node_modules/openclaw"
+  }
+}
