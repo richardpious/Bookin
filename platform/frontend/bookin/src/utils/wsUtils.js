@@ -14,6 +14,16 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPrevie
     if (data.type === 'gateway_log') {
       console.group("OpenClaw Gateway Event");
       console.table(data.payload);
+
+      if (data.payload?.type === 'event' && data.payload?.event === 'plugin.approval.requested') {
+        const approvalData = data.payload.payload;
+        onRequireApproval({
+          title: approvalData.request.title,
+          description: approvalData.request.description,
+          id: approvalData.id
+        });
+      }
+
       console.groupEnd();
       return;
     }

@@ -84,8 +84,24 @@ function App() {
         isOpen={!!approvalRequest}
         title={approvalRequest?.title || ''}
         description={approvalRequest?.description || ''}
-        onApprove={() => { console.log('Approve clicked'); setApprovalRequest(null); }}
-        onDeny={() => { console.log('Deny clicked'); setApprovalRequest(null); }}
+        onApprove={() => {
+          console.log('Approve clicked', approvalRequest.id);
+          fetch('http://localhost:8000/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: approvalRequest.id, decision: 'allow-once' })
+          });
+          setApprovalRequest(null);
+        }}
+        onDeny={() => {
+          console.log('Deny clicked', approvalRequest.id);
+          fetch('http://localhost:8000/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: approvalRequest.id, decision: 'deny' })
+          });
+          setApprovalRequest(null);
+        }}
       />
       <div className="main-layout" style={{ zIndex: 'auto', position: 'relative' }}>
         <LeftSidebar
