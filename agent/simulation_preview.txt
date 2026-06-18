@@ -1,7 +1,0 @@
-Previewing Simulation:
-Config: torus5x5.cfg
-Topology: torus
-Size: 5x5
-Injection Rate: 0.075
-Traffic Pattern: uniform
-Duration: 10000 cycles

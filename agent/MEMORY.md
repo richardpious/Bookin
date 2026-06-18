@@ -1,5 +1,3 @@
-This specific execution demonstrates the successful automation of the BookSim workflow, from compilation to analysis. It validates the process and provides concrete results to build upon.
-
 Note (Mon 2026-06-01 10:29 GMT+5:30): Whenever the user asks to run a simulation using a specific config file, I must always provide the simulation results as part of the response.
 
 Note (Mon 2026-06-01 10:31 GMT+5:30): When running simulations only, there is no need to make clean and make everytime. Just run the booksim command and run the simulation.

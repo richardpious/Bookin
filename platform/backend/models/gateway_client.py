@@ -8,15 +8,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GatewayClient")
 
 class OpenClawGatewayClient:
-    def __init__(self, uri="ws://127.0.0.1:18789", token="34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece"):
-        self.uri = uri
+    def __init__(self, url="ws://127.0.0.1:18789", token="34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece"):
+        self.url = url
         self.token = token
         self.websocket = None
 
     async def connect(self):
         """Connects to the Gateway and performs the mandatory handshake."""
         try:
-            self.websocket = await websockets.connect(self.uri)
+            self.websocket = await websockets.connect(self.url)
             logger.info("Connected to OpenClaw Gateway WebSocket.")
 
             # 1. Wait for challenge
