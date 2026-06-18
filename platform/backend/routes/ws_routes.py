@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 import json
+import uuid
 
 router = APIRouter()
 
@@ -21,11 +22,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 # Send the message through the persistent Gateway WebSocket connection
                 await gateway_client.websocket.send(json.dumps({
                     "type": "req",
-                    "id": "req-" + client_id,
-                    "method": "send", # Assuming 'send' is the appropriate method
+                    "id": str(uuid.uuid4()),
+                    "method": "chat.send",
                     "params": {
+                        "sessionKey": f"agent:main:webchat:{client_id}",
+                        "sessionId": client_id, # You might want to persist or reuse this
                         "message": message,
-                        "session_key": f"webchat:{client_id}"
+                        "deliver": False,
+                        "idempotencyKey": str(uuid.uuid4())
                     }
                 }))
                 
@@ -37,3 +41,4 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         manager.disconnect(client_id)
     except Exception as e:
         manager.disconnect(client_id)
+

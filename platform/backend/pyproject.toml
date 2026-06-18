@@ -1,0 +1,2 @@
+[tool.fastapi]
+reload_exclude = ["chat_history.db", "__pycache__", "*.pyc"]

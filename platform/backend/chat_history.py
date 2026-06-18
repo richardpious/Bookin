@@ -10,7 +10,9 @@ class ChatHistoryDB:
         self._init_db()
 
     def _init_db(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        # Enable WAL mode for better concurrency
+        conn.execute("PRAGMA journal_mode=WAL;")
         cursor = conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS messages (
@@ -25,7 +27,9 @@ class ChatHistoryDB:
         conn.close()
 
     def add_message(self, session_id, sender, message):
-        conn = sqlite3.connect(self.db_path)
+        if not message:
+            message = ""
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute(
             'INSERT INTO messages (session_id, sender, message) VALUES (?, ?, ?)',
@@ -35,7 +39,7 @@ class ChatHistoryDB:
         conn.close()
 
     def get_history(self, session_id):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute(
             'SELECT sender, message, timestamp FROM messages WHERE session_id = ? ORDER BY timestamp ASC',
@@ -46,7 +50,7 @@ class ChatHistoryDB:
         return [{"sender": m[0], "message": m[1], "timestamp": m[2]} for m in messages]
 
     def get_all_sessions(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute('SELECT DISTINCT session_id FROM messages')
         sessions = [r[0] for r in cursor.fetchall()]
@@ -54,7 +58,7 @@ class ChatHistoryDB:
         return sessions
 
     def reset_session(self, session_id):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute('DELETE FROM messages WHERE session_id = ?', (session_id,))
         conn.commit()

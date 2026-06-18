@@ -47,7 +47,7 @@ class OpenClawGatewayClient:
             
             # 3. Wait for hello-ok
             response = await self.websocket.recv()
-            logger.info(f"Handshake complete: {response}")
+            logger.info(f"Handshake complete ")
             
         except Exception as e:
             logger.error(f"Failed to connect to gateway: {e}")
@@ -63,14 +63,50 @@ class OpenClawGatewayClient:
                 data = json.loads(message)
                 logger.info(f"Received event from gateway: {data.get('event', 'message')}")
                 
-                # Wrap and forward events to frontend clients so they show up in browser console
-                if manager and data.get("type") == "event":
-                    forward_packet = {
-                        "type": "gateway_log",
-                        "payload": data
-                    }
+                if manager:
+                    # 1. Forward all events as logs
+                    if data.get("type") == "event":
+                        forward_packet = {"type": "gateway_log", "payload": data}
                     for client_id in manager.active_connections:
                         await manager.send_personal_message(forward_packet, client_id)
+
+                        # 2. Handle specific chat events to update UI
+                        if data.get("event") == "chat":
+                            chat_payload = data.get("payload", {})
+                            text = ""
+                            # Extract from deltaText or the message content
+                            if "deltaText" in chat_payload:
+                                text = chat_payload["deltaText"]
+                            elif "message" in chat_payload:
+                                content = chat_payload["message"].get("content", [])
+                                if content and isinstance(content, list):
+                                    text = content[0].get("text", "")
+
+                            if text:
+                                # Broadcast to appropriate clients
+                                # Assuming sessionKey 'agent:main:webchat:{client_id}'
+                                session_key = chat_payload.get("sessionKey", "")
+                                for client_id, ws in manager.active_connections.items():
+                                    if f"agent:main:webchat:{client_id}" in session_key:
+
+                                        state = chat_payload.get("state")
+                                        if state == "delta":
+                                            await manager.send_personal_message({"type": "chunk", "message": text}, client_id)
+                                        elif state in ["final", "done", "complete"]:
+                                            # Persist the full message to DB on completion
+                                            # We need to extract the full text from the final event
+                                            full_text = ""
+                                            if "message" in chat_payload:
+                                                content = chat_payload["message"].get("content", [])
+                                                if content and isinstance(content, list):
+                                                    full_text = content[0].get("text", "")
+
+                                            if full_text:
+                                                # Access chat_db from app state via manager.app
+                                                chat_db = manager.app.state.chat_db
+                                                chat_db.add_message(client_id, "agent", full_text)
+                                            await manager.send_personal_message({"type": "done"}, client_id)
+
             except Exception as e:
                 logger.error(f"Error processing message: {e}")
 

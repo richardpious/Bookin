@@ -30,6 +30,8 @@ app.state.gateway_client = gateway_client
 
 @app.on_event("startup")
 async def startup_event():
+    # Pass both manager and chat_db to the gateway_client
+    manager.app = app # Hacky way to give manager access to app state
     asyncio.create_task(app.state.gateway_client.start(manager=manager))
 
 app.include_router(chat_routes.router)
