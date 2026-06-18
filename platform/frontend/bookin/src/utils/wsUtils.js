@@ -11,10 +11,17 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPrevie
     }
     console.log("WebSocket message received:", data);
 
+    if (data.type === 'gateway_log') {
+      console.group("OpenClaw Gateway Event");
+      console.table(data.payload);
+      console.groupEnd();
+      return;
+    }
+
     if (data.type === 'command' && data.action === 'reset') {
       console.log("Reset command received");
       setMessages([]); // Assuming you want to clear the chat UI
-    setIsLoading(false);
+      setIsLoading(false);
       return;
     }
     if (data.type === 'requireApproval') {
@@ -44,7 +51,7 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPrevie
         }
         return prev;
       });
-    setIsLoading(false);
+      setIsLoading(false);
     } else if (data.type === 'error') {
       console.error("Agent Error:", data.message);
       setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: `Error: ${data.message}`, isComplete: true }]);
