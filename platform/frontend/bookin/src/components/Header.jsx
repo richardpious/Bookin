@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-export const Header = () => {
+export const Header = ({ onModelChange }) => {
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -90,7 +90,11 @@ export const Header = () => {
               ) : (
                 <div 
                   key={model.id}
-                  onClick={() => { setSelectedModel(model.id); setIsOpen(false); }}
+                  onClick={() => {
+                    setSelectedModel(model.id);
+                    setIsOpen(false);
+                    if (onModelChange) onModelChange(model.id);
+                  }}
                   style={{
                     padding: '4px 12px',
                     cursor: 'pointer',

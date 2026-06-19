@@ -42,6 +42,12 @@ export const useChatManagement = (sessionId, handleOpenSimPreview, handleRequire
     }
   };
 
-  return { messages, isLoading, handleSend, setMessages, messagesEndRef };
+  const sendRawMessage = (data) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(data));
+    }
+  };
+
+  return { messages, isLoading, handleSend, setMessages, messagesEndRef, sendRawMessage };
 };
 

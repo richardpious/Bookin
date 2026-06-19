@@ -34,11 +34,25 @@ function App() {
   const handleRequireApproval = (data) => {
     setApprovalRequest(data);
   };
-  const { messages, isLoading, handleSend, setMessages, messagesEndRef } = useChatManagement(
+  const { messages, isLoading, handleSend, setMessages, messagesEndRef, sendRawMessage } = useChatManagement(
     sessionId,
     handleOpenSimPreview,
     handleRequireApproval
   );
+
+  const handleModelChange = (modelId) => {
+    console.log("Model changed to:", modelId);
+
+    sendRawMessage({
+      type: "req",
+      id: crypto.randomUUID(), // Use modern browser crypto API
+      method: "sessions.patch",
+      params: {
+        key: `agent:main:webchat:${sessionId}`, // Dynamically use sessionId
+        model: modelId
+      }
+    });
+  };
 
   // Load initial sessions
   useEffect(() => {
@@ -79,7 +93,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <Header />
+      <Header onModelChange={handleModelChange} />
       <ApprovalModal
         isOpen={!!approvalRequest}
         title={approvalRequest?.title || ''}

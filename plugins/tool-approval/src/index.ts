@@ -12,10 +12,12 @@ export default definePluginEntry({
         
         let requiresApproval = false;
 
-        // 2. Specific logic for 'exec': only true if it contains 'rm'
+        // 2. Specific logic for 'exec': only true if it contains destructive commands
         if (event.toolName === "exec" && event.params.command) {
           const command = String(event.params.command);
-          if (command.includes("rm")) {
+          // Match 'rm', 'rmdir', 'unlink', 'shred'
+          const destructiveRegex = /\b(rm|rmdir|unlink|shred)\b/;
+          if (destructiveRegex.test(command)) {
             requiresApproval = true;
           }
         }
