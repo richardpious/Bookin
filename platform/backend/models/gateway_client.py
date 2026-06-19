@@ -63,6 +63,15 @@ class OpenClawGatewayClient:
                 data = json.loads(message)
                 logger.info(f"Received event from gateway: {data.get('event', 'message')}")
                 
+                # Check if it's a response to a request
+                if data.get("type") == "res":
+                    # Handle response (like models.authStatus)
+                    logger.info(f"Received response: {data}")
+                    # Store latest model response in the app state so routes can access it
+                    if manager and hasattr(manager, 'app'):
+                        manager.app.state.latest_models_response = data
+                        logger.info(f"DEBUG: Stored response in app.state: {data.get('id')}")
+
                 if manager:
                     # 1. Forward all events as logs
                     if data.get("type") == "event":
