@@ -69,15 +69,21 @@ class OpenClawGatewayClient:
                     logger.info(f"Received response: {data}")
                     # Store latest model response in the app state so routes can access it
                     if manager and hasattr(manager, 'app'):
-                        manager.app.state.latest_models_response = data
-                        logger.info(f"DEBUG: Stored response in app.state: {data.get('id')}")
+                        request_id = data.get("id")
+                        if not hasattr(manager.app.state, 'pending_responses'):
+                            manager.app.state.pending_responses = {}
+                        manager.app.state.pending_responses[request_id] = data
+                        logger.info(f"DEBUG: Stored response in app.state.pending_responses for ID: {request_id}")
 
                 if manager:
                     # 1. Forward all events as logs
+                    forward_packet = None
                     if data.get("type") == "event":
                         forward_packet = {"type": "gateway_log", "payload": data}
-                    for client_id in manager.active_connections:
-                        await manager.send_personal_message(forward_packet, client_id)
+
+                    if forward_packet:
+                        for client_id in manager.active_connections:
+                            await manager.send_personal_message(forward_packet, client_id)
 
                         # 2. Handle specific chat events to update UI
                         if data.get("event") == "chat":

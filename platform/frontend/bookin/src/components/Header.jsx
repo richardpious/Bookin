@@ -1,26 +1,33 @@
 import { useState, useEffect, useRef } from 'react';
 
-export const Header = ({ onModelChange }) => {
+export const Header = ({ onModelChange, sessionId }) => {
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    const fetchModels = async () => {
+    const initSession = async () => {
       try {
-        const response = await fetch('http://localhost:8000/available-models');
+        if (!sessionId) return;
+        const response = await fetch(`http://localhost:8000/init-session?session_id=${sessionId}`);
         const data = await response.json();
+
         if (data.models && data.models.length > 0) {
           setModels(data.models);
-          setSelectedModel(data.models[0].id);
+        }
+        if (data.model) {
+          setSelectedModel(data.model);
+        } else if (data.models && data.models.length > 0) {
+          // Fallback to first non-header model
+          const firstModel = data.models.find(m => !m.isHeader);
+          if (firstModel) setSelectedModel(firstModel.id);
         }
       } catch (err) {
-        console.error("Error fetching models:", err);
+        console.error("Error initializing session:", err);
       }
     };
-    fetchModels();
-
+    initSession();
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -28,7 +35,7 @@ export const Header = ({ onModelChange }) => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [sessionId]);
 
   const selectedModelName = models.find(m => m.id === selectedModel)?.name || 'Select Model';
 

@@ -92,7 +92,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <Header onModelChange={handleModelChange} />
+      <Header onModelChange={handleModelChange} sessionId={sessionId} />
       <ApprovalModal
         isOpen={!!approvalRequest}
         approvalRequest={approvalRequest}
