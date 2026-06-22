@@ -1,5 +1,4 @@
 import { CodeEditor } from './CodeEditor';
-import { SimPreview } from './SimPreview';
 import { MainContentHome } from './MainContentHome';
 import { X } from 'lucide-react';
 

@@ -1,4 +1,4 @@
-export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPreview, onRequireApproval) => {
+export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePreview, onRequireApproval) => {
   const ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
 
   ws.onmessage = (event) => {
@@ -37,7 +37,7 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPrevie
     if (data.type === 'requireApproval') {
       onRequireApproval(data.data);
     } else if (data.type === 'file-preview') {
-      onSimPreview(data.data);
+      onFilePreview(data.data); // data.data is now the file path string
     } else if (data.type === 'chunk') {
       setMessages((prev) => {
         const lastMessage = prev[prev.length - 1];

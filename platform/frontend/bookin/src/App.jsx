@@ -29,14 +29,14 @@ function App() {
   const [approvalRequest, setApprovalRequest] = useState(null)
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
-  const { openFiles, activeFile, fileContents, handleFileClick, handleOpenSimPreview, handleCloseFile, setActiveFile } = useFileManagement();
+  const { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, setActiveFile } = useFileManagement();
 
   const handleRequireApproval = (data) => {
     setApprovalRequest(data);
   };
   const { messages, isLoading, handleSend, setMessages, messagesEndRef } = useChatManagement(
     sessionId,
-    handleOpenSimPreview,
+    handleOpenFilePreview,
     handleRequireApproval
   );
 

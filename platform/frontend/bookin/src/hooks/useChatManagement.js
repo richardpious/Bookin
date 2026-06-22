@@ -2,18 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchChatHistory } from '../utils/historyUtils';
 import { setupWebSocket } from '../utils/wsUtils';
 
-export const useChatManagement = (sessionId, handleOpenSimPreview, handleRequireApproval) => {
+export const useChatManagement = (sessionId, handleOpenFilePreview, handleRequireApproval) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [socket, setSocket] = useState(null);
   const messagesEndRef = useRef(null);
-  const handleOpenSimPreviewRef = useRef(handleOpenSimPreview);
+  const handleOpenFilePreviewRef = useRef(handleOpenFilePreview);
   const handleRequireApprovalRef = useRef(handleRequireApproval);
 
   useEffect(() => {
-    handleOpenSimPreviewRef.current = handleOpenSimPreview;
+    handleOpenFilePreviewRef.current = handleOpenFilePreview;
     handleRequireApprovalRef.current = handleRequireApproval;
-  }, [handleOpenSimPreview, handleRequireApproval]);
+  }, [handleOpenFilePreview, handleRequireApproval]);
   useEffect(() => {
     const loadHistory = async () => {
       const history = await fetchChatHistory(sessionId);
@@ -33,7 +33,7 @@ export const useChatManagement = (sessionId, handleOpenSimPreview, handleRequire
       sessionId,
       setMessages,
       setIsLoading,
-      (data) => handleOpenSimPreviewRef.current(data),
+      (data) => handleOpenFilePreviewRef.current(data),
       (data) => handleRequireApprovalRef.current(data)
     );
     setSocket(ws);

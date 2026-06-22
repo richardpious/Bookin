@@ -20,17 +20,23 @@ export const useFileManagement = () => {
     setActiveFile(path);
   };
 
-  const handleOpenSimPreview = useCallback((previewData) => {
-    console.log("handleOpenSimPreview called with:", previewData);
-    const fileName = previewData.config_file || `preview-${Date.now()}`;
-    // We store the data object directly instead of stringifying it
-    if (!openFiles.includes(fileName)) {
-      console.log("Opening new tab for:", fileName);
-      setOpenFiles(prev => [...prev, fileName]);
-      setFileContents(prev => ({ ...prev, [fileName]: previewData }));
+  const handleOpenFilePreview = useCallback(async (filePath) => {
+    console.log("handleOpenFilePreview called for file:", filePath);
+
+    // We reuse the existing logic for opening a file
+    if (!openFiles.includes(filePath)) {
+      setOpenFiles(prev => [...prev, filePath]);
+      try {
+        const content = await readFileContent(filePath);
+        setFileContents(prev => ({ ...prev, [filePath]: content }));
+      } catch (err) {
+        console.error(err);
+        setFileContents(prev => ({ ...prev, [filePath]: `Error loading file: ${filePath}` }));
+      }
     }
-    setActiveFile(fileName);
+    setActiveFile(filePath);
   }, [openFiles]);
+
   const handleCloseFile = (e, path) => {
     e.stopPropagation();
     const newOpenFiles = openFiles.filter(f => f !== path);
@@ -40,6 +46,6 @@ export const useFileManagement = () => {
     }
   };
 
-  return { openFiles, activeFile, fileContents, handleFileClick, handleOpenSimPreview, handleCloseFile, setActiveFile };
+  return { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, setActiveFile };
 };
 
