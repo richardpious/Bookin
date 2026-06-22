@@ -38,11 +38,7 @@ export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabCl
       </div>
       <div style={{ flex: 1, position: 'relative' }}>
         {activeFile && (
-          activeFile.includes('preview-') ? (
-            <SimPreview data={fileContents[activeFile]} />
-          ) : (
-            <CodeEditor filePath={activeFile} content={fileContents[activeFile]} />
-          )
+          <CodeEditor filePath={activeFile} content={fileContents[activeFile]} />
         )}
       </div>
     </main>
