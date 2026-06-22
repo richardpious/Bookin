@@ -23,6 +23,12 @@ export const useChatManagement = (sessionId, handleOpenSimPreview, handleRequire
   }, [sessionId]);
 
   useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages, sessionId]);
+
+  useEffect(() => {
     const ws = setupWebSocket(
       sessionId,
       setMessages,
@@ -42,12 +48,6 @@ export const useChatManagement = (sessionId, handleOpenSimPreview, handleRequire
     }
   };
 
-  const sendRawMessage = (data) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(data));
-    }
-  };
-
-  return { messages, isLoading, handleSend, setMessages, messagesEndRef, sendRawMessage };
+  return { messages, isLoading, handleSend, setMessages, messagesEndRef };
 };
 

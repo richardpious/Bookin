@@ -61,3 +61,21 @@ async def get_models(request: Request):
     print(f"DEBUG: Timeout reached waiting for models.authStatus")
     return {"models": []}
 
+@router.post("/set-model")
+async def set_model(request: Request):
+    data = await request.json()
+    session_id = data.get("sessionId")
+    model = data.get("model")
+    gateway_client = request.app.state.gateway_client
+
+    await gateway_client.websocket.send(json.dumps({
+        "type": "req",
+        "id": str(uuid.uuid4()),
+        "method": "sessions.patch",
+        "params": {
+            "key": f"agent:main:dashboard:{session_id}",
+            "model": model
+        }
+    }))
+    return {"status": "ok"}
+

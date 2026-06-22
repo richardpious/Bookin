@@ -4,13 +4,11 @@ import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 
 export const ChatSidebar = ({ width, messages, isLoading, onSend, messagesEndRef }) => {
-  const [input, setInput] = useState('');
-
   return (
-  <aside className="sidebar agent-chat-sidebar" style={{ width }}>
-    <div className="sidebar-header"><h2>Agent Chat</h2></div>
-    <div className="messages">
-      <AnimatePresence>
+  <aside className="sidebar agent-chat-sidebar" style={{ width, padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="sidebar-header" style={{ padding: '1.5rem', flexShrink: 0 }}><h2>Agent Chat</h2></div>
+    <div className="messages" style={{ flex: 1, overflowY: 'auto' }}>
+      <AnimatePresence initial={false}>
         {messages.map(msg => (
           <ChatMessage key={msg.id} sender={msg.sender} text={msg.text} />
         ))}
@@ -28,9 +26,7 @@ export const ChatSidebar = ({ width, messages, isLoading, onSend, messagesEndRef
     </div>
     <div className="input-area">
         <ChatInput
-          input={input}
-          setInput={setInput}
-          onSend={() => { onSend(input); setInput(''); }}
+          onSend={onSend}
           isLoading={isLoading}
         />
     </div>

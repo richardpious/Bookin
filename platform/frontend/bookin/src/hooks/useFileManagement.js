@@ -22,7 +22,7 @@ export const useFileManagement = () => {
 
   const handleOpenSimPreview = useCallback((previewData) => {
     console.log("handleOpenSimPreview called with:", previewData);
-    const fileName = previewData.config_file || `preview-${Date.now()}.json`;
+    const fileName = previewData.config_file || `preview-${Date.now()}`;
     // We store the data object directly instead of stringifying it
     if (!openFiles.includes(fileName)) {
       console.log("Opening new tab for:", fileName);

@@ -1,10 +1,14 @@
-export const ChatInput = ({ input, setInput, onSend, isLoading }) => (
+import { useState } from 'react';
+export const ChatInput = ({ onSend, isLoading }) => {
+  const [input, setInput] = useState('');
+
+  return (
   <div style={{ display: 'flex', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
     <input
       type="text"
       value={input}
       onChange={(e) => setInput(e.target.value)}
-      onKeyPress={(e) => e.key === 'Enter' && onSend()}
+      onKeyPress={(e) => e.key === 'Enter' && input.trim() && (onSend(input), setInput(''))}
       placeholder="Type a message..."
       disabled={isLoading}
       style={{ 
@@ -22,7 +26,7 @@ export const ChatInput = ({ input, setInput, onSend, isLoading }) => (
       }}
     />
     <button 
-      onClick={onSend} 
+      onClick={() => { input.trim() && (onSend(input), setInput('')) }}
       disabled={isLoading} 
       style={{ 
         padding: '0 16px',
@@ -41,4 +45,6 @@ export const ChatInput = ({ input, setInput, onSend, isLoading }) => (
       {isLoading ? '...' : 'Send'}
     </button>
   </div>
-)
+);
+};
+

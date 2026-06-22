@@ -36,7 +36,7 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onSimPrevie
     }
     if (data.type === 'requireApproval') {
       onRequireApproval(data.data);
-    } else if (data.type === 'sim-preview') {
+    } else if (data.type === 'file-preview') {
       onSimPreview(data.data);
     } else if (data.type === 'chunk') {
       setMessages((prev) => {

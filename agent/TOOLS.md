@@ -47,4 +47,4 @@ Add whatever helps you do your job. This is your cheat sheet.
 
 ## Tool List
 
-- sim-preview: this allows you to show the user a preview of the parameters with which the simulation will be run on booksim. it is a python executable located in /plugin-skills.
+- file-preview: this allows you to show the user a preview of file contents. it is a python executable located in /plugin-skills/file-preview.
