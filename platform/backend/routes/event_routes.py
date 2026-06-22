@@ -24,7 +24,7 @@ async def agent_event(request: Request, payload: AgentEventPayload):
 
     target_session = None
     for sess in registered_sessions:
-        if sess == session or sess.endswith(session):
+        if sess == session or session.endswith(sess):
             target_session = sess
             break
 
@@ -37,3 +37,4 @@ async def agent_event(request: Request, payload: AgentEventPayload):
         return {"status": "ok"}
     else:
         return {"status": "error", "message": f"Session {session} not found. Active: {registered_sessions}"}
+

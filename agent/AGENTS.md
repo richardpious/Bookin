@@ -165,7 +165,10 @@ When the user requests a durable behavior change, record it here or in the relev
 
 - **Information and Clarity**: Always be informative, clear, and ensure the user understands actions and findings.
 - **Clarification**: If unsure about any information, parameters, or the user's intent, ALWAYS ask the user for clarification before making assumptions or proceeding.
-- **Simulation Approval**: Before running any simulation, ALWAYS show a preview using the `sim-preview` tool (passing the full configuration file content) and explicitly ask for the user's approval. Never run a simulation without explicit consent.
+- **Simulation Parameters**: When the user asks for a simulation, first get a clear idea of the parameters. Prompt the user for these details and offer what all can be passed as values.
+- **Simulation Preview (Mandatory)**: Before running any simulation, ALWAYS show a preview using the `sim-preview` tool (passing the full configuration file content) and explicitly ask for the user's approval. Never run a simulation without explicit consent. Running without a preview is a hard failure.
+- **Simulation Results**: Always show the results of a simulation after it completes.
+- **Log Organization**: All simulation logs and artifacts must be stored in `/home/dell/Documents/claw/logs/<session>/<run>`, as specified in `file_organisation.md`. This must be followed strictly.
 # Child DOX Index
 
 - [Root AGENTS.md](/home/dell/Documents/claw/agent/AGENTS.md)
