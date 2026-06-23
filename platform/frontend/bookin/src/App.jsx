@@ -40,17 +40,25 @@ function App() {
     handleRequireApproval
   );
 
-  const handleModelChange = (modelId) => {
+  const handleModelChange = async (modelId) => {
     console.log("Model changed to:", modelId);
 
-    fetch('http://localhost:8000/set-model', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId,
-        model: modelId
-      })
-    }).catch(err => console.error("Error setting model:", err));
+    try {
+      const response = await fetch('http://localhost:8000/set-model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          model: modelId
+        })
+      });
+      const data = await response.json();
+      console.log("Model switch response:", data);
+      return data;
+    } catch (err) {
+      console.error("Error setting model:", err);
+      throw err;
+    }
   };
 
   // Load initial sessions

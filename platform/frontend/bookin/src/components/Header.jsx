@@ -4,7 +4,13 @@ export const Header = ({ onModelChange, sessionId }) => {
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [toast, setToast] = useState(null);
   const dropdownRef = useRef(null);
+
+  const showToast = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const initSession = async () => {
@@ -97,10 +103,31 @@ export const Header = ({ onModelChange, sessionId }) => {
               ) : (
                 <div 
                   key={model.id}
-                  onClick={() => {
-                    setSelectedModel(model.id);
+                  onClick={async () => {
                     setIsOpen(false);
-                    if (onModelChange) onModelChange(model.id);
+                    if (onModelChange) {
+                      try {
+                        const result = await onModelChange(model.id);
+                        console.log("Header check result:", result);
+
+                        // Check if result is defined and explicitly contains ok: false
+                        // Based on the log format: {'type': 'res', 'id': ..., 'ok': False, 'error': ...}
+                        if (result && result.ok === false) {
+                          const errorMessage = result.error?.message || 'Model switch failed';
+                          showToast(`Error: ${errorMessage}`);
+                        } else if (result && result.ok === true) {
+                          setSelectedModel(model.id);
+                          showToast(`Successfully switched to ${model.name}`);
+                        } else {
+                          // Fallback if the 'ok' property is missing or unexpected
+                          console.warn("Unexpected response structure:", result);
+                          setSelectedModel(model.id);
+                          showToast(`Switched to ${model.name}`);
+                        }
+                      } catch (err) {
+                        showToast(`Failed to switch: ${err.message || 'Unknown error'}`);
+                      }
+                    }
                   }}
                   style={{
                     padding: '4px 12px',
@@ -118,6 +145,13 @@ export const Header = ({ onModelChange, sessionId }) => {
           </div>
         )}
       </div>
+      {toast && (
+        <div className="toast-container">
+          <div className="toast">
+            {toast}
+          </div>
+        </div>
+      )}
     </header>
   )
 }
