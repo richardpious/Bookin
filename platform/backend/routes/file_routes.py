@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Body
 import os
+import re
 
 router = APIRouter()
 
@@ -48,5 +49,73 @@ async def get_file(path: str):
         with open(target_path, 'r', encoding='utf-8') as f:
             content = f.read()
         return {"content": content}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.post("/update-file")
+async def update_file(payload: dict = Body(...)):
+    path = payload.get("path")
+    content = payload.get("content")
+    if not path or content is None:
+        return {"error": "Missing path or content"}
+        
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    target_path = os.path.normpath(os.path.join(root_dir, path))
+
+    if not target_path.startswith(root_dir):
+        return {"error": "Access denied"}
+
+    try:
+        with open(target_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/config-parameters")
+async def get_config_parameters():
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    config_path = os.path.join(root_dir, 'booksim', 'src', 'booksim_config.cpp')
+    
+    if not os.path.isfile(config_path):
+        return {"error": "booksim_config.cpp not found"}
+        
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+        parameters = []
+        
+        # Parse AddStrField
+        str_matches = re.finditer(r'AddStrField\s*\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*\)', content)
+        for match in str_matches:
+            parameters.append({
+                "name": match.group(1),
+                "defaultValue": match.group(2),
+                "type": "string"
+            })
+            
+        # Parse _int_map
+        int_matches = re.finditer(r'_int_map\s*\[\s*"([^"]+)"\s*\]\s*=\s*([^;]+);', content)
+        for match in int_matches:
+            parameters.append({
+                "name": match.group(1),
+                "defaultValue": match.group(2).strip(),
+                "type": "integer"
+            })
+            
+        # Parse _float_map
+        float_matches = re.finditer(r'_float_map\s*\[\s*"([^"]+)"\s*\]\s*=\s*([^;]+);', content)
+        for match in float_matches:
+            parameters.append({
+                "name": match.group(1),
+                "defaultValue": match.group(2).strip(),
+                "type": "float"
+            })
+            
+        # Sort parameters by name
+        parameters.sort(key=lambda x: x['name'])
+            
+        return {"parameters": parameters}
     except Exception as e:
         return {"error": str(e)}

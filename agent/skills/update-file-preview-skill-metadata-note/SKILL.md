@@ -28,7 +28,7 @@ This will trigger a system message of type `file-preview` to the frontend, allow
 All calls to the `file-preview` tool must be associated with the following sender metadata:
 ```json
 {
-  "label": "gateway-client",
-  "id": "gateway-client"
+  "label": "session_name",
+  "id": "session_name"
 }
 ```

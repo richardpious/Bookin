@@ -29,7 +29,7 @@ function App() {
   const [approvalRequest, setApprovalRequest] = useState(null)
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
-  const { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, setActiveFile } = useFileManagement();
+  const { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, setActiveFile } = useFileManagement();
 
   const handleRequireApproval = (data) => {
     setApprovalRequest(data);
@@ -118,6 +118,7 @@ function App() {
           fileContents={fileContents}
           onTabClick={setActiveFile}
           onCloseTab={handleCloseFile}
+          onUpdateFile={handleUpdateFileContent}
         />
     </div>
 

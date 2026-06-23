@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { readFileContent } from '../utils/fileUtils';
+import { readFileContent, updateFileContent } from '../utils/fileUtils';
 
 export const useFileManagement = () => {
   const [openFiles, setOpenFiles] = useState([]);
@@ -46,6 +46,16 @@ export const useFileManagement = () => {
     }
   };
 
-  return { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, setActiveFile };
+  const handleUpdateFileContent = async (path, newContent) => {
+    try {
+      await updateFileContent(path, newContent);
+      setFileContents(prev => ({ ...prev, [path]: newContent }));
+    } catch (err) {
+      console.error(err);
+      alert(`Error updating file: ${err.message}`);
+    }
+  };
+
+  return { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, setActiveFile };
 };
 

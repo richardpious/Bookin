@@ -47,4 +47,4 @@ Add whatever helps you do your job. This is your cheat sheet.
 
 ## Tool List
 
-- file-preview: this allows you to show the user a preview of file contents. it is a python executable located in /plugin-skills/file-preview.
+- file-preview: this allows you to show the user a preview of file contents. it is a python executable located in /plugin-skills/file-preview. Always refer its skills.md before executing it.
