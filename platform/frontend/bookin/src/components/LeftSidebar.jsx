@@ -33,16 +33,24 @@ const FileNode = ({ name, path, isDir, onFileClick, activeFile }) => {
       <div 
         className={`file-item ${isActive ? 'active' : ''}`}
         onClick={handleClick}
+        onMouseOver={(e) => {
+          if (!isActive) e.currentTarget.style.backgroundColor = '#2a2a2a';
+        }}
+        onMouseOut={(e) => {
+          if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+        }}
         style={{
-          display: 'flex',
-          alignItems: 'center',
+        display: 'flex',
+        alignItems: 'center',
           gap: '4px',
-          padding: '4px',
+          padding: '4px 8px',
+          borderRadius: '4px',
           cursor: 'pointer',
           backgroundColor: isActive ? '#323232' : 'transparent',
-          color: isActive ? '#ffffff' : 'inherit'
+          color: isActive ? '#ffffff' : 'inherit',
+          transition: 'background-color 0.2s'
         }}
-      >
+          >
         {isDir && (isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />)}
         {!isDir && <div style={{width: 16}} />}
         {isDir ? <Folder size={16} /> : <FileText size={16} />}
@@ -52,8 +60,8 @@ const FileNode = ({ name, path, isDir, onFileClick, activeFile }) => {
         <div style={{ marginLeft: '20px' }}>
           {children.map((child) => (
             <FileNode key={child.path} {...child} onFileClick={onFileClick} activeFile={activeFile} />
-          ))}
-        </div>
+        ))}
+      </div>
       )}
     </div>
   )
@@ -63,14 +71,13 @@ const SessionItem = ({ session, isSelected, onSelect, onReset }) => {
   const [showMenu, setShowMenu] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const menuRef = useRef(null)
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Close menu if clicking outside
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowMenu(false)
-      }
     }
+  }
     // Close confirm modal if clicking on the overlay
     const handleOverlayClick = (event) => {
       if (event.target.classList.contains('confirm-overlay')) {
@@ -89,6 +96,12 @@ const SessionItem = ({ session, isSelected, onSelect, onReset }) => {
     <div
       ref={menuRef}
       onClick={() => onSelect(session)}
+      onMouseOver={(e) => {
+        if (!isSelected) e.currentTarget.style.backgroundColor = '#2a2a2a';
+      }}
+      onMouseOut={(e) => {
+        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+      }}
       className="file-item"
       style={{
         backgroundColor: isSelected ? '#252525' : 'transparent',
@@ -96,7 +109,11 @@ const SessionItem = ({ session, isSelected, onSelect, onReset }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        position: 'relative'
+        padding: '4px 8px',
+        borderRadius: '4px',
+        position: 'relative',
+        cursor: 'pointer',
+        transition: 'background-color 0.2s'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
