@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 
-export const ChatSidebar = ({ width, messages, isLoading, onSend, messagesEndRef }) => {
+export const ChatSidebar = React.memo(({ width, messages, isLoading, onSend, messagesEndRef }) => {
   return (
   <aside className="sidebar agent-chat-sidebar" style={{ width, padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
     <div className="sidebar-header" style={{ padding: '1.5rem', flexShrink: 0 }}><h2>Agent Chat</h2></div>
@@ -32,5 +32,4 @@ export const ChatSidebar = ({ width, messages, isLoading, onSend, messagesEndRef
     </div>
   </aside>
 );
-};
-
+});

@@ -41,7 +41,7 @@ Each simulation execution is a run. Runs must be stored sequentially as `run_1`,
 2. Maintain a clear audit trail from config to execution to results.
 
 ### Configuration Management
-- Base configurations: `/home/dell/Documents/claw/booksim/src/examples/`
+- Base configurations: `/home/dell/Documents/claw/booksim/src/configs/`
 - Custom configurations: `/home/dell/Documents/claw/agent/configs/custom/`
 - Never modify base configurations directly.
 

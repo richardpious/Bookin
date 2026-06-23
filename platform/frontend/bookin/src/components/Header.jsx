@@ -5,10 +5,12 @@ export const Header = ({ onModelChange, sessionId }) => {
   const [selectedModel, setSelectedModel] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState('success');
   const dropdownRef = useRef(null);
 
-  const showToast = (message) => {
+  const showToast = (message, type = 'success') => {
     setToast(message);
+    setToastType(type);
     setTimeout(() => setToast(null), 3000);
   };
 
@@ -47,57 +49,23 @@ export const Header = ({ onModelChange, sessionId }) => {
 
   return (
     <header className="app-header">
-      <div className="header-left" style={{ display: 'flex', alignItems: 'center' }}>
-        <img src="/logo.png" alt="BookIn Logo" style={{ height: '24px', marginRight: '10px' }} />
+      <div className="header-left">
+        <img src="/logo.png" alt="BookIn Logo" className="logo-img" />
         <span className="logo">BookIn</span>
       </div>
-      <div className="header-right" ref={dropdownRef} style={{ position: 'relative' }}>
+      <div className="header-right" ref={dropdownRef}>
         <div 
           onClick={() => setIsOpen(!isOpen)}
-          className="nav-item"
-          style={{
-            background: 'transparent',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border)',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            userSelect: 'none',
-            minWidth: '120px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}
+          className="nav-item header-model-selector"
         >
           {selectedModelName}
-          <span style={{ marginLeft: '6px' }}>▼</span>
+          <span className="arrow">▼</span>
         </div>
         {isOpen && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: '4px',
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '4px',
-            boxShadow: 'var(--shadow)',
-            zIndex: 1000,
-            minWidth: '200px',
-            maxHeight: '300px',
-            overflowY: 'auto'
-          }}>
+          <div className="model-dropdown">
             {models.map(model => (
               model.isHeader ? (
-                <div key={model.id} style={{
-                  padding: '4px 12px',
-                  fontWeight: '600',
-                  color: 'var(--text-secondary)',
-                  background: 'var(--code-bg)',
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase'
-                }}>
+                <div key={model.id} className="model-header-item">
                   {model.name}
                 </div>
               ) : (
@@ -114,29 +82,22 @@ export const Header = ({ onModelChange, sessionId }) => {
                         // Based on the log format: {'type': 'res', 'id': ..., 'ok': False, 'error': ...}
                         if (result && result.ok === false) {
                           const errorMessage = result.error?.message || 'Model switch failed';
-                          showToast(`Error: ${errorMessage}`);
+                          showToast(`Error: ${errorMessage}`, 'error');
                         } else if (result && result.ok === true) {
                           setSelectedModel(model.id);
-                          showToast(`Successfully switched to ${model.name}`);
+                          showToast(`Successfully switched to ${model.name}`, 'success');
                         } else {
                           // Fallback if the 'ok' property is missing or unexpected
                           console.warn("Unexpected response structure:", result);
                           setSelectedModel(model.id);
-                          showToast(`Switched to ${model.name}`);
+                          showToast(`Switched to ${model.name}`, 'success');
                         }
                       } catch (err) {
-                        showToast(`Failed to switch: ${err.message || 'Unknown error'}`);
+                        showToast(`Failed to switch: ${err.message || 'Unknown error'}`, 'error');
                       }
                     }
                   }}
-                  style={{
-                    padding: '4px 12px',
-                    cursor: 'pointer',
-                    color: 'var(--text)',
-                    fontSize: '0.85rem'
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--border)'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                  className="model-item"
                 >
                   {model.name}
                 </div>
@@ -147,7 +108,7 @@ export const Header = ({ onModelChange, sessionId }) => {
       </div>
       {toast && (
         <div className="toast-container">
-          <div className="toast">
+          <div className={`toast ${toastType === 'error' ? 'toast-error' : ''}`}>
             {toast}
           </div>
         </div>

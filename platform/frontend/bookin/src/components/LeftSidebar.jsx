@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Folder, FileText, ChevronRight, ChevronDown, MessageSquare, Plus } from 'lucide-react'
 import { fetchFiles } from '../utils/fileUtils'
 
-const FileNode = ({ name, path, isDir, onFileClick, activeFile }) => {
+const FileNode = React.memo(({ name, path, isDir, onFileClick, activeFile }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [children, setChildren] = useState([])
   const [loading, setLoading] = useState(false)
@@ -65,9 +65,8 @@ const FileNode = ({ name, path, isDir, onFileClick, activeFile }) => {
       )}
     </div>
   )
-}
-
-const SessionItem = ({ session, isSelected, onSelect, onReset }) => {
+})
+const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
   const [showMenu, setShowMenu] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const menuRef = useRef(null)
@@ -180,9 +179,8 @@ const SessionItem = ({ session, isSelected, onSelect, onReset }) => {
       )}
       </div>
   )
-}
-
-const SessionHeader = ({ onAddClick }) => (
+})
+const SessionHeader = React.memo(({ onAddClick }) => (
   <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
     <h2>Sessions</h2>
     <Plus
@@ -191,9 +189,9 @@ const SessionHeader = ({ onAddClick }) => (
       onClick={onAddClick}
           />
       </div>
-  )
+  ))
 
-export const LeftSidebar = ({ width, onFileClick, activeFile, sessions, setSessions, currentSession, onSelectSession, onResetSession }) => {
+export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, setSessions, currentSession, onSelectSession, onResetSession }) => {
   const [files, setFiles] = useState([])
   const [isCreating, setIsCreating] = useState(false)
   const [newSessionName, setNewSessionName] = useState('')
@@ -280,4 +278,5 @@ export const LeftSidebar = ({ width, onFileClick, activeFile, sessions, setSessi
       </div>
     </aside>
   )
-}
+})
+

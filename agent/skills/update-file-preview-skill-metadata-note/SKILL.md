@@ -22,7 +22,7 @@ This will trigger a system message of type `file-preview` to the frontend, allow
 ## Parameters
 
 - `session_name`: The session suffix, which is the part of the session identifier that comes AFTER the prefix "agent:main:webchat:". (e.g., if the session identifier is "agent:main:webchat:test5", the `session_name` should be "test5").
-- `file_path`: Relative path to the file from the Bookin root. (e.g., "booksim/src/examples/mesh88_lat").
+- `file_path`: Relative path to the file from the Bookin root. (e.g., "booksim/src/configs/mesh88_lat").
 
 ## Sender Metadata
 All calls to the `file-preview` tool must be associated with the following sender metadata:

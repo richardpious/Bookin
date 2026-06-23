@@ -31,16 +31,16 @@ function App() {
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
   const { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, setActiveFile } = useFileManagement();
 
-  const handleRequireApproval = (data) => {
+  const handleRequireApproval = useCallback((data) => {
     setApprovalRequest(data);
-  };
+  }, []);
   const { messages, isLoading, handleSend, setMessages, messagesEndRef } = useChatManagement(
     sessionId,
     handleOpenFilePreview,
     handleRequireApproval
   );
 
-  const handleModelChange = async (modelId) => {
+  const handleModelChange = useCallback(async (modelId) => {
     console.log("Model changed to:", modelId);
 
     try {
@@ -59,8 +59,7 @@ function App() {
       console.error("Error setting model:", err);
       throw err;
     }
-  };
-
+  }, [sessionId]);
   // Load initial sessions
   useEffect(() => {
     const loadSessions = async () => {
@@ -70,7 +69,7 @@ function App() {
     loadSessions()
   }, [])
 
-  const handleDeleteSession = async (session) => {
+  const handleDeleteSession = useCallback(async (session) => {
     try {
       const response = await fetch(`http://localhost:8000/delete_session/${session}`, { method: 'POST' });
       let responseData = {};
@@ -96,8 +95,7 @@ function App() {
       console.error(err);
       alert(`Error deleting session: ${err.message}`);
     }
-  }
-
+  }, [sessionId, setMessages]);
   return (
     <div className="app-container">
       <Header onModelChange={handleModelChange} sessionId={sessionId} />

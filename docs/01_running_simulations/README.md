@@ -57,7 +57,7 @@ To run a simulation using a single configuration file:
 ```
 *Example:*
 ```bash
-./booksim examples/mesh88_config
+./booksim configs/mesh88_config
 ```
 
 ### 2. Overriding Parameters via Command Line
@@ -68,7 +68,7 @@ You can dynamically override any configuration parameter defined in the config f
 ```
 *Example:*
 ```bash
-./booksim examples/mesh88_config injection_rate=0.015 traffic=uniform
+./booksim configs/mesh88_config injection_rate=0.015 traffic=uniform
 ```
 
 ### 3. Multiple Configuration Files
