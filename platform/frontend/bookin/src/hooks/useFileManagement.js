@@ -41,6 +41,14 @@ export const useFileManagement = () => {
     e.stopPropagation();
     const newOpenFiles = openFiles.filter(f => f !== path);
     setOpenFiles(newOpenFiles);
+
+    // Clear content from memory
+    setFileContents(prev => {
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
+
     if (activeFile === path) {
       setActiveFile(newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null);
     }
