@@ -281,4 +281,3 @@ export const LeftSidebar = ({ width, onFileClick, activeFile, sessions, setSessi
     </aside>
   )
 }
-
