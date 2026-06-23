@@ -113,9 +113,24 @@ async def get_config_parameters():
                 "type": "float"
             })
             
-        # Sort parameters by name
-        parameters.sort(key=lambda x: x['name'])
+        # Merge duplicates
+        merged_params = {}
+        for p in parameters:
+            name = p["name"]
+            if name in merged_params:
+                existing = merged_params[name]
+                if p["type"] not in existing["type"]:
+                    existing["type"] = f"{existing['type']} | {p['type']}"
+                if existing["defaultValue"] == "" and p["defaultValue"] != "":
+                    existing["defaultValue"] = p["defaultValue"]
+                elif existing["defaultValue"] == '""' and p["defaultValue"] != '""':
+                    existing["defaultValue"] = p["defaultValue"]
+            else:
+                merged_params[name] = p
+                
+        final_parameters = list(merged_params.values())
+        final_parameters.sort(key=lambda x: x['name'])
             
-        return {"parameters": parameters}
+        return {"parameters": final_parameters}
     except Exception as e:
         return {"error": str(e)}

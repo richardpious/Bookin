@@ -10,7 +10,7 @@ export const useResizer = () => {
     if (isResizingLeft.current) {
       setLeftWidth(Math.max(150, Math.min(e.clientX, 500)));
     } else if (isResizingRight.current) {
-      setRightWidth(Math.max(250, Math.min(window.innerWidth - e.clientX, 600)));
+      setRightWidth(Math.max(100, Math.min(window.innerWidth - e.clientX, 1200)));
     }
   }, []);
 
@@ -37,3 +37,4 @@ export const useResizer = () => {
     startResizing
   };
 };
+
