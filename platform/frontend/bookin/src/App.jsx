@@ -5,6 +5,7 @@ import { ChatSidebar } from './components/ChatSidebar'
 import { LeftSidebar } from './components/LeftSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
 import ApprovalModal from './components/ApprovalModal'
+import SearchResultsPanel from './components/SearchResultsPanel'
 import { useResizer } from './hooks/useResizer'
 import { useFileManagement } from './hooks/useFileManagement'
 import { useChatManagement } from './hooks/useChatManagement'
@@ -27,6 +28,8 @@ function App() {
   const [sessionId, setSessionId] = useState('default')
   const [sessions, setSessions] = useState([])
   const [approvalRequest, setApprovalRequest] = useState(null)
+  const [searchResults, setSearchResults] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
   const { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, setActiveFile } = useFileManagement();
@@ -96,14 +99,34 @@ function App() {
       alert(`Error deleting session: ${err.message}`);
     }
   }, [sessionId, setMessages]);
+  const handleSearch = useCallback((results, query) => {
+    setSearchResults(results);
+    setSearchQuery(query);
+  }, []);
+
+  const handleOpenFileFromSearch = useCallback((filePath, lineNumber) => {
+    // handleFileClick opens the file in the editor tab
+    handleFileClick(filePath);
+    // TODO: scroll editor to lineNumber once editor ref is available
+    console.log(`Open ${filePath} at line ${lineNumber}`);
+  }, [handleFileClick]);
+
   return (
     <div className="app-container">
-      <Header onModelChange={handleModelChange} sessionId={sessionId} />
+      <Header onModelChange={handleModelChange} sessionId={sessionId} onSearch={handleSearch} />
       <ApprovalModal
         isOpen={!!approvalRequest}
         approvalRequest={approvalRequest}
         setApprovalRequest={setApprovalRequest}
       />
+      {searchResults !== null && (
+        <SearchResultsPanel
+          results={searchResults}
+          query={searchQuery}
+          onOpenFile={handleOpenFileFromSearch}
+          onClose={() => setSearchResults(null)}
+        />
+      )}
       <div className="main-layout" style={{ zIndex: 'auto', position: 'relative', overflow: 'hidden' }}>
         <LeftSidebar
             width={leftWidth}

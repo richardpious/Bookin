@@ -7,6 +7,24 @@ This guide covers how to set up your environment for the project, including depe
 Ensure you have the following installed on your system:
 - [Python 3.x](https://www.python.org/downloads/)
 - [Node.js (LTS version)](https://nodejs.org/)
+- [ripgrep](https://github.com/BurntSushi/ripgrep) — used for project-wide search
+
+---
+
+## System Dependencies
+
+Install `ripgrep` via your system package manager before running the project:
+
+```bash
+# Ubuntu / Debian
+sudo apt-get install ripgrep
+
+# macOS
+brew install ripgrep
+
+# Verify installation
+rg --version
+```
 
 ---
 

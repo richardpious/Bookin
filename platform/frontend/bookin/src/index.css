@@ -176,6 +176,86 @@ code {
   gap: 15px;
 }
 
+/* ── Center search form ─────────────────────────── */
+.header-search-form {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 24px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.header-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 0 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.header-search-box:focus-within {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(192,132,252,0.45);
+}
+
+.header-search-icon {
+  color: #555;
+  flex-shrink: 0;
+}
+
+.header-search-clear {
+  background: none;
+  border: none;
+  color: #a5a5a5;
+  cursor: pointer;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.header-search-clear:hover {
+  color: #c084fc;
+}
+
+.header-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #d4d4d8;
+  font-size: 13px;
+  padding: 6px 0;
+  font-family: var(--sans);
+  min-width: 0;
+}
+
+.header-search-input::placeholder {
+  color: #909090;
+}
+
+/* Tiny spinner for while search is running */
+.header-search-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(192,132,252,0.3);
+  border-top-color: #c084fc;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+
 .header-model-selector {
   background: transparent;
   color: var(--text-secondary);
