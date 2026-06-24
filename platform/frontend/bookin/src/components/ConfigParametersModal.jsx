@@ -108,20 +108,13 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="config-modal-header">
+        <div className="config-modal-header" style={{ flexDirection: 'column', gap: '16px', alignItems: 'stretch' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2>Configuration Parameters</h2>
           <button onClick={handleClose}>
             <X size={20} />
           </button>
         </div>
-
-        {/* Content */}
-        <div className="config-modal-body">
-          {loading && <div>Loading parameters...</div>}
-          {error && <div style={{ color: '#ef4444' }}>Error: {error}</div>}
-          {!loading && !error && parameters.length > 0 && (
-            <>
-              <div style={{ marginBottom: '16px' }}>
                 <input
                   type="text"
                   className="param-input"
@@ -130,7 +123,13 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <table className="config-table">
+
+        {/* Content */}
+        <div className="config-modal-body">
+          {loading && <div>Loading parameters...</div>}
+          {error && <div style={{ color: '#ef4444' }}>Error: {error}</div>}
+          {!loading && !error && parameters.length > 0 && (
+            <table className="config-table">
                 <thead>
                   <tr>
                     <th>Parameter</th>
@@ -201,7 +200,6 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
                   })}
                 </tbody>
               </table>
-            </>
           )}
           {!loading && !error && parameters.length === 0 && (
             <div>No parameters found.</div>

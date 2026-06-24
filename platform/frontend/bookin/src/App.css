@@ -97,7 +97,6 @@ body, html, #root {
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
 }
 
 .sidebar-header h2 {
