@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+import { BookOpen } from 'lucide-react'
 import { SessionsList } from './SessionsList'
 import { ProjectFilesList } from './ProjectFilesList'
 
@@ -8,26 +9,52 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
   return (
     <aside ref={sidebarRef} className="sidebar files-sidebar" style={{
       width,
-      height: 'calc(100vh - 20px)',
-      overflowY: 'auto',
+      height: '100%',
+            display: 'flex',
+      flexDirection: 'column',
       position: 'relative',
       zIndex: 10,
-      padding: '0px',
-      margin: '10px 0 10px 10px',
-      borderRadius: '8px'
+      padding: '0px'
     }}>
-      <SessionsList
-        sessions={sessions}
-        setSessions={setSessions}
-        currentSession={currentSession}
-        onSelectSession={onSelectSession}
-        onResetSession={onResetSession}
-        sidebarRef={sidebarRef}
-      />
-      <ProjectFilesList
-        onFileClick={onFileClick}
-        activeFile={activeFile}
-      />
+      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+        <SessionsList
+          sessions={sessions}
+          setSessions={setSessions}
+          currentSession={currentSession}
+          onSelectSession={onSelectSession}
+          onResetSession={onResetSession}
+          sidebarRef={sidebarRef}
+        />
+        <ProjectFilesList
+          onFileClick={onFileClick}
+          activeFile={activeFile}
+        />
+      </div>
+      <div
+        onClick={() => onFileClick('docs/index.md')}
+        style={{
+            padding: '12px 24px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            borderTop: '1px solid var(--border-light)',
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            color: 'var(--text-secondary)',
+            fontSize: '0.85rem'
+        }}
+        onMouseOver={(e) => {
+            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.3)';
+        }}
+        onMouseOut={(e) => {
+            e.currentTarget.style.color = 'var(--text-secondary)';
+            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.2)';
+        }}
+      >
+        <BookOpen size={14} />
+        <span>Docs</span>
+      </div>
     </aside>
   )
 })

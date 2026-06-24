@@ -4,7 +4,7 @@ import { MainContentHome } from './MainContentHome';
 import { ConfigParametersModal } from './ConfigParametersModal';
 import { X, List } from 'lucide-react';
 
-export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabClick, onCloseTab, onUpdateFile }) => {
+export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabClick, onCloseTab, onUpdateFile, onFileClick }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (openFiles.length === 0) {
@@ -17,7 +17,7 @@ export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabCl
 
   return (
     <main className="main-content" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-light)', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', flexShrink: 0 }}>
         {openFiles.map(path => (
           <div
             key={path}
@@ -39,11 +39,11 @@ export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabCl
           </div>
         ))}
       </div>
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
         {activeFile && (
-          <CodeEditor filePath={activeFile} content={fileContents[activeFile]} />
+          <CodeEditor filePath={activeFile} content={fileContents[activeFile]} onFileClick={onFileClick} />
         )}
-        {activeFile?.endsWith('.cfg') && (
+        {activeFile && !activeFile.endsWith('.md') && activeFile.endsWith('.cfg') && (
           <button
             onClick={() => setIsModalOpen(true)}
             style={{

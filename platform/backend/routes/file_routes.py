@@ -15,18 +15,27 @@ async def list_files(path: str = "."):
     if not os.path.isdir(target_dir):
         return {"error": "Not a directory"}
 
-    hidden_dirs = [".git", ".venv", "__pycache__", "node_modules", "platform", "agent", "README.md", "requirements.txt", "package-lock.json", "package.json", "chat_history.db"]
+    # Define allowed directories at the root level
+    allowed_root_items = ["booksim", "logs"]
+
     files = []
     try:
         items = sorted(os.listdir(target_dir))
         dir_list = []
         file_list = []
+
+        # Calculate depth relative to root_dir
+        rel_target_path = os.path.relpath(target_dir, root_dir)
+
         for name in items:
-            if name.startswith(".") or name in hidden_dirs:
+            # If we are at the root, enforce strict filtering
+            if rel_target_path == "." and name not in allowed_root_items:
                 continue
+
             full_path = os.path.join(target_dir, name)
             is_dir = os.path.isdir(full_path)
             rel_path = os.path.relpath(full_path, root_dir)
+
             item_data = {"name": name, "path": rel_path, "isDir": is_dir}
             if is_dir: dir_list.append(item_data)
             else: file_list.append(item_data)
@@ -134,3 +143,4 @@ async def get_config_parameters():
         return {"parameters": final_parameters}
     except Exception as e:
         return {"error": str(e)}
+

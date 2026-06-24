@@ -148,6 +148,7 @@ function App() {
           onTabClick={setActiveFile}
           onCloseTab={handleCloseFile}
           onUpdateFile={handleUpdateFileContent}
+          onFileClick={handleFileClick}
         />
     </div>
 
