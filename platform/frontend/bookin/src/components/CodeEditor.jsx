@@ -8,7 +8,8 @@ export const CodeEditor = React.memo(({ filePath, content, onFileClick }) => {
   // If content is an object (like from SimPreview), JSON.stringify it for the editor
   const displayContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : content;
 
-  if (filePath.endsWith('.md')) {
+  // FIX: Check for .md extension case-insensitively
+  if (filePath.toLowerCase().endsWith('.md')) {
     const components = {
       a: ({ node, ...props }) => (
         <a {...props} onClick={(e) => {
@@ -20,13 +21,28 @@ export const CodeEditor = React.memo(({ filePath, content, onFileClick }) => {
             if (href.startsWith('./')) {
                 targetPath = href.substring(2);
             }
-            // If it's a relative link within docs, prepend docs/
-            if (!targetPath.startsWith('docs/')) {
                 // Determine base directory of current file
                 const baseDir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
+
+            // If it's a relative link, prepend base directory
+            if (!targetPath.startsWith('docs/')) {
                 targetPath = baseDir + targetPath;
             }
-            onFileClick(targetPath);
+
+            // Clean up the path (resolve relative segments like '../')
+            const parts = targetPath.split('/');
+            const normalizedParts = [];
+            for (const part of parts) {
+                if (part === '..') {
+                    if (normalizedParts.length > 0) normalizedParts.pop();
+                } else if (part !== '.' && part !== '') {
+                    normalizedParts.push(part);
+                }
+            }
+            const normalizedPath = normalizedParts.join('/');
+            console.log(`Navigating from ${filePath} to: ${normalizedPath}`);
+            // Pass true to replace the current tab
+            onFileClick(normalizedPath, true);
           }
         }} />
       )

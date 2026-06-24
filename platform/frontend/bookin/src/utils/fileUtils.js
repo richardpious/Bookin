@@ -19,7 +19,12 @@ export const readFileContent = async (path) => {
       throw new Error(`Error: ${response.statusText}`);
     }
     const data = await response.json();
-    return data.content;
+
+    // Return both the content and the resolved path if the backend provided it
+    return {
+      content: data.content,
+      resolvedPath: data.path || path
+    };
   } catch (error) {
     console.error("Failed to fetch file content:", error);
     throw error;
@@ -46,3 +51,4 @@ export const updateFileContent = async (path, content) => {
     throw error;
   }
 };
+

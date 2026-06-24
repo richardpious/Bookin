@@ -16,7 +16,7 @@ async def list_files(path: str = "."):
         return {"error": "Not a directory"}
 
     # Define allowed directories at the root level
-    allowed_root_items = ["booksim", "logs"]
+    allowed_root_items = ["booksim", "logs", "docs"]
 
     files = []
     try:
@@ -47,17 +47,35 @@ async def list_files(path: str = "."):
 @router.get("/file")
 async def get_file(path: str):
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
+    # Clean the path: ensure no leading './'
+    if path.startswith('./'):
+        path = path[2:]
+
     target_path = os.path.normpath(os.path.join(root_dir, path))
+
+    # Log to verify the actual path resolution
+    print(f"DEBUG: Requested path={path}, Resolved target_path={target_path}")
 
     if not target_path.startswith(root_dir):
         return {"error": "Access denied"}
 
-    if not os.path.isfile(target_path):
-        return {"error": "Not a file"}
+    resolved_path = path
+    # If it's a directory, check for README.md inside it
+    if os.path.isdir(target_path):
+        readme_path = os.path.join(target_path, "README.md")
+        if os.path.isfile(readme_path):
+            target_path = readme_path
+            resolved_path = os.path.relpath(target_path, root_dir)
+        else:
+            return {"error": f"Not a file or README.md not found in directory: {target_path}"}
+    elif not os.path.isfile(target_path):
+        return {"error": f"Not a file: {target_path}"}
+
     try:
         with open(target_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        return {"content": content}
+        return {"content": content, "path": resolved_path}
     except Exception as e:
         return {"error": str(e)}
 

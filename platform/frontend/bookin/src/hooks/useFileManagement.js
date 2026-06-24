@@ -6,18 +6,39 @@ export const useFileManagement = () => {
   const [activeFile, setActiveFile] = useState(null);
   const [fileContents, setFileContents] = useState({});
 
-  const handleFileClick = async (path) => {
-    if (!openFiles.includes(path)) {
-      setOpenFiles([...openFiles, path]);
-      try {
-        const content = await readFileContent(path);
-        setFileContents(prev => ({ ...prev, [path]: content }));
-      } catch (err) {
-        console.error(err);
-        setFileContents(prev => ({ ...prev, [path]: 'Error loading file content.' }));
-      }
+  const handleFileClick = async (path, replace = false) => {
+    let newOpenFiles = [...openFiles];
+
+    // If replace is true, remove the currently active file from the list
+    if (replace && activeFile) {
+      newOpenFiles = newOpenFiles.filter(f => f !== activeFile);
     }
-    setActiveFile(path);
+
+    // Check if the file is already open
+    if (!newOpenFiles.includes(path)) {
+      newOpenFiles.push(path);
+    setOpenFiles(newOpenFiles);
+    }
+
+    // Always fetch content, because the backend might have redirected us
+    // to a different file (e.g. README.md) than the path we requested.
+    try {
+      const result = await readFileContent(path);
+      const { content, resolvedPath } = result;
+
+      // Update contents with the actual resolved path
+      setFileContents(prev => ({ ...prev, [resolvedPath]: content }));
+
+      // If the path was redirected, update openFiles
+      // Replace the placeholder 'path' with the 'resolvedPath' if needed
+      const finalFiles = newOpenFiles.map(p => p === path ? resolvedPath : p);
+      setOpenFiles(finalFiles);
+      setActiveFile(resolvedPath);
+    } catch (err) {
+      console.error(err);
+      setFileContents(prev => ({ ...prev, [path]: 'Error loading file content.' }));
+      setActiveFile(path);
+    }
   };
 
   const handleOpenFilePreview = useCallback(async (filePath) => {
@@ -29,10 +50,10 @@ export const useFileManagement = () => {
       try {
         const content = await readFileContent(filePath);
         setFileContents(prev => ({ ...prev, [filePath]: content }));
-      } catch (err) {
-        console.error(err);
+    } catch (err) {
+      console.error(err);
         setFileContents(prev => ({ ...prev, [filePath]: `Error loading file: ${filePath}` }));
-      }
+    }
     }
     setActiveFile(filePath);
   }, [openFiles]);

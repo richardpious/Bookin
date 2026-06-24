@@ -43,7 +43,7 @@ export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabCl
         {activeFile && (
           <CodeEditor filePath={activeFile} content={fileContents[activeFile]} onFileClick={onFileClick} />
         )}
-        {activeFile && !activeFile.endsWith('.md') && activeFile.endsWith('.cfg') && (
+        {activeFile && !activeFile.toLowerCase().endsWith('.md') && activeFile.endsWith('.cfg') && (
           <button
             onClick={() => setIsModalOpen(true)}
             style={{
