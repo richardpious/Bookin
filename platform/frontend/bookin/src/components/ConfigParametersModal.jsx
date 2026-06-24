@@ -11,6 +11,7 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
   const [hoveredParam, setHoveredParam] = useState(null);
   const [addedStatus, setAddedStatus] = useState({});
   const [isClosing, setIsClosing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (isOpen) setIsClosing(false);
@@ -63,6 +64,7 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
     if (isOpen) {
       setLoading(true);
       setError(null);
+      setSearchTerm(''); // Reset search term when modal opens
       fetch('http://localhost:8000/config-parameters')
         .then(res => res.json())
         .then(data => {
@@ -105,56 +107,69 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
           {loading && <div>Loading parameters...</div>}
           {error && <div style={{ color: '#ef4444' }}>Error: {error}</div>}
           {!loading && !error && parameters.length > 0 && (
-            <table className="config-table">
-              <thead>
-                <tr>
-                  <th>Parameter</th>
-                  <th>Value</th>
-                  <th style={{ width: '60px' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parameters.map((param, i) => {
-                  const currentValue = inputValues[param.name] !== undefined ? inputValues[param.name] : param.defaultValue;
-                  return (
-                    <tr key={i}>
-                      <td
-                        className="param-name"
-                        onMouseEnter={() => setHoveredParam(param.name)}
-                        onMouseLeave={() => setHoveredParam(null)}
-                      >
-                        {param.name}
-                        {hoveredParam === param.name && paramDescriptions[param.name] && (
-                          <div className="tooltip">
-                            {paramDescriptions[param.name]}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="param-input"
-                          value={currentValue}
-                          onChange={(e) => handleInputChange(param.name, e.target.value)}
-                        />
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        {addedStatus[param.name] ? (
-                          <span className="added-text">Added!</span>
-                        ) : (
-                          <button
-                            className="add-btn"
-                            onClick={() => handleAdd(param, currentValue)}
-                          >
-                            +
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <>
+              <div style={{ marginBottom: '16px' }}>
+                <input
+                  type="text"
+                  className="param-input"
+                  placeholder="Search parameters..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <table className="config-table">
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Value</th>
+                    <th style={{ width: '60px' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parameters
+                    .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map((param, i) => {
+                    const currentValue = inputValues[param.name] !== undefined ? inputValues[param.name] : param.defaultValue;
+                    return (
+                      <tr key={i}>
+                        <td
+                          className="param-name"
+                          onMouseEnter={() => setHoveredParam(param.name)}
+                          onMouseLeave={() => setHoveredParam(null)}
+                        >
+                          {param.name}
+                          {hoveredParam === param.name && paramDescriptions[param.name] && (
+                            <div className="tooltip">
+                              {paramDescriptions[param.name]}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="param-input"
+                            value={currentValue}
+                            onChange={(e) => handleInputChange(param.name, e.target.value)}
+                          />
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          {addedStatus[param.name] ? (
+                            <span className="added-text">Added!</span>
+                          ) : (
+                            <button
+                              className="add-btn"
+                              onClick={() => handleAdd(param, currentValue)}
+                            >
+                              +
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </>
           )}
           {!loading && !error && parameters.length === 0 && (
             <div>No parameters found.</div>
