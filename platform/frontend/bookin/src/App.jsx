@@ -104,7 +104,7 @@ function App() {
         approvalRequest={approvalRequest}
         setApprovalRequest={setApprovalRequest}
       />
-      <div className="main-layout" style={{ zIndex: 'auto', position: 'relative' }}>
+      <div className="main-layout" style={{ zIndex: 'auto', position: 'relative', overflow: 'hidden' }}>
         <LeftSidebar
             width={leftWidth}
             onFileClick={handleFileClick}
@@ -117,7 +117,7 @@ function App() {
         />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         
-        <div style={{ flex: 1, position: 'relative', zIndex: 0 }}>
+        <div style={{ flex: 1, position: 'relative', zIndex: 0, overflow: 'hidden' }}>
         <MainContentWindow
           openFiles={openFiles}
           activeFile={activeFile}

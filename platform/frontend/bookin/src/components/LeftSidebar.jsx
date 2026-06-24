@@ -8,11 +8,13 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
   return (
     <aside ref={sidebarRef} className="sidebar files-sidebar" style={{
       width,
-      height: '100vh',
+      height: 'calc(100vh - 20px)',
       overflowY: 'auto',
       position: 'relative',
       zIndex: 10,
-      padding: '0px'
+      padding: '0px',
+      margin: '10px 0 10px 10px',
+      borderRadius: '8px'
     }}>
       <SessionsList
         sessions={sessions}
@@ -29,3 +31,4 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
     </aside>
   )
 })
+

@@ -8,11 +8,14 @@ export const useResizer = () => {
 
   const handleMouseMove = useCallback((e) => {
     if (isResizingLeft.current) {
-      setLeftWidth(Math.max(150, Math.min(e.clientX, 500)));
+      // Adding margin: 10px (left) + width + resizer + gap (approx)
+      setLeftWidth(Math.max(150, Math.min(e.clientX - 20, window.innerWidth - rightWidth - 150)));
     } else if (isResizingRight.current) {
-      setRightWidth(Math.max(100, Math.min(window.innerWidth - e.clientX, 1200)));
+      // Adding margin: 10px (right)
+      const newRightWidth = window.innerWidth - e.clientX - 10;
+      setRightWidth(Math.max(100, Math.min(newRightWidth, window.innerWidth - leftWidth - 150)));
     }
-  }, []);
+  }, [leftWidth, rightWidth]);
 
   const handleMouseUp = useCallback(() => {
     isResizingLeft.current = false;
