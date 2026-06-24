@@ -1,12 +1,33 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import 'github-markdown-css/github-markdown-dark.css';
 
-export const CodeEditor = React.memo(({ filePath, content, onFileClick }) => {
+export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileClick }) => {
+  const editorRef = useRef(null);
+
   // If content is an object (like from SimPreview), JSON.stringify it for the editor
   const displayContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : content;
+
+  const onMount = (editor) => {
+    editorRef.current = editor;
+    // Also apply navigation immediately when editor mounts if activeLine is already set
+    if (activeLine) {
+        editor.revealLineInCenter(activeLine);
+        editor.setPosition({ lineNumber: activeLine, column: 1 });
+        editor.focus();
+    }
+  };
+
+  useEffect(() => {
+    console.log("CodeEditor useEffect triggered, activeLine:", activeLine);
+    if (editorRef.current && activeLine) {
+      editorRef.current.revealLineInCenter(activeLine);
+      editorRef.current.setPosition({ lineNumber: activeLine, column: 1 });
+      editorRef.current.focus();
+    }
+  }, [activeLine]);
 
   // FIX: Check for .md extension case-insensitively
   if (filePath.toLowerCase().endsWith('.md')) {
@@ -60,6 +81,7 @@ export const CodeEditor = React.memo(({ filePath, content, onFileClick }) => {
     <Editor
       height="100%"
       path={filePath}
+      onMount={onMount}
       defaultLanguage={filePath.endsWith('.json') ? 'json' : 'javascript'}
       value={displayContent}
       theme="vs-dark"

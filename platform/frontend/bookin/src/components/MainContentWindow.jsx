@@ -4,7 +4,7 @@ import { MainContentHome } from './MainContentHome';
 import { ConfigParametersModal } from './ConfigParametersModal';
 import { X, List } from 'lucide-react';
 
-export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabClick, onCloseTab, onUpdateFile, onFileClick }) => {
+export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, onTabClick, onCloseTab, onUpdateFile, onFileClick }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (openFiles.length === 0) {
@@ -41,7 +41,12 @@ export const MainContentWindow = ({ openFiles, activeFile, fileContents, onTabCl
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
         {activeFile && (
-          <CodeEditor filePath={activeFile} content={fileContents[activeFile]} onFileClick={onFileClick} />
+          <CodeEditor
+            filePath={activeFile}
+            activeLine={activeLine}
+            content={fileContents[activeFile]}
+            onFileClick={onFileClick}
+          />
         )}
         {activeFile && !activeFile.toLowerCase().endsWith('.md') && activeFile.endsWith('.cfg') && (
           <button

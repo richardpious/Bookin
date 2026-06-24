@@ -30,6 +30,7 @@ function App() {
   const [approvalRequest, setApprovalRequest] = useState(null)
   const [searchResults, setSearchResults] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeLine, setActiveLine] = useState(null)
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
   const { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, setActiveFile } = useFileManagement();
@@ -104,11 +105,11 @@ function App() {
     setSearchQuery(query);
   }, []);
 
-  const handleOpenFileFromSearch = useCallback((filePath, lineNumber) => {
-    // handleFileClick opens the file in the editor tab
-    handleFileClick(filePath);
-    // TODO: scroll editor to lineNumber once editor ref is available
-    console.log(`Open ${filePath} at line ${lineNumber}`);
+  const handleOpenFileFromSearch = useCallback(async (filePath, lineNumber) => {
+    // Wait for the file to be opened and the actual path to be resolved
+    const resolvedPath = await handleFileClick(filePath);
+    setActiveLine(lineNumber);
+    console.log(`Opened ${resolvedPath} at line ${lineNumber}`);
   }, [handleFileClick]);
 
   return (
@@ -144,8 +145,9 @@ function App() {
         <MainContentWindow
           openFiles={openFiles}
           activeFile={activeFile}
+          activeLine={activeLine}
           fileContents={fileContents}
-          onTabClick={setActiveFile}
+          onTabClick={(path) => { setActiveFile(path); setActiveLine(null); }}
           onCloseTab={handleCloseFile}
           onUpdateFile={handleUpdateFileContent}
           onFileClick={handleFileClick}

@@ -34,10 +34,12 @@ export const useFileManagement = () => {
       const finalFiles = newOpenFiles.map(p => p === path ? resolvedPath : p);
       setOpenFiles(finalFiles);
       setActiveFile(resolvedPath);
+      return resolvedPath; // Return the actual path
     } catch (err) {
       console.error(err);
       setFileContents(prev => ({ ...prev, [path]: 'Error loading file content.' }));
       setActiveFile(path);
+      return path;
     }
   };
 
