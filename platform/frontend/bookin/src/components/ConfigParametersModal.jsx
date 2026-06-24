@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import '../index.css'; // ensure styles are imported if needed
 import paramDescriptions from '../data/paramDescriptions.json';
+import paramOptions from '../data/paramOptions.json';
 
 export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
   const [parameters, setParameters] = useState([]);
@@ -12,6 +13,18 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
   const [addedStatus, setAddedStatus] = useState({});
   const [isClosing, setIsClosing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const dropdownRefs = useRef({});
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeDropdown && dropdownRefs.current[activeDropdown] && !dropdownRefs.current[activeDropdown].contains(event.target)) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeDropdown]);
 
   useEffect(() => {
     if (isOpen) setIsClosing(false);
@@ -144,13 +157,32 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
                             </div>
                           )}
                         </td>
-                        <td>
+                        <td style={{ position: 'relative' }} ref={el => dropdownRefs.current[param.name] = el}>
                           <input
                             type="text"
                             className="param-input"
                             value={currentValue}
                             onChange={(e) => handleInputChange(param.name, e.target.value)}
+                            onFocus={() => paramOptions[param.name] && setActiveDropdown(param.name)}
                           />
+                          {activeDropdown === param.name && paramOptions[param.name] && (
+                            <div className="model-dropdown" style={{ width: '100%', top: 'calc(100% + 4px)', zIndex: 10 }}>
+                              {paramOptions[param.name]
+                                .filter(opt => opt.toString().toLowerCase().includes(currentValue.toString().toLowerCase()))
+                                .map(opt => (
+                                <div
+                                  key={opt}
+                                  className="model-item"
+                                  onClick={() => {
+                                    handleInputChange(param.name, opt);
+                                    setActiveDropdown(null);
+                                  }}
+                                >
+                                  {opt}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           {addedStatus[param.name] ? (

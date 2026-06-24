@@ -210,6 +210,17 @@ code {
   overflow-y: auto;
 }
 
+/* Updated for ConfigModal custom dropdown */
+.config-modal-body .model-dropdown {
+  right: auto;
+  left: 0;
+  width: 100%;
+  background: #252525;
+  border-color: #444;
+  margin-top: 2px;
+  box-sizing: border-box;
+}
+
 .model-header-item {
   padding: 4px 12px;
   font-weight: 600;

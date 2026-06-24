@@ -1,0 +1,13 @@
+{
+  "sim_type": ["latency", "throughput"],
+  "topology": ["torus", "mesh", "anynet", "dragonfly", "fat_tree", "custom"],
+  "routing_function": ["none", "dim_order", "dor", "xy", "yx", "dest_tag", "valiant", "romm", "min_adapt", "planar_adapt"],
+  "router": ["iq", "event", "chaos"],
+  "buffer_policy": ["private", "shared"],
+  "vc_allocator": ["islip", "pim", "max_size", "loa", "wavefront", "selalloc", "separable_input_first", "separable_output_first"],
+  "sw_allocator": ["islip", "pim", "max_size", "loa", "wavefront", "selalloc", "separable_input_first", "separable_output_first"],
+  "traffic": ["uniform", "transpose", "bitcomp", "bitrev", "shuffle", "tornado", "neighbor", "hotspot", "randperm", "perm"],
+  "priority": ["none", "class", "age", "network_age", "local_age", "queue_length", "sequence"],
+  "arb_type": ["round_robin", "matrix", "priority"],
+  "injection_process": ["bernoulli", "bursty"]
+}
