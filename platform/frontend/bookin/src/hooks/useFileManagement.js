@@ -46,19 +46,27 @@ export const useFileManagement = () => {
   const handleOpenFilePreview = useCallback(async (filePath) => {
     console.log("handleOpenFilePreview called for file:", filePath);
 
-    // We reuse the existing logic for opening a file
-    if (!openFiles.includes(filePath)) {
-      setOpenFiles(prev => [...prev, filePath]);
-      try {
-        const content = await readFileContent(filePath);
-        setFileContents(prev => ({ ...prev, [filePath]: content }));
+    // FIX: Re-implement without calling handleFileClick with its side-effects
+    // that might be causing content to be overwritten or lost.
+    try {
+      const result = await readFileContent(filePath);
+      const { content, resolvedPath } = result;
+      setFileContents(prev => ({ ...prev, [resolvedPath]: content }));
+
+      setOpenFiles(prev => {
+          if (!prev.includes(resolvedPath)) {
+              return [...prev, resolvedPath];
+          }
+          return prev;
+      });
+
+      setActiveFile(resolvedPath);
     } catch (err) {
       console.error(err);
-        setFileContents(prev => ({ ...prev, [filePath]: `Error loading file: ${filePath}` }));
+      setFileContents(prev => ({ ...prev, [filePath]: `Error loading file: ${filePath}` }));
+      setActiveFile(filePath);
     }
-    }
-    setActiveFile(filePath);
-  }, [openFiles]);
+  }, []);
 
   const handleCloseFile = (e, path) => {
     e.stopPropagation();

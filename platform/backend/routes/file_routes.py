@@ -47,20 +47,29 @@ async def list_files(path: str = "."):
 @router.get("/file")
 async def get_file(path: str):
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-
+    # The actual folder containing the files is 'booksim'
+    # We want to restrict access to this directory specifically.
+    booksim_dir = os.path.join(root_dir, 'booksim')
     # Clean the path: ensure no leading './'
     if path.startswith('./'):
         path = path[2:]
 
-    target_path = os.path.normpath(os.path.join(root_dir, path))
+    # If the user provides a path that is just the filename,
+    # assume it's in the booksim directory (or a subdirectory)
+    if not path.startswith('booksim'):
+        target_path = os.path.normpath(os.path.join(booksim_dir, path))
+    else:
+        target_path = os.path.normpath(os.path.join(root_dir, path))
 
     # Log to verify the actual path resolution
     print(f"DEBUG: Requested path={path}, Resolved target_path={target_path}")
 
-    if not target_path.startswith(root_dir):
-        return {"error": "Access denied"}
+    # Enforce that the target_path must be within the 'booksim' directory
+    if not target_path.startswith(booksim_dir):
+        return {"error": "Access denied: File must be inside the booksim directory"}
 
-    resolved_path = path
+    resolved_path = os.path.relpath(target_path, root_dir)
+
     # If it's a directory, check for README.md inside it
     if os.path.isdir(target_path):
         readme_path = os.path.join(target_path, "README.md")
