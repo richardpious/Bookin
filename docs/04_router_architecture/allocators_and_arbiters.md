@@ -1,4 +1,4 @@
-[<- Topology Index](README.md)
+[<- Router Architecture Index](README.md)
 
 # Allocators and Arbiters
 

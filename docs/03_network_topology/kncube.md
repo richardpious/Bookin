@@ -1,4 +1,4 @@
-[<- Topology Index](README.md)
+[<- Network Topology Index](README.md)
 
 # Mesh / Torus Topology (KNCube)
 

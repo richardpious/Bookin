@@ -1,4 +1,4 @@
-[<- Topology Index](README.md)
+[<- Network Topology Index](README.md)
 
 # Flattened Butterfly (FlatFly) Topology
 

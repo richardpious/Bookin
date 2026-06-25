@@ -1,4 +1,4 @@
-[<- Previous Page](../01_running_simulations/README.md) | [Index](../index.md)
+[<- Logging Index](README.md) | [Index](../index.md)
 
 # sent_flits_out / received_flits_out
 

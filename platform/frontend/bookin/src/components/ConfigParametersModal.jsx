@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import '../index.css'; // ensure styles are imported if needed
 import paramDescriptions from '../data/paramDescriptions.json';
 import paramOptions from '../data/paramOptions.json';
+import paramDependencies from '../data/paramDependencies.json';
 
 export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
   const [parameters, setParameters] = useState([]);
@@ -48,6 +49,32 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
 
   const handleInputChange = (name, value) => {
     setInputValues(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Ensure initial inputValues are set when parameters are loaded
+  useEffect(() => {
+    if (parameters.length > 0) {
+      const initialValues = {};
+      parameters.forEach(p => {
+        initialValues[p.name] = p.defaultValue;
+      });
+      setInputValues(initialValues);
+    }
+  }, [parameters]);
+
+  const isVisible = (param) => {
+    const dependency = paramDependencies.dependencies[param.name];
+    if (!dependency) return true;
+
+    // Use current input value if set, else fallback to param default
+    const masterValue = inputValues[dependency.dependsOn] !== undefined
+      ? inputValues[dependency.dependsOn]
+      : parameters.find(p => p.name === dependency.dependsOn)?.defaultValue;
+
+    if (dependency.showValue === "gt1") {
+      return Number(masterValue) > 1;
+    }
+    return masterValue?.toString() === dependency.showValue;
   };
 
   const handleAdd = (param, value) => {
@@ -140,6 +167,7 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
                 <tbody>
                   {parameters
                     .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .filter(p => isVisible(p))
                     .map((param, i) => {
                     const currentValue = inputValues[param.name] !== undefined ? inputValues[param.name] : param.defaultValue;
                     return (

@@ -104,6 +104,14 @@ async def get_config_parameters():
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
     config_path = os.path.join(root_dir, 'booksim', 'src', 'booksim_config.cpp')
     
+    # Parameters to exclude from the UI
+    excluded_params = {
+        "H_INVD2", "W_INVD2", "H_DFQD1", "W_DFQD1", "H_ND2D1", "W_ND2D1",
+        "H_SRAM", "W_SRAM", "Vdd", "R", "IoffSRAM", "IoffP", "IoffN",
+        "Cg_pwr", "Cd_pwr", "Cgdl", "Cg", "Cd", "LAMBDA", "MetalPitch",
+        "Rw", "Cw_gnd", "Cw_cpl", "wire_length"
+    }
+
     if not os.path.isfile(config_path):
         return {"error": "booksim_config.cpp not found"}
         
@@ -116,29 +124,32 @@ async def get_config_parameters():
         # Parse AddStrField
         str_matches = re.finditer(r'AddStrField\s*\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*\)', content)
         for match in str_matches:
-            parameters.append({
-                "name": match.group(1),
-                "defaultValue": match.group(2),
-                "type": "string"
-            })
+            if match.group(1) not in excluded_params:
+                parameters.append({
+                    "name": match.group(1),
+                    "defaultValue": match.group(2),
+                    "type": "string"
+                })
             
         # Parse _int_map
         int_matches = re.finditer(r'_int_map\s*\[\s*"([^"]+)"\s*\]\s*=\s*([^;]+);', content)
         for match in int_matches:
-            parameters.append({
-                "name": match.group(1),
-                "defaultValue": match.group(2).strip(),
-                "type": "integer"
-            })
-            
+            if match.group(1) not in excluded_params:
+                parameters.append({
+                    "name": match.group(1),
+                    "defaultValue": match.group(2).strip(),
+                    "type": "integer"
+                })
+                
         # Parse _float_map
         float_matches = re.finditer(r'_float_map\s*\[\s*"([^"]+)"\s*\]\s*=\s*([^;]+);', content)
         for match in float_matches:
-            parameters.append({
-                "name": match.group(1),
-                "defaultValue": match.group(2).strip(),
-                "type": "float"
-            })
+            if match.group(1) not in excluded_params:
+                parameters.append({
+                    "name": match.group(1),
+                    "defaultValue": match.group(2).strip(),
+                    "type": "float"
+                })
             
         # Merge duplicates
         merged_params = {}
