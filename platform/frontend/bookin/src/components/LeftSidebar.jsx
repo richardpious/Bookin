@@ -16,7 +16,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
       zIndex: 10,
       padding: '0px'
     }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+      <div style={{ flex: 1, overflowY: 'auto', leftPadding: '0.5rem' }}>
         <SessionsList
           sessions={sessions}
           setSessions={setSessions}

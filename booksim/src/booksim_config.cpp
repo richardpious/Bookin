@@ -287,19 +287,19 @@ BookSimConfig::BookSimConfig( )
   AddStrField("stats_out", "");
 
 #ifdef TRACK_FLOWS
-  AddStrField("injected_flits_out", "");
-  AddStrField("received_flits_out", "");
-  AddStrField("stored_flits_out", "");
-  AddStrField("sent_flits_out", "");
-  AddStrField("outstanding_credits_out", "");
-  AddStrField("ejected_flits_out", "");
-  AddStrField("active_packets_out", "");
+  AddStrField("injected_flits_out", "injected_flits_out.txt");
+  AddStrField("received_flits_out", "received_flits_out.txt");
+  AddStrField("stored_flits_out", "stored_flits_out.txt");
+  AddStrField("sent_flits_out", "sent_flits_out.txt");
+  AddStrField("outstanding_credits_out", "outstanding_credits_out.txt");
+  AddStrField("ejected_flits_out", "ejected_flits_out.txt");
+  AddStrField("active_packets_out", "active_packets_out.txt");
 #endif
 
 #ifdef TRACK_CREDITS
-  AddStrField("used_credits_out", "");
-  AddStrField("free_credits_out", "");
-  AddStrField("max_credits_out", "");
+  AddStrField("used_credits_out", "used_credits_out.txt");
+  AddStrField("free_credits_out", "free_credits_out.txt");
+  AddStrField("max_credits_out", "max_credits_out.txt");
 #endif
 
   // batch only -- packet sequence numbers
