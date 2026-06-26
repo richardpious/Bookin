@@ -17,12 +17,13 @@ async def delete_session(request: Request, session_id: str):
 
         # Send reset command to openclaw
         try:
-            session_key = f"webchat:{session_id}"
-            await agent_bridge.send_message("/reset", session_key)
+            # sessionId is just the UUID
+            await agent_bridge.send_message("/reset", session_id)
         except Exception as e:
-            print(f"Warning: Failed to reset openclaw agent session {session_key}: {e}")
+            print(f"Warning: Failed to reset openclaw agent session {session_id}: {e}")
 
         chat_db.reset_session(session_id)
         return {"status": "success"}
     except Exception as e:
         return {"error": str(e)}
+

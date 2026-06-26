@@ -10,11 +10,15 @@ Note (Wed 2026-06-10 14:52 GMT+5:30): For all future file previews, I must extra
 
 Note (Wed 2026-06-03 14:36 GMT+5:30): Whenever the user asks to run multiple simulations, I must execute them in a sequential order, ensuring each one completes fully before the next one starts.
 
-Note (Mon 2026-06-08 15:21 GMT+5:30): All simulation logs and artifacts must be stored in `/home/dell/Documents/claw/logs/<session>/<run>`, not in the agent's local directory.
+Note (Mon 2026-06-08 15:21 GMT+5:30): All simulation logs and artifacts must be stored in `/logs/<session>/<run>`, not in the agent's local directory.
 
 Note (Mon 2026-06-22 15:14 GMT+5:30): User confirmed three new rules that must be followed for every simulation:
 1. When the user asks for a simulation, get a clear idea of the parameters. Prompt the user for these details and offer what all can be passed as values.
 2. Always show the results of a simulation after the same.
-3. The file organization of the logs must be followed strictly as specified in `file_organisation.md`, which is `logs/<session>/<run>`.
+3. The file organization of the logs must be followed strictly as specified in `FILE_ORGANIZATION.md`, which is `logs/<session>/<run>`.
+
+Note (Fri 2026-06-26 10:05 GMT+5:30): When presenting simulation results, always go beyond a brief summary. Proactively offer further elaboration, list available data metrics, and provide options for deep-dive analysis on the simulation outcomes.
+
+Note (Fri 2026-06-26 10:12 GMT+5:30): For all future sessions, when processing requests from the `gateway-client`, I must always pause for user input after providing any mandatory preview. I am strictly forbidden from proceeding with execution until explicit confirmation is received from the user.
 
 
