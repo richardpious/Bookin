@@ -64,6 +64,30 @@ function App() {
       throw err;
     }
   }, [sessionId]);
+
+  const handleThinkingLevelChange = useCallback(async (level) => {
+    console.log("Thinking level changed to:", level);
+    try {
+      // Assuming a backend route exists for this as well,
+      // based on the provided message format requirements
+      const response = await fetch('http://localhost:8000/set-thinking-level', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: `agent:main:webchat:${sessionId}`,
+          agentId: "main",
+          thinkingLevel: level
+        })
+      });
+      const data = await response.json();
+      console.log("Thinking level switch response:", data);
+      return data;
+    } catch (err) {
+      console.error("Error setting thinking level:", err);
+      throw err;
+    }
+  }, [sessionId]);
+
   // Load initial sessions
   useEffect(() => {
     const loadSessions = async () => {
@@ -114,7 +138,12 @@ function App() {
 
   return (
     <div className="app-container">
-      <Header onModelChange={handleModelChange} sessionId={sessionId} onSearch={handleSearch} />
+      <Header
+        onModelChange={handleModelChange}
+        onThinkingLevelChange={handleThinkingLevelChange}
+        sessionId={sessionId}
+        onSearch={handleSearch}
+      />
       <ApprovalModal
         isOpen={!!approvalRequest}
         approvalRequest={approvalRequest}

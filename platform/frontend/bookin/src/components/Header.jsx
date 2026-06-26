@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { HeaderSearch } from './HeaderSearch';
 import { ModelSelector } from './ModelSelector';
+import { ThinkingLevelSelector } from './ThinkingLevelSelector';
 
-export const Header = ({ onModelChange, sessionId, onSearch }) => {
+export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch }) => {
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState('success');
 
@@ -30,6 +31,11 @@ export const Header = ({ onModelChange, sessionId, onSearch }) => {
       <ModelSelector
         sessionId={sessionId}
         onModelChange={onModelChange}
+        onToast={showToast}
+      />
+      <ThinkingLevelSelector
+        sessionId={sessionId}
+        onLevelChange={onThinkingLevelChange}
         onToast={showToast}
       />
 

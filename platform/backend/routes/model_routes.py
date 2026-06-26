@@ -111,6 +111,39 @@ async def set_model(request: Request):
 
     return {"ok": False, "error": {"message": "Timed out waiting for model update"}}
 
+@router.post("/set-thinking-level")
+async def set_thinking_level(request: Request):
+    data = await request.json()
+    # Expecting: {"key": "...", "agentId": "...", "thinkingLevel": "..."}
+    # as per user requirements.
+    # Note: Currently App.jsx sends key, agentId, and thinkingLevel.
+
+    gateway_client = request.app.state.gateway_client
+
+    request_id = str(uuid.uuid4())
+    await gateway_client.websocket.send(json.dumps({
+        "type": "req",
+        "id": request_id,
+        "method": "sessions.patch",
+        "params": data
+    }))
+
+    # Wait for the response from the gateway
+    if not hasattr(request.app.state, 'pending_responses'):
+        request.app.state.pending_responses = {}
+
+    timeout = 5
+    start_time = asyncio.get_event_loop().time()
+    while (asyncio.get_event_loop().time() - start_time) < timeout:
+        resp = request.app.state.pending_responses.get(request_id)
+        if resp:
+            del request.app.state.pending_responses[request_id]
+            # resp is: {'type': 'res', 'id': ..., 'ok': True/False, 'error': ...}
+            return resp
+        await asyncio.sleep(0.5)
+
+    return {"ok": False, "error": {"message": "Timed out waiting for thinking level update"}}
+
 @router.get("/get-session-model")
 async def get_session_model(session_id: str, request: Request):
     gateway_client = request.app.state.gateway_client
