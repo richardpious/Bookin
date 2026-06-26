@@ -47,26 +47,26 @@ async def list_files(path: str = "."):
 @router.get("/file")
 async def get_file(path: str):
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-    # The actual folder containing the files is 'booksim'
-    # We want to restrict access to this directory specifically.
-    booksim_dir = os.path.join(root_dir, 'booksim')
     # Clean the path: ensure no leading './'
     if path.startswith('./'):
         path = path[2:]
 
-    # If the user provides a path that is just the filename,
-    # assume it's in the booksim directory (or a subdirectory)
-    if not path.startswith('booksim'):
-        target_path = os.path.normpath(os.path.join(booksim_dir, path))
-    else:
-        target_path = os.path.normpath(os.path.join(root_dir, path))
-
+    # Resolve target path relative to root
+    target_path = os.path.normpath(os.path.join(root_dir, path))
     # Log to verify the actual path resolution
     print(f"DEBUG: Requested path={path}, Resolved target_path={target_path}")
 
-    # Enforce that the target_path must be within the 'booksim' directory
-    if not target_path.startswith(booksim_dir):
-        return {"error": "Access denied: File must be inside the booksim directory"}
+    # Enforce that the target_path must be within the allowed directories
+    # Allowed top-level directories: booksim, logs, docs
+    allowed_dirs = [
+        os.path.join(root_dir, 'booksim'),
+        os.path.join(root_dir, 'logs'),
+        os.path.join(root_dir, 'docs')
+    ]
+    is_allowed = any(target_path.startswith(d) for d in allowed_dirs)
+
+    if not is_allowed:
+        return {"error": "Access denied: File must be inside the allowed directory"}
 
     resolved_path = os.path.relpath(target_path, root_dir)
 

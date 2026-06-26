@@ -16,7 +16,14 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
       zIndex: 10,
       padding: '0px'
     }}>
-      <div style={{ flex: 1, overflowY: 'auto', leftPadding: '0.5rem' }}>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        paddingLeft: '0.5rem',
+            display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--bg-sidebar)'
+      }}>
         <SessionsList
           sessions={sessions}
           setSessions={setSessions}
@@ -33,15 +40,18 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
       <div
         onClick={() => onFileClick('docs/index.md')}
         style={{
+            position: 'sticky',
+            bottom: 0,
             padding: '12px 24px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             borderTop: '1px solid var(--border-light)',
-            backgroundColor: 'rgba(0,0,0,0.2)',
+            backgroundColor: 'var(--bg-sidebar)',
             color: 'var(--text-secondary)',
-            fontSize: '0.85rem'
+            fontSize: '0.85rem',
+            zIndex: 30
         }}
         onMouseOver={(e) => {
             e.currentTarget.style.color = '#ffffff';
@@ -49,7 +59,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
         }}
         onMouseOut={(e) => {
             e.currentTarget.style.color = 'var(--text-secondary)';
-            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.2)';
+            e.currentTarget.style.backgroundColor = 'var(--bg-sidebar)';
         }}
       >
         <BookOpen size={14} />
