@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 
-export const ModelSelector = ({ onModelChange, sessionId, onToast }) => {
-  const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('');
+export const ModelSelector = ({ onModelChange, sessionId, onToast, initialModel, availableModels }) => {
+  const [models, setModels] = useState(availableModels || []);
+  const [selectedModel, setSelectedModel] = useState(initialModel || '');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (availableModels) setModels(availableModels);
+    if (initialModel) setSelectedModel(initialModel);
+  }, [initialModel, availableModels]);
 
   useEffect(() => {
     const initSession = async () => {
@@ -27,7 +32,9 @@ export const ModelSelector = ({ onModelChange, sessionId, onToast }) => {
       }
     };
     initSession();
+  }, [sessionId]);
 
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -35,7 +42,7 @@ export const ModelSelector = ({ onModelChange, sessionId, onToast }) => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [sessionId]);
+  }, []);
 
   const handleModelSelect = async (model) => {
     setIsOpen(false);
@@ -89,3 +96,4 @@ export const ModelSelector = ({ onModelChange, sessionId, onToast }) => {
     </div>
   );
 };
+

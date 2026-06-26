@@ -12,7 +12,7 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
 
   const onMount = (editor) => {
     editorRef.current = editor;
-    // Also apply navigation immediately when editor mounts if activeLine is already set
+    // Always focus and reveal on mount
     if (activeLine) {
         editor.revealLineInCenter(activeLine);
         editor.setPosition({ lineNumber: activeLine, column: 1 });
@@ -22,12 +22,14 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
 
   useEffect(() => {
     console.log("CodeEditor useEffect triggered, activeLine:", activeLine);
-    if (editorRef.current && activeLine) {
+    if (editorRef.current) {
+      if (activeLine) {
       editorRef.current.revealLineInCenter(activeLine);
       editorRef.current.setPosition({ lineNumber: activeLine, column: 1 });
       editorRef.current.focus();
     }
-  }, [activeLine]);
+    }
+  }, [activeLine, content]);
 
   // FIX: Check for .md extension case-insensitively
   if (filePath.toLowerCase().endsWith('.md')) {

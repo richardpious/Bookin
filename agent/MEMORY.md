@@ -19,6 +19,8 @@ Note (Mon 2026-06-22 15:14 GMT+5:30): User confirmed three new rules that must b
 
 Note (Fri 2026-06-26 10:05 GMT+5:30): When presenting simulation results, always go beyond a brief summary. Proactively offer further elaboration, list available data metrics, and provide options for deep-dive analysis on the simulation outcomes.
 
-Note (Fri 2026-06-26 10:12 GMT+5:30): For all future sessions, when processing requests from the `gateway-client`, I must always pause for user input after providing any mandatory preview. I am strictly forbidden from proceeding with execution until explicit confirmation is received from the user.
+Note (Fri 2026-06-26 15:21 GMT+5:30): For all future simulations, I must change the working directory to the specific log/session/run directory before executing the simulation command. This ensures that the automatically generated log files are stored directly within the designated artifact folder. This is a permanent, non-session-specific instruction.
+
+Note (Fri 2026-06-26 15:37 GMT+5:30): When calling the file-preview tool, the file_path parameter must be relative to the Bookin root directory (e.g., 'booksim/src/configs/torus4x4.cfg'), not relative to the agent's workspace. This ensures the preview is correctly retrieved and displayed.
 
 

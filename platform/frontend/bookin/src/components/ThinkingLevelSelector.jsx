@@ -1,16 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 
-export const ThinkingLevelSelector = ({ onLevelChange, sessionId, onToast }) => {
-  const [selectedLevel, setSelectedLevel] = useState('medium');
+export const ThinkingLevelSelector = ({ onLevelChange, sessionId, onToast, initialLevel, availableLevels }) => {
+  const [selectedLevel, setSelectedLevel] = useState(initialLevel || 'medium');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const levels = [
+  // Use dynamic levels if provided, otherwise default to hardcoded ones
+  const levels = availableLevels && availableLevels.length > 0
+    ? availableLevels.map(l => ({ id: l.id, name: l.label.charAt(0).toUpperCase() + l.label.slice(1) }))
+    : [
     { id: 'off', name: 'Off' },
     { id: 'low', name: 'Low' },
     { id: 'medium', name: 'Medium' },
     { id: 'high', name: 'High' },
   ];
+
+  // Sync selectedLevel if availableLevels change and current selection is invalid
+  useEffect(() => {
+    if (initialLevel) {
+      setSelectedLevel(initialLevel);
+    }
+  }, [initialLevel]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -38,8 +48,7 @@ export const ThinkingLevelSelector = ({ onLevelChange, sessionId, onToast }) => 
     }
   };
 
-  const selectedLevelName = levels.find(l => l.id === selectedLevel)?.name || 'Medium';
-
+  const selectedLevelName = levels.find(l => l.id === selectedLevel)?.name || 'Off';
   return (
     <div className="header-right" ref={dropdownRef}>
       <div

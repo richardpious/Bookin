@@ -46,11 +46,10 @@ export const useFileManagement = () => {
   const handleOpenFilePreview = useCallback(async (filePath) => {
     console.log("handleOpenFilePreview called for file:", filePath);
 
-    // FIX: Re-implement without calling handleFileClick with its side-effects
-    // that might be causing content to be overwritten or lost.
     try {
       const result = await readFileContent(filePath);
       const { content, resolvedPath } = result;
+
       setFileContents(prev => ({ ...prev, [resolvedPath]: content }));
 
       setOpenFiles(prev => {
@@ -63,6 +62,8 @@ export const useFileManagement = () => {
       setActiveFile(resolvedPath);
     } catch (err) {
       console.error(err);
+      // For preview, we try to set the content even if it's an error
+      // so the user knows something tried to open
       setFileContents(prev => ({ ...prev, [filePath]: `Error loading file: ${filePath}` }));
       setActiveFile(filePath);
     }
