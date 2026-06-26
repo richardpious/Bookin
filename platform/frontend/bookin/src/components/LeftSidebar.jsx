@@ -19,8 +19,8 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        paddingLeft: '0.5rem',
-            display: 'flex',
+        padding: '0.75rem', // Added padding here for internal elements
+        display: 'flex',
         flexDirection: 'column',
         backgroundColor: 'var(--bg-sidebar)'
       }}>

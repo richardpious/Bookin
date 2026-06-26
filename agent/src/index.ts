@@ -8,13 +8,17 @@ export default definePluginEntry({
     api.on(
       "before_tool_call",
       async (event) => {
-          console.log(`[Tool Approval] DEBUG: toolName=${event.toolName}, params=${JSON.stringify(event.params)}`);
+          console.log(`[Tool Approval] DEBUG: toolName=${event.toolName}, arguments=${JSON.stringify(event.arguments)}`);
+          // Log sender (untrusted metadata) if present
+          if (event.incomingMetadata) {
+              console.log(`[Tool Approval] Sender metadata: ${JSON.stringify(event.incomingMetadata)}`);
+          }
         
         let requiresApproval = false;
 
         // 2. Specific logic for 'exec': only true if it contains 'rm'
-        if (event.toolName === "exec" && event.params.command) {
-          const command = String(event.params.command);
+        if (event.toolName === "exec" && event.arguments.command) {
+          const command = String(event.arguments.command);
           if (command.includes("rm")) {
             requiresApproval = true;
           }
@@ -29,7 +33,7 @@ export default definePluginEntry({
         return {
           requireApproval: {
             title: `Approve tool: ${event.toolName}`,
-            description: `Agent is requesting to use '${event.toolName}' with parameters: ${JSON.stringify(event.params)}`,
+            description: `Agent is requesting to use '${event.toolName}' with parameters: ${JSON.stringify(event.arguments)}`,
             severity: "warning",
             timeoutMs: 300_000,
             timeoutBehavior: "deny",
@@ -40,4 +44,3 @@ export default definePluginEntry({
     );
   },
 });
-

@@ -16,7 +16,7 @@ export const Header = ({ onModelChange, sessionId, onSearch }) => {
     <header className="app-header">
       {/* Left — Logo */}
       <div className="header-left">
-        <img src="/logo.png" alt="BookIn Logo" className="logo-img" />
+        <img src="/logolight.jpeg" alt="BookIn Logo" className="logo-img" />
         <span className="logo">BookIn</span>
       </div>
 
@@ -43,3 +43,4 @@ export const Header = ({ onModelChange, sessionId, onSearch }) => {
     </header>
   );
 };
+
