@@ -25,3 +25,7 @@ booksim/src/*.o
 booksim/src/*.a
 booksim/src/booksim
 
+# configs
+configs/*.cfg
+!configs/official/*.cfg
+
