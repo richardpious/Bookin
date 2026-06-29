@@ -6,7 +6,7 @@ This protocol defines the mandatory directory structure and procedures for all s
 ---
 
 ## Directory Structure
-All simulation-related work must be organized under the project's `../logs` directory (located at `/home/dell/Documents/claw/logs`).
+All simulation-related work must be organized under the project's `../logs` directory (located at `../logs`).
 
 ```text
 ../logs/
@@ -41,8 +41,8 @@ Each simulation execution is a run. Runs must be stored sequentially as `run_1`,
 2. Maintain a clear audit trail from config to execution to results.
 
 ### Configuration Management
-- Base configurations: `/home/dell/Documents/claw/booksim/src/configs/`
-- Custom configurations: `/home/dell/Documents/claw/agent/configs/custom/`
+- Base configurations: `/home/dell/Documents/Bookin/configs/`
+- Custom configurations: `/home/dell/Documents/Bookin/configs/`
 - Never modify base configurations directly.
 
 ---

@@ -79,12 +79,12 @@ export const ProjectFilesList = React.memo(({ onFileClick, activeFile }) => {
   const [files, setFiles] = useState([])
 
   useEffect(() => {
-    // Only fetch from the allowed project folders (booksim and logs)
+    // Only fetch from the allowed project folders
     // We fetch them individually to avoid showing the root folder contents
     const fetchAllowedFolders = async () => {
       try {
         const rootFiles = await fetchFiles(".");
-        const allowed = rootFiles.filter(f => ['booksim', 'logs'].includes(f.name));
+        const allowed = rootFiles.filter(f => ['booksim', 'configs', 'docs'].includes(f.name));
         setFiles(allowed);
       } catch (err) {
         console.error(err);
@@ -92,7 +92,6 @@ export const ProjectFilesList = React.memo(({ onFileClick, activeFile }) => {
     };
     fetchAllowedFolders();
   }, [])
-
   return (
     <>
       <div className="project-section" style={{

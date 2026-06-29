@@ -27,5 +27,4 @@ booksim/src/booksim
 
 # configs
 configs/*.cfg
-!configs/official/*.cfg
 

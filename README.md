@@ -11,42 +11,17 @@ Ensure you have the following installed on your system:
 
 ---
 
+## Project Structure
+
+- `agent/`: Contains the agent implementation logic.
+- `booksim/`: Core simulation engine and related resources.
+- `configs/`: Configuration files for the project.
+- `docs/`: Project documentation.
+- `platform/`: Platform-specific utilities and definitions.
+- `plugins/`: Extendable functionality modules.
+---
+
 ## System Dependencies
 
 Install `ripgrep` via your system package manager before running the project:
 
-```bash
-# Ubuntu / Debian
-sudo apt-get install ripgrep
-
-# macOS
-brew install ripgrep
-
-# Verify installation
-rg --version
-```
-
----
-
-## Dependancies 
-
-The project relies on both Python and js dependancies, it is recommended to install inside a virtual environment.
-
-```bash
-# Create and activate the virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install the Python dependancies
-pip install -r requirements.txt
-
-```bash
-# Install all js dependencies
-npm install
-```
-
-## Getting Started
-
-Once dependencies are installed:
-1. **Activate your environment**: Always ensure your `.venv` is active when running Python scripts.
-2. **Start the frontend and backend servers**: 

@@ -16,7 +16,7 @@ async def list_files(path: str = "."):
         return {"error": "Not a directory"}
 
     # Define allowed directories at the root level
-    allowed_root_items = ["booksim", "logs", "docs"]
+    allowed_root_items = ["booksim", "logs", "docs", "configs"]
 
     files = []
     try:
@@ -61,7 +61,8 @@ async def get_file(path: str):
     allowed_dirs = [
         os.path.join(root_dir, 'booksim'),
         os.path.join(root_dir, 'logs'),
-        os.path.join(root_dir, 'docs')
+        os.path.join(root_dir, 'docs'),
+        os.path.join(root_dir, 'configs')
     ]
     is_allowed = any(target_path.startswith(d) for d in allowed_dirs)
 

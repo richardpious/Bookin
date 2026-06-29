@@ -17,7 +17,7 @@ This document defines the end-to-end automation runbook I will execute for BookS
 2)  **Build/compile BookSim**:
     *   Validate that the binary (`../booksim/src/booksim`) exists and is executable.
 3)  **Configure and set up a run**:
-    *   Select a configuration file from `../booksim/src/configs/`.
+    *   Select a configuration file from `../configs/`.
     *   Prepare simulation parameters (e.g., `sim_type`, `injection_rate`, `seed`).
 4)  **Simulation Preview and Approval (CRITICAL)**:
     *   Before running ANY simulation, ALWAYS show a preview using the `sim-preview` tool.
