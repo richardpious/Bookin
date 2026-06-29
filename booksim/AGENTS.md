@@ -8,7 +8,7 @@ Simulation Specialist / BookSim Engineering
 
 ## Local Contracts
 - The simulator source code resides in `src/`.
-- Base configurations must be kept in `src/configs/`. Do not modify them directly.
+- Base configurations must be kept in `configs/` at the root. Do not modify them directly.
 
 ## Work Guidance
 - Build/compile BookSim using `make` from the `src/` directory.

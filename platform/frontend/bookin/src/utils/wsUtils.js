@@ -42,12 +42,17 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePrevi
       setMessages((prev) => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage && lastMessage.sender === 'bot' && !lastMessage.isComplete) {
-          return [
-            ...prev.slice(0, -1),
-            { ...lastMessage, text: lastMessage.text + data.message }
-          ];
+          const updated = { ...lastMessage, text: lastMessage.text + data.message };
+          if (data.reasoning !== undefined) {
+            updated.reasoning = (lastMessage.reasoning || '') + data.reasoning;
+          }
+          return [...prev.slice(0, -1), updated];
         } else {
-          return [...prev, { id: Date.now(), sender: 'bot', text: data.message, isComplete: false }];
+          const msg = { id: Date.now(), sender: 'bot', text: data.message, isComplete: false };
+          if (data.reasoning !== undefined) {
+            msg.reasoning = data.reasoning;
+          }
+          return [...prev, msg];
         }
       });
     } else if (data.type === 'done') {

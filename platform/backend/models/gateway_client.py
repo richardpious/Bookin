@@ -88,6 +88,9 @@ class OpenClawGatewayClient:
                         # 2. Handle specific chat events to update UI
                         if data.get("event") == "chat":
                             chat_payload = data.get("payload", {})
+                            # Extract reasoning if available
+                            reasoning = chat_payload.get("reasoning", "")
+                            
                             text = ""
                             # Extract from deltaText or the message content
                             if "deltaText" in chat_payload:
@@ -97,7 +100,7 @@ class OpenClawGatewayClient:
                                 if content and isinstance(content, list):
                                     text = content[0].get("text", "")
 
-                            if text:
+                            if text or reasoning:
                                 # Broadcast to appropriate clients
                                 # Assuming sessionKey 'agent:main:webchat:{client_id}'
                                 session_key = chat_payload.get("sessionKey", "")
@@ -106,7 +109,10 @@ class OpenClawGatewayClient:
 
                                         state = chat_payload.get("state")
                                         if state == "delta":
-                                            await manager.send_personal_message({"type": "chunk", "message": text}, client_id)
+                                            payload = {"type": "chunk", "message": text}
+                                            if reasoning:
+                                                payload["reasoning"] = reasoning
+                                            await manager.send_personal_message(payload, client_id)
                                         elif state in ["final", "done", "complete"]:
                                             # Persist the full message to DB on completion
                                             # We need to extract the full text from the final event
