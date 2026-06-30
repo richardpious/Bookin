@@ -65,6 +65,7 @@ body, html, #root {
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  animation: fadeIn 0.2s ease-in-out;
 }
 
 .popup-content {
@@ -76,6 +77,17 @@ body, html, #root {
   gap: 15px;
   width: 300px;
   border: 1px solid var(--border-light);
+  animation: scaleIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 .popup-content h3 {

@@ -16,4 +16,4 @@ Platform Engineering
 - Verify that changes in this directory compile and run without breaking the frontend application.
 
 ## Child DOX Index
-- [Bookin Frontend](/home/dell/Documents/claw/platform/frontend/bookin/AGENTS.md)
+- [Bookin Frontend](/home/dell/Documents/Bookin/platform/frontend/bookin/AGENTS.md)

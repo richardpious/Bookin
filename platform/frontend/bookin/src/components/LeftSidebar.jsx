@@ -7,23 +7,8 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
   const sidebarRef = useRef(null)
 
   return (
-    <aside ref={sidebarRef} className="sidebar files-sidebar" style={{
-      width,
-      height: '100%',
-            display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-      zIndex: 10,
-      padding: '0px'
-    }}>
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '0.75rem', // Added padding here for internal elements
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--bg-sidebar)'
-      }}>
+    <aside ref={sidebarRef} className="sidebar files-sidebar" style={{ width }}>
+      <div className="sidebar-content">
         <SessionsList
           sessions={sessions}
           setSessions={setSessions}
@@ -39,28 +24,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
       </div>
       <div
         onClick={() => onFileClick('docs/index.md')}
-        style={{
-            position: 'sticky',
-            bottom: 0,
-            padding: '12px 24px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            borderTop: '1px solid var(--border-light)',
-            backgroundColor: 'var(--bg-sidebar)',
-            color: 'var(--text-secondary)',
-            fontSize: '0.85rem',
-            zIndex: 30
-        }}
-        onMouseOver={(e) => {
-            e.currentTarget.style.color = '#ffffff';
-            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.3)';
-        }}
-        onMouseOut={(e) => {
-            e.currentTarget.style.color = 'var(--text-secondary)';
-            e.currentTarget.style.backgroundColor = 'var(--bg-sidebar)';
-        }}
+        className="sidebar-docs-link"
       >
         <BookOpen size={14} />
         <span>Docs</span>

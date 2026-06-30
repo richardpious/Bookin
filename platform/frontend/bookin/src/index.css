@@ -644,6 +644,45 @@ code {
   background-color: var(--bg-sidebar);
 }
 
+.sidebar {
+  height: 100vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 10;
+  background-color: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-sidebar);
+}
+
+.sidebar-docs-link {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border-light);
+  background-color: var(--bg-sidebar);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  z-index: 30;
+  transition: all 0.2s;
+}
+
+.sidebar-docs-link:hover {
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
 .project-section h3 {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -693,6 +732,15 @@ code {
 .session-item.active {
   background-color: #252525;
   color: white;
+  position: sticky;
+  top: 48px;
+  z-index: 20;
+}
+
+.session-menu-trigger {
+  cursor: pointer;
+  padding: 0 4px;
+  font-weight: bold;
 }
 
 .session-menu {
@@ -718,6 +766,34 @@ code {
   background-color: #252525;
 }
 
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-sidebar);
+  padding: 0.75rem 0 0.5rem 0;
+  height: 48px;
+  box-sizing: border-box;
+  z-index: 25;
+}
+
+.session-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.session-add-icon {
+  cursor: pointer;
+  color: #8e8ea0;
+}
+
+.new-session-form {
+  margin-bottom: 1rem;
+}
+
 .confirm-overlay {
   position: fixed;
   top: 0;
@@ -729,6 +805,11 @@ code {
   justify-content: center;
   align-items: center;
   z-index: 2000;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.confirm-overlay.fade-out {
+  animation: fadeOut 0.1s ease-out forwards;
 }
 
 .confirm-modal {
@@ -737,6 +818,11 @@ code {
   border-radius: 8px;
   border: 1px solid var(--border-light);
   color: white;
+  animation: slideIn 0.1s ease-out;
+}
+
+.fade-out .confirm-modal {
+  animation: slideOut 0.1s ease-out forwards;
 }
 
 .confirm-actions {

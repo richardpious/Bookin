@@ -12,7 +12,7 @@ Simulation Specialist / BookSim Engineering
 
 ## Work Guidance
 - Build/compile BookSim using `make` from the `src/` directory.
-- Custom configurations are managed and run outside of the base directory as per the File Organization Protocol (`/home/dell/Documents/claw/agent/FILE_ORGANIZATION.md`).
+- Custom configurations are managed and run outside of the base directory as per the File Organization Protocol (`/home/dell/Documents/Bookin/agent/FILE_ORGANIZATION.md`).
 
 ## Verification
 - Verify BookSim builds successfully by running `make` from the `src/` directory and checking that the executable `booksim` is generated.

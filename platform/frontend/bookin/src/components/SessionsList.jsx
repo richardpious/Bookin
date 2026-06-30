@@ -4,7 +4,18 @@ import { MessageSquare, Plus } from 'lucide-react'
 const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
   const [showMenu, setShowMenu] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
   const menuRef = useRef(null)
+
+  const handleCloseConfirm = (setter) => {
+    setIsClosing(true)
+    setTimeout(() => {
+      setter(false)
+      setIsClosing(false)
+    }, 200)
+  }
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Close menu if clicking outside
@@ -15,7 +26,8 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
     // Close confirm modal if clicking on the overlay
     const handleOverlayClick = (event) => {
       if (event.target.classList.contains('confirm-overlay')) {
-        setShowConfirm(false)
+        if (showConfirm) handleCloseConfirm(setShowConfirm)
+        if (showResetConfirm) handleCloseConfirm(setShowResetConfirm)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -24,36 +36,13 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('mousedown', handleOverlayClick)
     }
-  }, [])
+  }, [showConfirm, showResetConfirm])
 
   return (
     <div
       ref={menuRef}
       onClick={() => onSelect(session)}
-      onMouseOver={(e) => {
-        if (!isSelected) e.currentTarget.style.backgroundColor = '#2a2a2a';
-      }}
-      onMouseOut={(e) => {
-        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
-      }}
-      className="file-item"
-      style={{
-        backgroundColor: isSelected ? '#252525' : 'transparent',
-        color: isSelected ? 'white' : 'var(--text-secondary)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '4px 8px',
-        margin: '0',
-        height: '32px',
-        boxSizing: 'border-box',
-        borderRadius: '4px',
-        position: isSelected ? 'sticky' : 'relative',
-        top: isSelected ? '48px' : 'auto',
-        zIndex: isSelected ? 20 : 'auto',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s'
-      }}
+      className={`session-item ${isSelected ? 'active' : ''}`}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <MessageSquare size={16} />
@@ -61,66 +50,51 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
       </div>
       <span
         onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-        style={{ cursor: 'pointer', padding: '0 4px', fontWeight: 'bold' }}
+        className="session-menu-trigger"
       >
         ...
       </span>
 
       {showMenu && (
-        <div style={{
-          position: 'absolute',
-          right: '0',
-          top: '25px',
-          backgroundColor: 'var(--bg-sidebar)',
-          border: '1px solid var(--border-light)',
-          borderRadius: '4px',
-          zIndex: 1000,
-          padding: '4px 0',
-          minWidth: '120px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-        }}>
+        <div className="session-menu">
           <div
-            onClick={(e) => { e.stopPropagation(); onReset(session, true); setShowMenu(false); }}
-            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#252525'}
-            onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+            onClick={(e) => { e.stopPropagation(); setShowResetConfirm(true); setShowMenu(false); }}
+            className="session-menu-item"
           >
             Reset Session
           </div>
           <div
             onClick={(e) => { e.stopPropagation(); setShowConfirm(true); setShowMenu(false); }}
-            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#252525'}
-            onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+            className="session-menu-item"
           >
             Delete Session
           </div>
         </div>
       )}
 
+      {showResetConfirm && (
+        <div
+          className={`confirm-overlay ${isClosing ? 'fade-out' : ''}`}
+        >
+          <div className="confirm-modal">
+            <p>Are you sure you want to reset session "{session}"?</p>
+            <div className="confirm-actions">
+              <button onClick={() => handleCloseConfirm(setShowResetConfirm)}>Cancel</button>
+              <button onClick={() => { handleCloseConfirm(setShowResetConfirm); onReset(session, true); }} className="confirm-btn-delete">Reset</button>
+            </div>
+          </div>
+      </div>
+      )}
+
       {showConfirm && (
         <div
-          className="confirm-overlay"
-          style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 2000
-        }}>
-          <div style={{
-            backgroundColor: 'var(--bg-sidebar)',
-            padding: '20px',
-            borderRadius: '8px',
-                border: '1px solid var(--border-light)',
-            color: 'white'
-          }}>
+          className={`confirm-overlay ${isClosing ? 'fade-out' : ''}`}
+        >
+          <div className="confirm-modal">
             <p>Are you sure you want to delete session "{session}"?</p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-              <button onClick={() => setShowConfirm(false)}>Cancel</button>
-              <button onClick={() => { setShowConfirm(false); onReset(session, false); }} style={{ backgroundColor: '#cc0000', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>Delete</button>
+            <div className="confirm-actions">
+              <button onClick={() => handleCloseConfirm(setShowConfirm)}>Cancel</button>
+              <button onClick={() => { handleCloseConfirm(setShowConfirm); onReset(session, false); }} className="confirm-btn-delete">Delete</button>
             </div>
           </div>
       </div>
@@ -130,23 +104,11 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
 })
 
 const SessionHeader = React.memo(({ onAddClick }) => (
-  <div className="sidebar-header" style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '0',
-    position: 'sticky',
-    top: 0,
-    backgroundColor: 'var(--bg-sidebar)',
-    padding: '0.75rem 0 0.5rem 0',
-    height: '48px',
-    boxSizing: 'border-box',
-    zIndex: 25
-  }}>
-    <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Sessions</h2>
+  <div className="session-header">
+    <h2>Sessions</h2>
     <Plus
       size={20}
-      style={{ cursor: 'pointer', color: '#8e8ea0' }}
+      className="session-add-icon"
       onClick={onAddClick}
     />
   </div>
@@ -186,23 +148,14 @@ export const SessionsList = React.memo(({ sessions, setSessions, currentSession,
       <SessionHeader onAddClick={() => setIsCreating(!isCreating)} />
 
       {isCreating && (
-        <form onSubmit={handleCreateSession} style={{ marginBottom: '1rem' }}>
+        <form onSubmit={handleCreateSession} className="new-session-form">
           <input
             autoFocus
             type="text"
             value={newSessionName}
             onChange={(e) => setNewSessionName(e.target.value)}
             placeholder="New session name..."
-            style={{
-                width: '100%',
-                padding: '0.5rem',
-                boxSizing: 'border-box',
-                backgroundColor: 'var(--bg-input)',
-                border: '1px solid var(--border-light)',
-                borderRadius: '4px',
-                color: 'white',
-                fontSize: '0.875rem'
-            }}
+            className="session-input"
           />
         </form>
       )}
