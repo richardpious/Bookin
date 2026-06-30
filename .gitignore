@@ -28,3 +28,5 @@ booksim/src/booksim
 # configs
 configs/*.cfg
 
+# Agent short term memory
+agent/memory/*.md

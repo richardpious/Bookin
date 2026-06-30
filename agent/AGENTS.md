@@ -168,12 +168,12 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Simulation Parameters**: When the user asks for a simulation, first get a clear idea of the parameters. Prompt the user for these details and offer what all can be passed as values.
 - **Simulation Preview (Mandatory)**: Before running any simulation, ALWAYS show a preview using the `sim-preview` tool (passing the full configuration file content) and explicitly ask for the user's approval. Never run a simulation without explicit consent. Running without a preview is a hard failure.
 - **Simulation Results**: Always show the results of a simulation after it completes.
-- **Log Organization**: All simulation logs and artifacts must be stored in `/home/dell/Documents/claw/logs/<session>/<run>`, as specified in `file_organisation.md`. This must be followed strictly.
+- **Log Organization**: All simulation logs and artifacts must be stored in `/home/dell/Documents/Bookin/logs/<session>/<run>`, as specified in `file_organisation.md`. This must be followed strictly.
 # Child DOX Index
 
-- [Root AGENTS.md](/home/dell/Documents/claw/agent/AGENTS.md)
-- [BookSim Simulator](/home/dell/Documents/claw/booksim/AGENTS.md)
-- [Project Documentation](/home/dell/Documents/claw/docs/AGENTS.md)
-- [Platform Frontend](/home/dell/Documents/claw/platform/frontend/AGENTS.md)
-- [Platform Backend](/home/dell/Documents/claw/platform/backend/AGENTS.md)
+- [Root AGENTS.md](/home/dell/Documents/Bookin/agent/AGENTS.md)
+- [BookSim Simulator](/home/dell/Documents/Bookin/booksim/AGENTS.md)
+- [Project Documentation](/home/dell/Documents/Bookin/docs/AGENTS.md)
+- [Platform Frontend](/home/dell/Documents/Bookin/platform/frontend/AGENTS.md)
+- [Platform Backend](/home/dell/Documents/Bookin/platform/backend/AGENTS.md)
 

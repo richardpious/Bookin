@@ -14,7 +14,7 @@ for topo in "${topologies[@]}"; do
         ../booksim/src/booksim ../booksim/src/configs/${topo}4x4_normalized.cfg > ../booksim/src/configs/${topo}4x4_rate${rate}.log
         
         # Move logs to specified directory
-        mkdir -p /home/dell/Documents/claw/logs/default/run_${topo}_${rate}
-        mv ../booksim/src/configs/${topo}4x4_rate${rate}.log /home/dell/Documents/claw/logs/default/run_${topo}_${rate}/
+        mkdir -p /home/dell/Documents/Bookin/logs/default/run_${topo}_${rate}
+        mv ../booksim/src/configs/${topo}4x4_rate${rate}.log /home/dell/Documents/Bookin/logs/default/run_${topo}_${rate}/
     done
 done
