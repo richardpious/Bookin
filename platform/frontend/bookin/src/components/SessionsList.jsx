@@ -80,6 +80,14 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
           boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
         }}>
           <div
+            onClick={(e) => { e.stopPropagation(); onReset(session, true); setShowMenu(false); }}
+            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#252525'}
+            onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+          >
+            Reset Session
+          </div>
+          <div
             onClick={(e) => { e.stopPropagation(); setShowConfirm(true); setShowMenu(false); }}
             style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}
             onMouseOver={(e) => e.target.style.backgroundColor = '#252525'}
@@ -112,7 +120,7 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
             <p>Are you sure you want to delete session "{session}"?</p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               <button onClick={() => setShowConfirm(false)}>Cancel</button>
-              <button onClick={() => { setShowConfirm(false); onReset(session); }} style={{ backgroundColor: '#cc0000', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>Delete</button>
+              <button onClick={() => { setShowConfirm(false); onReset(session, false); }} style={{ backgroundColor: '#cc0000', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>Delete</button>
             </div>
           </div>
       </div>

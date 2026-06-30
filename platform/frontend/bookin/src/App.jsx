@@ -97,7 +97,7 @@ function App() {
     loadSessions()
   }, [])
 
-  const handleDeleteSession = useCallback(async (session) => {
+  const handleDeleteSession = useCallback(async (session, shouldReopen = false) => {
     try {
       const response = await fetch(`http://localhost:8000/delete_session/${session}`, { method: 'POST' });
       let responseData = {};
@@ -113,11 +113,22 @@ function App() {
 
       const newSessions = await fetchSessions();
       console.log("Updated sessions:", newSessions);
-      setSessions(newSessions);
+
+      // Ensure the reset session is kept in the list
+      if (shouldReopen && !newSessions.includes(session)) {
+          setSessions([session, ...newSessions]);
+      } else {
+          setSessions(newSessions);
+      }
 
       if (sessionId === session) {
-        setSessionId('default');
-        setMessages([{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
+        if (shouldReopen) {
+         
+          // Also set it in the UI so the user sees the message
+          setMessages([{ id: 1, sender: 'bot', text: 'Session reset successfully. How can I help you?' }]);
+        } else {
+          setMessages([{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
+        }
       }
     } catch (err) {
       console.error(err);
