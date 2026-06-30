@@ -1,49 +1,32 @@
 # BOOKSIM-AUTOMATION.md - End-to-End BookSim Runbook
 
-Before any simulation is executed, the File_Organization ability MUST be applied.
+This document is the single source of truth for performing preparation, build, execution, log parsing, and reporting for BookSim experiments. It is designed to be idempotent and safe to re-run.
 
-This document defines the end-to-end automation runbook I will execute for BookSim experiments. It is the single source of truth for how I perform preparation, build, run, log parsing, and result reporting without requiring user edits.
+## Execution Workflow
+1.  **Preparation**: Verify environment paths (`../booksim`) and dependencies as per `../docs/booksim-docs`.
+2.  **Compilation**: Validate/rebuild the `../booksim/src/booksim` binary using appropriate build flags.
+3.  **Configuration**: Select the required `.cfg` file from `../configs/` and finalize runtime parameters.
+4.  **Simulation Preview & Approval (MANDATORY)**:
+    *   Before execution, run `sim-preview` with the full config content and current session name (extracted from the webchat ID).
+    *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed.
+5.  **Execution & Logging**:
+    *   Create `../logs/session_[timestamp]/` for new sessions.
+    *   Create incremental run sub-folders for each simulation.
+    *   Execute binary from the run folder; capture all output to `simulation.log`.
+6.  **Reporting**: Generate a summary including metrics and run metadata. 
+7.  **Documentation**: Return results to the user; update persistent records/memory files.
 
-**Scope**
-- Automates the BookSim workflow from environment preparation to result reporting.
-- Relies on `../docs/booksim-docs` as the knowledge base for build systems, run commands, log formats, and metrics.
-- Executed steps are idempotent where possible and safe to re-run.
+## Core Knowledge & Parameters
+My operational knowledge includes:
+*   **Builds**: Managing `make`, `make clean`, and custom `DEFINE` flags.
+*   **Execution**: Handling CLI overrides and multi-config workflows.
+*   **Modes (`sim_type`)**: 
+    *   `latency` (default): Convergent average latency.
+    *   `throughput`: Saturation point profiling.
+    *   `batch`: Fixed-count packet delivery time.
+*   **Control Parameters**:
+    *   **Continuous**: `warmup_periods`, `sample_period`, `max_samples`, `stopping_thres`, `latency_thres`.
+    *   **Batch**: `batch_size`, `batch_count`, `sent_packets_out`.
+    *   **General**: `seed`, `include_queuing`, `print_activity`, `print_csv_results`.
 
-
-## Runbook overview (orchestrated steps)
-1)  **Prepare environment**:
-    *   Verify necessary paths exist (`../booksim`).
-    *   Check dependencies (compilers, libraries) as documented in the knowledge base.
-2)  **Build/compile BookSim**:
-    *   Validate that the binary (`../booksim/src/booksim`) exists and is executable.
-3)  **Configure and set up a run**:
-    *   Select a configuration file from `../configs/`.
-    *   Prepare simulation parameters (e.g., `sim_type`, `injection_rate`, `seed`).
-4)  **Simulation Preview and Approval (CRITICAL)**:
-    *   Before running ANY simulation, ALWAYS show a preview using the `sim-preview` tool.
-    *   When using the `sim-preview` tool, you must pass the **full content** of the configuration file along with any parameters. Extract the session suffix (the portion after "webchat:") from the current session identifier and pass it as `--session_name`.
-    *   ALWAYS explicitly ask for the user's approval after showing the preview. **DO NOT proceed** to run the simulation until the user has explicitly approved it.
-5)  **Run BookSim simulations with organized logging**:
-    *   If and only if this is the first simulation in a new session, create a session-specific timestamped directory in `../logs/` with a name `session_[timestamp]`.
-    *   For each individual simulation, create a dedicated run sub-folder within the current session's `../logs/[session]` directory with an incremental naming convention..
-    *   Execute the simulation from inside the run folder, pointing to the binary at `../../..booksim/src/booksim`.
-    *   Record simulation output (including errors) to `simulation.log` within that folder.
-6)  **Generate concise summary/report**:
-    *   Create a human-readable, informative summary and/or machine-readable report containing metrics and run metadata. Ensure you provide context and clear explanations of the results.
-7)  **Return results; optional memory/report updates**:
-    *   Return the detailed summary to the user.
-    *   Append results to a memory file and/or update a persistent report file.
-
-**Learned BookSim Parameters and Modes:**
-
-*   **Compiling BookSim**: Details on using `make`, `make clean`, and build flag customization (`DEFINE`).
-*   **Running BookSim**: Basic execution `./booksim [config_file]`, command-line parameter overrides, and handling multiple config files.
-*   **Simulation Types**: Explanation of `sim_type` modes: `latency` (default), `throughput`, `batch`.
-*   **Simulation Control Parameters**: Key parameters like `sim_count`, `seed`, `latency_thres`, `include_queuing`, `print_activity`, `print_csv_results`.
-*   **Simulation Phases**: Details on `warmup_periods`, `warmup_thres`, `sample_period`, `max_samples`, `stopping_thres` for continuous flow.
-*   **Batch Mode Parameters**: `batch_size`, `batch_count`, `sent_packets_out` for batch simulations.
-
-This understanding has been integrated into my knowledge base for future simulations.
-
-## Metric Extraction History
-(For detailed log parsing and metric extraction, please refer to `LOG_PARSING.md`)
+*For detailed log parsing and metric extraction methods, refer to `LOG_PARSING.md`.*

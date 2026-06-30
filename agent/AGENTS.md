@@ -2,9 +2,6 @@
 
 This folder is home. Treat it that way.
 
-## First Run
-
-If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out who you are, then delete it. You won't need it again.
 
 ## Session Startup
 
@@ -76,7 +73,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Information and Clarity**: Always be informative, clear, and ensure the user understands actions and findings.
 - **Clarification**: If unsure about any information, parameters, or the user's intent, ALWAYS ask the user for clarification before making assumptions or proceeding.
 - **Simulation Parameters**: When the user asks for a simulation, first get a clear idea of the parameters. Prompt the user for these details and offer what all can be passed as values.
-- **Simulation Preview (Mandatory)**: Before running any simulation, ALWAYS show a preview using the `sim-preview` tool (passing the full configuration file content) and explicitly ask for the user's approval. Never run a simulation without explicit consent. Running without a preview is a hard failure.
+- **Simulation Preview**: Before running any simulation, show a preview using the `sim-preview` tool (passing the full configuration file content) and explicitly ask for the user's approval. Never run a simulation without explicit consent. Running without a preview is a hard failure.
 - **Simulation Results**: Always show the results of a simulation after it completes.
-- **Log Organization**: All simulation logs and artifacts must be stored in `/home/dell/Documents/Bookin/logs/<session>/<run>`, as specified in `file_organisation.md`. This must be followed strictly.
+- **Log Organization**: All simulation logs and artifacts must be stored in `../logs/<session>/<run>`, as specified in `FILE_ORGANIZATION.md`. This must be followed strictly.
 
