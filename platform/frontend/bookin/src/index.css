@@ -663,24 +663,29 @@ code {
 }
 
 .sidebar-docs-link {
-  position: sticky;
-  bottom: 0;
-  padding: 12px 24px;
+  padding: 12px 24px 24px 24px; /* Added 24px bottom padding */
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
   border-top: 1px solid var(--border-light);
   background-color: var(--bg-sidebar);
-  color: var(--text-secondary);
-  font-size: 0.85rem;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 0.95rem;
   z-index: 30;
   transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.sidebar-docs-link div {
+  /* Ensure the text div behaves correctly */
+  display: inline-block;
 }
 
 .sidebar-docs-link:hover {
   color: #ffffff;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: #2a2a2a; /* Changed to a lighter shade */
 }
 
 .project-section h3 {
@@ -711,7 +716,6 @@ code {
   background-color: #323232;
   color: #ffffff;
 }
-
 .session-item {
   display: flex;
   justify-content: space-between;

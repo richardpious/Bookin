@@ -3,7 +3,6 @@ import json
 import uuid
 import websockets
 import logging
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GatewayClient")
 
@@ -137,8 +136,9 @@ class OpenClawGatewayClient:
                 await self.listen(manager)
             except websockets.ConnectionClosed:
                 logger.warning("Gateway disconnected. Retrying in 5 seconds...")
+                self.websocket = None
                 await asyncio.sleep(5)
             except Exception as e:
                 logger.error(f"Unexpected error: {e}")
+                self.websocket = None
                 await asyncio.sleep(5)
-

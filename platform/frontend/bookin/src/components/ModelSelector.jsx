@@ -12,29 +12,6 @@ export const ModelSelector = ({ onModelChange, sessionId, onToast, initialModel,
   }, [initialModel, availableModels]);
 
   useEffect(() => {
-    const initSession = async () => {
-      try {
-        if (!sessionId) return;
-        const response = await fetch(`http://localhost:8000/init-session?session_id=${sessionId}`);
-        const data = await response.json();
-
-        if (data.models && data.models.length > 0) {
-          setModels(data.models);
-        }
-        if (data.model) {
-          setSelectedModel(data.model);
-        } else if (data.models && data.models.length > 0) {
-          const firstModel = data.models.find(m => !m.isHeader);
-          if (firstModel) setSelectedModel(firstModel.id);
-        }
-      } catch (err) {
-        console.error('Error initializing session:', err);
-      }
-    };
-    initSession();
-  }, [sessionId]);
-
-  useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
