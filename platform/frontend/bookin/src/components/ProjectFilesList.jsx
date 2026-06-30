@@ -84,8 +84,8 @@ export const ProjectFilesList = React.memo(({ onFileClick, activeFile }) => {
     const fetchAllowedFolders = async () => {
       try {
         const rootFiles = await fetchFiles(".");
-        // Filter out 'docs' folder
-        const allowed = rootFiles.filter(f => ['booksim', 'configs'].includes(f.name));
+        // Filter out 'docs' and 'configs' folders
+        const allowed = rootFiles.filter(f => ['booksim'].includes(f.name));
         setFiles(allowed);
       } catch (err) {
         console.error(err);
