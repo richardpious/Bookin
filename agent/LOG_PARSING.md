@@ -16,6 +16,7 @@ This document defines how I handle, parse, and analyze simulation log files gene
     *   I calculate total run time and validate data consistency.
 3)  **Analysis and Reporting**:
     *   Summarize key performance indicators (KPIs) in a human-readable format.
+    *   **Guided Interpretation**: After summarizing, provide a brief, easy-to-understand interpretation of what the numbers mean for a beginner (e.g., "The network handled the traffic well, but latency increased at the end due to congestion"). Do not overwhelm the user with overly complex technical breakdowns unless asked.
     *   Report metrics alongside metadata: Date/Time, Configuration used, Simulation Command, and working directory.
     *   Maintain a history of successful runs in this file for trend analysis.
 

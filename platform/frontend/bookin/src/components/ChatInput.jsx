@@ -3,8 +3,6 @@ export const ChatInput = ({ onSend, isLoading }) => {
   const [input, setInput] = useState('');
 
   return (
-
-
     <div className="chat-input-wrapper">
       <input
       type="text"
@@ -13,41 +11,14 @@ export const ChatInput = ({ onSend, isLoading }) => {
       onChange={(e) => setInput(e.target.value)}
       onKeyPress={(e) => e.key === 'Enter' && input.trim() && (onSend(input), setInput(''))}
       placeholder="Type a message..."
-      disabled={isLoading}
-
-
-
-
-
-
-
-
-
-
-
-
-
     />
     <button 
         className="chat-input-button"
       onClick={() => { input.trim() && (onSend(input), setInput('')) }}
-      disabled={isLoading} 
-
-
-
-
-
-
-
-
-
-
-
-
-
     >
       {isLoading ? '...' : 'Send'}
     </button>
   </div>
 );
 };
+

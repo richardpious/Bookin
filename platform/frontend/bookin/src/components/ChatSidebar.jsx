@@ -33,3 +33,4 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, onSend, mes
   </aside>
 );
 });
+
