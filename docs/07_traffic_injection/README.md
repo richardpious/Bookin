@@ -1,4 +1,4 @@
-[<- Previous Page](../04_router_architecture/README.md) | [Index](../index.md)
+[<- Previous Page](../06_flow_control_buffers/README.md) | [Index](../index.md)
 
 # Traffic Injection
 

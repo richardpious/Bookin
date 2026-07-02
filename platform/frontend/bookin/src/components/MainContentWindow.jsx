@@ -55,7 +55,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
               position: 'absolute',
               bottom: '24px',
               right: '24px',
-              zIndex: 10,
+              zIndex: 50,
               padding: '8px 16px',
               background: '#4b4b4bff',
               color: 'white',

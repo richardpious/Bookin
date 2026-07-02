@@ -107,7 +107,7 @@ export const ProjectFilesList = React.memo(({ onFileClick, activeFile }) => {
         display: 'flex',
         alignItems: 'center'
       }}>
-        <h3 style={{ margin: 0 }}>Project Files</h3>
+        <h3 style={{ margin: 0 }}>Booksim Files</h3>
       </div>
       <div className="files-list">
       {files.map((file) => (

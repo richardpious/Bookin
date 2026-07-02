@@ -1,4 +1,4 @@
-[<- Previous Page](../06_flow_control_buffers/README.md) | [Index](../index.md)
+[<- Previous Page](../03_network_topology/README.md) | [Index](../index.md)
 
 # Router Architecture
 

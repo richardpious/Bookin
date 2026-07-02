@@ -1,4 +1,4 @@
-[<- Previous Page](../03_network_topology/README.md) | [Index](../index.md)
+[<- Previous Page](../04_router_architecture/README.md) | [Index](../index.md)
 
 # Routing Algorithms
 

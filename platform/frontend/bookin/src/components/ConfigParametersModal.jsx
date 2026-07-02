@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 import '../index.css'; // ensure styles are imported if needed
 import paramDescriptions from '../data/paramDescriptions.json';
@@ -125,10 +126,11 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
 
   if (!isOpen && !isClosing) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div
       className={`config-modal-overlay ${isClosing ? 'fade-out' : ''}`}
       onClick={handleOverlayClick}
+      style={{ zIndex: 99999999 }}
     >
       <div
         className={`config-modal-container ${isClosing ? 'slide-out' : ''}`}
@@ -234,7 +236,8 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

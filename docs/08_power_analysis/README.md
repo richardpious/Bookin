@@ -1,4 +1,4 @@
-[<- Previous Page](../01_running_simulations/README.md) | [Index](../index.md)
+[<- Previous Page](../07_traffic_injection/README.md) | [Index](../index.md)
 
 # Power Analysis
 

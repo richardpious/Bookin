@@ -1,4 +1,4 @@
-[<- Index](../)
+[<- Index](../index.md)
 
 # Network Topology
 
