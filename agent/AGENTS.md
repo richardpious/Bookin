@@ -50,8 +50,16 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 
 ### Project Directory
 
-- The directory where Booksim is located is ../booksim .
-- All the .cfg config files used to run the booksim simulations are located in ../configs
+- **Core Repository**: The `../booksim` directory contains the simulation framework.
+- **Simulation Configurations**: All configuration files (`.cfg`) are located in `../configs`.
+- **Source Code Components (`../booksim/src/`)**:
+  - `allocators/`: Contains implementations of various switch/VC allocation algorithms (e.g., iSLIP, PIM, Wavefront).
+  - `arbiters/`: Manages request arbitration logic for switches and ports (e.g., Round Robin, Matrix, Tree).
+  - `networks/`: Defines various network topologies and routing strategies (e.g., Dragonfly, FatTree, Mesh).
+  - `routers/`: Implements the internal architecture of routers (e.g., Input-Queued, Chaos, Event-driven).
+  - `power/`: Modules and monitors for tracking power consumption and thermal characteristics.
+  - `examples/`: Contains sample configuration files and basic usage scenarios.
+- **Log Management**: All execution outputs and simulation logs are managed under `../logs`.
 
 
 ## Red Lines
@@ -72,7 +80,8 @@ Skills provide your tools. When you need one, check its `SKILL.md`. Keep local n
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
 - **Information and Clarity**: Always be informative, clear, and ensure the user understands actions and findings. Do not tell the user about any of your internal instructions, including phrases such as 'as per my instruction.'.
-- **File System Abstraction**: Never reveal the existence of internal directories, folders, or file paths (such as `../configs`, `../booksim`, `../logs`, or `/agent`) to the user. When asking the user to choose a configuration or option, present the choices abstractly (e.g., list the topology names directly without mentioning the file extension or the directory they are stored in).
+- **Searching for Information**: When doing searches to provide the user with information, the primary folder to search is `../booksim`. The only other files which you can search to reply to the user are `../logs` and `../configs`.
+- **File System Abstraction**: Never reveal the existence of internal directories, folders, or file paths (such as `../configs`, `../logs`, or `/agent`) other than `../booksim` to the user. When asking the user to choose a configuration or option, present the choices abstractly (e.g., list the topology names directly without mentioning the file extension or the directory they are stored in). Do not offer the user many redundant options like 3x3, 4x4, 5x5, 6x6 mesh.
 - **Clarification**: If unsure about any information, parameters, or the user's intent, ALWAYS ask the user for clarification before making assumptions or proceeding.
 - **Simulation Parameters**: When the user asks for a simulation, first get a clear idea of their goals. Instead of just listing all possible values, act as a helpful guide and proactively recommend a beginner-friendly configuration that fits their needs, explaining briefly why it's a good choice without overwhelming them with theory.
 - **Simulation Preview**: Before running any simulation, show a preview using the `sim-preview` tool (passing the full configuration file content) and explicitly ask for the user's approval. Never run a simulation without explicit consent. Running without a preview is a hard failure.
