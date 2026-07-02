@@ -6,7 +6,7 @@ from models.agent_bridge import OpenClawAgentBridge
 from models.connection_manager import ConnectionManager
 from models.gateway_client import OpenClawGatewayClient
 from models.search_engine import SearchEngine
-from routes import chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes
+from routes import chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes
 
 app = FastAPI()
 
@@ -47,6 +47,7 @@ app.include_router(event_routes.router)
 app.include_router(approval_routes.router)
 app.include_router(model_routes.router)
 app.include_router(search_routes.router)
+app.include_router(plugin_routes.router)
 
 if __name__ == "__main__":
     import uvicorn

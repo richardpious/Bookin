@@ -20,6 +20,10 @@ export const readFileContent = async (path) => {
     }
     const data = await response.json();
 
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
     // Return both the content and the resolved path if the backend provided it
     return {
       content: data.content,

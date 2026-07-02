@@ -47,27 +47,35 @@ async def list_files(path: str = "."):
 @router.get("/file")
 async def get_file(path: str):
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-    # Clean the path: ensure no leading './'
+
+    # If it's an absolute path, make it relative to root_dir first
+    if os.path.isabs(path):
+        path = os.path.relpath(path, root_dir)
+
+    # Strip leading ../ segments — the agent sends paths like ../booksim/src/...
+    # which are relative to a parent context; stripping gives us booksim/src/...
+    # which resolves correctly under the Bookin project root.
+    while path.startswith('../'):
+        path = path[3:]
+
+    # Clean leading ./
     if path.startswith('./'):
         path = path[2:]
 
-    # Resolve target path relative to root
     target_path = os.path.normpath(os.path.join(root_dir, path))
-    # Log to verify the actual path resolution
-    print(f"DEBUG: Requested path={path}, Resolved target_path={target_path}")
+    print(f"DEBUG: Resolved target_path={target_path}")
 
-    # Enforce that the target_path must be within the allowed directories
-    # Allowed top-level directories: booksim, logs, docs
+    # Allowlist: only directories inside the Bookin project
     allowed_dirs = [
-        os.path.join(root_dir, 'booksim'),
-        os.path.join(root_dir, 'logs'),
-        os.path.join(root_dir, 'docs'),
-        os.path.join(root_dir, 'configs')
+        os.path.normpath(os.path.join(root_dir, 'booksim')),
+        os.path.normpath(os.path.join(root_dir, 'logs')),
+        os.path.normpath(os.path.join(root_dir, 'docs')),
+        os.path.normpath(os.path.join(root_dir, 'configs')),
     ]
-    is_allowed = any(target_path.startswith(d) for d in allowed_dirs)
+    is_allowed = any(target_path.startswith(d + os.sep) or target_path == d for d in allowed_dirs)
 
     if not is_allowed:
-        return {"error": "Access denied: File must be inside the allowed directory"}
+        return {"error": f"Access denied: '{target_path}' is outside the Bookin project"}
 
     resolved_path = os.path.relpath(target_path, root_dir)
 

@@ -60,52 +60,40 @@ class OpenClawGatewayClient:
         async for message in self.websocket:
             try:
                 data = json.loads(message)
-                logger.info(f"Received event from gateway: {data.get('event', 'message')}")
-                
-                # Check if it's a response to a request
+
+                # Handle responses to our requests
                 if data.get("type") == "res":
-                    # Handle response (like models.authStatus)
                     logger.info(f"Received response: {data}")
-                    # Store latest model response in the app state so routes can access it
                     if manager and hasattr(manager, 'app'):
                         request_id = data.get("id")
                         if not hasattr(manager.app.state, 'pending_responses'):
                             manager.app.state.pending_responses = {}
                         manager.app.state.pending_responses[request_id] = data
-                        logger.info(f"DEBUG: Stored response in app.state.pending_responses for ID: {request_id}")
 
                 if manager:
-                    # 1. Forward all events as logs
-                    forward_packet = None
+                    # Forward all events as gateway logs to the frontend
                     if data.get("type") == "event":
                         forward_packet = {"type": "gateway_log", "payload": data}
-
-                    if forward_packet:
                         for client_id in manager.active_connections:
                             await manager.send_personal_message(forward_packet, client_id)
 
-                        # 2. Handle specific chat events to update UI
+                        # Handle chat events to stream text to the UI
                         if data.get("event") == "chat":
                             chat_payload = data.get("payload", {})
-                            # Extract reasoning if available
                             reasoning = chat_payload.get("reasoning", "")
-                            
+
                             text = ""
-                            # Extract from deltaText or the message content
                             if "deltaText" in chat_payload:
                                 text = chat_payload["deltaText"]
                             elif "message" in chat_payload:
                                 content = chat_payload["message"].get("content", [])
                                 if content and isinstance(content, list):
-                                    text = content[0].get("text", "")
+                                    text = content[0].get("text", "") if content[0].get("type") == "text" else ""
 
                             if text or reasoning:
-                                # Broadcast to appropriate clients
-                                # Assuming sessionKey 'agent:main:webchat:{client_id}'
                                 session_key = chat_payload.get("sessionKey", "")
                                 for client_id, ws in manager.active_connections.items():
                                     if f"agent:main:webchat:{client_id}" in session_key:
-
                                         state = chat_payload.get("state")
                                         if state == "delta":
                                             payload = {"type": "chunk", "message": text}
@@ -113,16 +101,12 @@ class OpenClawGatewayClient:
                                                 payload["reasoning"] = reasoning
                                             await manager.send_personal_message(payload, client_id)
                                         elif state in ["final", "done", "complete"]:
-                                            # Persist the full message to DB on completion
-                                            # We need to extract the full text from the final event
                                             full_text = ""
                                             if "message" in chat_payload:
                                                 content = chat_payload["message"].get("content", [])
                                                 if content and isinstance(content, list):
                                                     full_text = content[0].get("text", "")
-
                                             if full_text:
-                                                # Access chat_db from app state via manager.app
                                                 chat_db = manager.app.state.chat_db
                                                 chat_db.add_message(client_id, "agent", full_text)
                                             await manager.send_personal_message({"type": "done"}, client_id)
