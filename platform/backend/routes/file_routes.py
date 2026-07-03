@@ -38,6 +38,10 @@ async def list_files(path: str = "."):
             if rel_target_path == "." and name not in allowed_root_items:
                 continue
 
+            # Exclude AGENTS.md globally
+            if name == "AGENTS.md":
+                continue
+
             full_path = os.path.join(target_dir, name)
             is_dir = os.path.isdir(full_path)
             rel_path = os.path.relpath(full_path, root_dir)

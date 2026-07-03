@@ -31,9 +31,17 @@ function App() {
   const [searchResults, setSearchResults] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeLine, setActiveLine] = useState(null)
+  const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState('success');
+
+  const showToast = (message, type = 'success') => {
+    setToast(message);
+    setToastType(type);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
-  const { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, setActiveFile } = useFileManagement();
+  const { openFiles, activeFile, fileContents, savedFileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
 
   const handleRequireApproval = useCallback((data) => {
     setApprovalRequest(data);
@@ -197,11 +205,14 @@ function App() {
           activeFile={activeFile}
           activeLine={activeLine}
           fileContents={fileContents}
+          savedFileContents={savedFileContents}
           onTabClick={(path) => { setActiveFile(path); setActiveLine(null); }}
           onCloseTab={handleCloseFile}
           onUpdateFile={handleUpdateFileContent}
+          onEditContent={handleEditContent}
           onFileClick={handleFileClick}
           onSendMessage={handleSend}
+          onToast={showToast}
           onAddMessage={(msg) => {
             // Update sender to 'agent' to match CSS and DB conventions
             setMessages((prev) => [...prev, { id: Date.now(), sender: 'agent', text: msg, isStatus: true, isComplete: true }]);
@@ -224,6 +235,13 @@ function App() {
           onSend={handleSend}
           messagesEndRef={messagesEndRef}
         />
+        {toast && (
+          <div className="toast-container">
+            <div className={`toast ${toastType === 'error' ? 'toast-error' : ''}`}>
+              {toast}
+            </div>
+          </div>
+        )}
     </div>
     </div>
   )

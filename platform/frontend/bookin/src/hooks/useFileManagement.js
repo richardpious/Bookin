@@ -5,6 +5,7 @@ export const useFileManagement = () => {
   const [openFiles, setOpenFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
   const [fileContents, setFileContents] = useState({});
+  const [savedFileContents, setSavedFileContents] = useState({}); // Track original saved state
 
   const handleFileClick = async (path, replace = false) => {
     let newOpenFiles = [...openFiles];
@@ -28,6 +29,7 @@ export const useFileManagement = () => {
 
       // Update contents with the actual resolved path
       setFileContents(prev => ({ ...prev, [resolvedPath]: content }));
+      setSavedFileContents(prev => ({ ...prev, [resolvedPath]: content })); // Init saved state
 
       // If the path was redirected, update openFiles
       // Replace the placeholder 'path' with the 'resolvedPath' if needed
@@ -89,13 +91,30 @@ export const useFileManagement = () => {
   const handleUpdateFileContent = async (path, newContent) => {
     try {
       await updateFileContent(path, newContent);
-      setFileContents(prev => ({ ...prev, [path]: newContent }));
+      setFileContents(prev => ({ ...prev, [path]: newContent })); // Explicitly sync live state
+      setSavedFileContents(prev => ({ ...prev, [path]: newContent })); // Update saved state
     } catch (err) {
       console.error(err);
       alert(`Error updating file: ${err.message}`);
     }
   };
 
-  return { openFiles, activeFile, fileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, setActiveFile };
+  const handleEditContent = (path, newContent) => {
+    // Only update the live content, NOT the saved content
+    setFileContents(prev => ({ ...prev, [path]: newContent }));
+  };
+
+  return {
+    openFiles,
+    activeFile,
+    fileContents,
+    savedFileContents,
+    handleFileClick,
+    handleOpenFilePreview,
+    handleCloseFile,
+    handleUpdateFileContent,
+    handleEditContent,
+    setActiveFile
+  };
 };
 

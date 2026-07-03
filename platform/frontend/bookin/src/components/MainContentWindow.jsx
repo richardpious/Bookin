@@ -4,7 +4,7 @@ import { MainContentHome } from './MainContentHome';
 import { ConfigParametersModal } from './ConfigParametersModal';
 import { X, List, Play } from 'lucide-react';
 
-export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, onTabClick, onCloseTab, onUpdateFile, onFileClick, onSendMessage, onAddMessage }) => {
+export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, savedFileContents, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (openFiles.length === 0) {
@@ -18,7 +18,9 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
   return (
     <main className="main-content" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', flexShrink: 0 }}>
-        {openFiles.map(path => (
+        {openFiles.map(path => {
+          const isDirty = fileContents[path] !== savedFileContents[path];
+          return (
           <div
             key={path}
             onClick={() => onTabClick(path)}
@@ -34,10 +36,11 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
               color: activeFile === path ? 'white' : 'var(--text-secondary)'
             }}
           >
+            {isDirty && <span style={{ color: '#ffcc00', fontSize: '10px' }}>●</span>}
             {path.split('/').pop()}
             <X size={14} onClick={(e) => onCloseTab(e, path)} style={{ cursor: 'pointer', opacity: 0.6 }} />
           </div>
-        ))}
+        )})}
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
         {activeFile && (
@@ -46,6 +49,9 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
             activeLine={activeLine}
             content={fileContents[activeFile]}
             onFileClick={onFileClick}
+            onToast={onToast}
+            onEditContent={onEditContent}
+            onUpdateFile={onUpdateFile}
           />
         )}
         {activeFile && !activeFile.toLowerCase().endsWith('.md') && activeFile.endsWith('.cfg') && (
