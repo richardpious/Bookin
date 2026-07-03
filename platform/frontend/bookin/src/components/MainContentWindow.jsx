@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { CodeEditor } from './CodeEditor';
 import { MainContentHome } from './MainContentHome';
 import { ConfigParametersModal } from './ConfigParametersModal';
-import { X, List } from 'lucide-react';
+import { X, List, Play } from 'lucide-react';
 
-export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, onTabClick, onCloseTab, onUpdateFile, onFileClick }) => {
+export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, onTabClick, onCloseTab, onUpdateFile, onFileClick, onSendMessage, onAddMessage }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (openFiles.length === 0) {
@@ -49,28 +49,54 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
           />
         )}
         {activeFile && !activeFile.toLowerCase().endsWith('.md') && activeFile.endsWith('.cfg') && (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            style={{
+          <div style={{
               position: 'absolute',
               bottom: '24px',
               right: '24px',
               zIndex: 50,
-              padding: '8px 16px',
-              background: '#4b4b4bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
               display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-            }}
-          >
-            <List size={16} />
-            View All Parameters
+              gap: '8px'
+            }}>
+            <button
+              onClick={() => {
+                onSendMessage(`run a simulation using ${activeFile} and give me the results. do not ask for approval.`, true);
+                onAddMessage('Starting simulation...');
+              }}
+              style={{
+                padding: '8px 16px',
+                background: '#4b4b4bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              <Play size={16} />
+              Run Simulation
           </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              style={{
+                padding: '8px 16px',
+                background: '#4b4b4bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              <List size={16} />
+              View All Parameters
+            </button>
+          </div>
         )}
       </div>
       <ConfigParametersModal

@@ -40,9 +40,11 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleRequir
     return () => ws.close();
   }, [sessionId]);
 
-  const handleSend = async (text) => {
+  const handleSend = async (text, hideFromUI = false) => {
     if (text.trim() && socket) {
+      if (!hideFromUI) {
       setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text }]);
+    }
       setIsLoading(true);
       socket.send(text);
     }

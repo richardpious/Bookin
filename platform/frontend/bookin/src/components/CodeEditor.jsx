@@ -89,7 +89,7 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
       value={displayContent}
       theme="vs-dark"
       options={{
-        readOnly: true,
+        readOnly: false,
         automaticLayout: true,
       }}
     />

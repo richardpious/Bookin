@@ -191,6 +191,8 @@ function App() {
           onCloseTab={handleCloseFile}
           onUpdateFile={handleUpdateFileContent}
           onFileClick={handleFileClick}
+          onSendMessage={handleSend}
+          onAddMessage={(msg) => setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: msg, isStatus: true, isComplete: true }])}
         />
     </div>
 

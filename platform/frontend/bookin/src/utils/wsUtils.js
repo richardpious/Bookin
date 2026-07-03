@@ -54,7 +54,10 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePrevi
     } else if (data.type === 'chunk') {
       setMessages((prev) => {
         const lastMessage = prev[prev.length - 1];
-        if (lastMessage && lastMessage.sender === 'bot' && !lastMessage.isComplete) {
+        // Only append to the last message if it's not a status message.
+        // We can identify status messages by a flag or just by content.
+        // Let's add an 'isStatus' flag to our status messages.
+        if (lastMessage && lastMessage.sender === 'bot' && !lastMessage.isComplete && !lastMessage.isStatus) {
           const updated = { ...lastMessage, text: lastMessage.text + data.message };
           if (data.reasoning !== undefined) {
             updated.reasoning = (lastMessage.reasoning || '') + data.reasoning;
