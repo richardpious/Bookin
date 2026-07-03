@@ -40,13 +40,22 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleRequir
     return () => ws.close();
   }, [sessionId]);
 
-  const handleSend = async (text, hideFromUI = false) => {
+  const handleSend = async (text, metadata = {}) => {
     if (text.trim() && socket) {
-      if (!hideFromUI) {
+      if (!metadata.silent) {
       setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text }]);
     }
       setIsLoading(true);
-      socket.send(text);
+
+      // Determine if we should send a JSON object for silent commands
+      if (metadata.silent) {
+        socket.send(JSON.stringify({
+          type: 'internal-command',
+          text: text
+        }));
+      } else {
+        socket.send(text);
+    }
     }
   };
 

@@ -16,9 +16,19 @@ async def init_session(session_id: str, request: Request):
     # 2. Fetch session model
     session_model_response = await get_session_model(session_id, request)
 
+    # 3. Get session details for thinking level
+    session_data = await get_session_data(session_id, request)
+
     return {
         "models": models_response.get("models", []),
-        "model": session_model_response.get("model")
+        "model": session_model_response.get("model"),
+        "thinkingLevel": session_data.get("thinkingLevel"),
+        "thinkingLevels": [
+            {"id": "off", "label": "Off"},
+            {"id": "low", "label": "Low"},
+            {"id": "medium", "label": "Medium"},
+            {"id": "high", "label": "High"},
+        ]
     }
 
 @router.get("/available-models")
@@ -178,4 +188,36 @@ async def get_session_model(session_id: str, request: Request):
         await asyncio.sleep(0.5)
 
     return {"model": None}
+
+async def get_session_data(session_id: str, request: Request):
+    gateway_client = request.app.state.gateway_client
+
+    request_id = str(uuid.uuid4())
+    await gateway_client.websocket.send(json.dumps({
+        "type": "req",
+        "id": request_id,
+        "method": "sessions.describe",
+        "params": {
+            "key": f"agent:main:webchat:{session_id}"
+        }
+    }))
+
+    # Wait for response
+    timeout = 5
+    start_time = asyncio.get_event_loop().time()
+
+    if not hasattr(request.app.state, 'pending_responses'):
+        request.app.state.pending_responses = {}
+
+    while (asyncio.get_event_loop().time() - start_time) < timeout:
+        resp = request.app.state.pending_responses.get(request_id)
+        if resp:
+            del request.app.state.pending_responses[request_id]
+            session = (resp.get('payload') or {}).get('session') or {}
+            return {
+                "thinkingLevel": session.get("thinkingLevel")
+            }
+        await asyncio.sleep(0.5)
+
+    return {"thinkingLevel": None}
 

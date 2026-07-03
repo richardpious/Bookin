@@ -192,7 +192,16 @@ function App() {
           onUpdateFile={handleUpdateFileContent}
           onFileClick={handleFileClick}
           onSendMessage={handleSend}
-          onAddMessage={(msg) => setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: msg, isStatus: true, isComplete: true }])}
+          onAddMessage={(msg) => {
+            // Update sender to 'agent' to match CSS and DB conventions
+            setMessages((prev) => [...prev, { id: Date.now(), sender: 'agent', text: msg, isStatus: true, isComplete: true }]);
+            // Persist as 'agent'
+            fetch('http://localhost:8000/log-message', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId, sender: 'agent', text: msg })
+            }).catch(console.error);
+          }}
         />
     </div>
 

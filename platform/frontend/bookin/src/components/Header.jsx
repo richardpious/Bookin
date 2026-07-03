@@ -16,10 +16,7 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
         .then(res => res.json())
         .then(data => {
           console.log("Fetched session data:", data);
-          // Adjust based on the actual JSON structure in your response,
-          // where payload.session contains the data
-          const session = data.payload?.session || data;
-          setSessionData(session);
+          setSessionData(data);
         })
         .catch(err => console.error('Error fetching session:', err));
     }
@@ -71,5 +68,4 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
     </header>
   );
 };
-
 

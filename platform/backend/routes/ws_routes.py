@@ -14,10 +14,23 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     
     try:
         while True:
-            message = await websocket.receive_text()
-            print(f"DEBUG: [WebSocket Received] {message}")
+            message_text = await websocket.receive_text()
+            print(f"DEBUG: [WebSocket Received] {message_text}")
+
+            # Check if it's a JSON command
+            is_silent = False
+            message = message_text
             try:
-                chat_db.add_message(client_id, "user", message)
+                data = json.loads(message_text)
+                if isinstance(data, dict) and data.get("type") == "internal-command":
+                    is_silent = True
+                    message = data.get("text", "")
+            except json.JSONDecodeError:
+                pass
+
+            try:
+                if not is_silent:
+                    chat_db.add_message(client_id, "user", message)
                 
                 # Send the message through the persistent Gateway WebSocket connection
                 await gateway_client.websocket.send(json.dumps({
