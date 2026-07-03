@@ -8,19 +8,33 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
   const [toastType, setToastType] = useState('success');
   const [sessionData, setSessionData] = useState(null);
 
-  useEffect(() => {
-    console.log("Header session change detected, fetching:", sessionId);
+  const refreshSessionData = () => {
     if (sessionId) {
-      setSessionData(null); // Clear previous data so selectors reset
       fetch(`http://localhost:8000/init-session?session_id=${sessionId}`)
         .then(res => res.json())
         .then(data => {
-          console.log("Fetched session data:", data);
+          console.log("Refreshed session data:", data);
           setSessionData(data);
         })
         .catch(err => console.error('Error fetching session:', err));
     }
+  };
+
+  useEffect(() => {
+    console.log("Header session change detected, fetching:", sessionId);
+    if (sessionId) {
+      setSessionData(null); // Clear previous data so selectors reset
+      refreshSessionData();
+    }
   }, [sessionId]);
+
+  const handleModelChange = async (model) => {
+    const result = await onModelChange(model);
+    if (result && result.ok) {
+      refreshSessionData(); // Refresh data to get new available thinking levels
+    }
+    return result;
+  };
 
   const showToast = (message, type = 'success') => {
     setToast(message);
@@ -47,7 +61,7 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
         sessionId={sessionId}
         initialModel={sessionData?.model}
         availableModels={sessionData?.models}
-        onModelChange={onModelChange}
+        onModelChange={handleModelChange}
         onToast={showToast}
       />
       <ThinkingLevelSelector

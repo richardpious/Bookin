@@ -23,14 +23,8 @@ async def init_session(session_id: str, request: Request):
         "models": models_response.get("models", []),
         "model": session_model_response.get("model"),
         "thinkingLevel": session_data.get("thinkingLevel"),
-        "thinkingLevels": [
-            {"id": "off", "label": "Off"},
-            {"id": "low", "label": "Low"},
-            {"id": "medium", "label": "Medium"},
-            {"id": "high", "label": "High"},
-        ]
+        "thinkingLevels": session_data.get("thinkingLevels")
     }
-
 @router.get("/available-models")
 async def get_models(request: Request):
     gateway_client = request.app.state.gateway_client
@@ -215,9 +209,10 @@ async def get_session_data(session_id: str, request: Request):
             del request.app.state.pending_responses[request_id]
             session = (resp.get('payload') or {}).get('session') or {}
             return {
-                "thinkingLevel": session.get("thinkingLevel")
+                "thinkingLevel": session.get("thinkingLevel"),
+                "thinkingLevels": session.get("thinkingLevels")
             }
         await asyncio.sleep(0.5)
 
-    return {"thinkingLevel": None}
+    return {"thinkingLevel": None, "thinkingLevels": []}
 
