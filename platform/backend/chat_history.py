@@ -58,6 +58,9 @@ class ChatHistoryDB:
         return sessions
 
     def reset_session(self, session_id):
+        # For now, reset just clears messages too, as per previous implementation
+        self.delete_session(session_id)
+    def delete_session(self, session_id):
         conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute('DELETE FROM messages WHERE session_id = ?', (session_id,))

@@ -127,14 +127,24 @@ function App() {
           // Also set it in the UI so the user sees the message
           setMessages([{ id: 1, sender: 'bot', text: 'Session reset successfully. How can I help you?' }]);
         } else {
-          setMessages([{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
+          // If we deleted the current session, switch to a default or clear messages
+          const nextSession = newSessions.length > 0 ? newSessions[0] : 'default';
+          setSessionId(nextSession);
+          // If we have sessions, load the first one, otherwise show default message
+          if (newSessions.length > 0) {
+              // This is a bit simplified, ideally we'd trigger a fetch for the new session's messages
+              // But let's just clear for now if we can't easily fetch
+              setMessages([{ id: 1, sender: 'bot', text: `Switched to session: ${nextSession}` }]);
+          } else {
+            setMessages([{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
+          }
         }
       }
     } catch (err) {
       console.error(err);
       alert(`Error deleting session: ${err.message}`);
     }
-  }, [sessionId, setMessages]);
+  }, [sessionId, setMessages, setSessionId]);
   const handleSearch = useCallback((results, query) => {
     setSearchResults(results);
     setSearchQuery(query);

@@ -22,7 +22,7 @@ async def delete_session(request: Request, session_id: str):
         except Exception as e:
             print(f"Warning: Failed to reset openclaw agent session {session_id}: {e}")
 
-        chat_db.reset_session(session_id)
+        chat_db.delete_session(session_id)
         return {"status": "success"}
     except Exception as e:
         return {"error": str(e)}
