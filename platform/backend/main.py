@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
+import os
+from watchdog.observers import Observer
 from chat_history import ChatHistoryDB
 from models.agent_bridge import OpenClawAgentBridge
 from models.connection_manager import ConnectionManager
 from models.gateway_client import OpenClawGatewayClient
 from models.search_engine import SearchEngine
+from models.file_watcher import FileChangeHandler
 from routes import chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes
 
 app = FastAPI()
@@ -37,7 +40,28 @@ app.state.search_engine = search_engine
 async def startup_event():
     # Pass both manager and chat_db to the gateway_client
     manager.app = app # Hacky way to give manager access to app state
+
+    # Capture the running event loop
+    loop = asyncio.get_running_loop()
+
     asyncio.create_task(app.state.gateway_client.start(manager=manager))
+
+    # Start file watcher
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    app.state.observer = Observer()
+    # Watch relevant directories
+    for d in ["booksim", "docs", "configs"]:
+        path = os.path.join(root_dir, d)
+        if os.path.exists(path):
+            app.state.observer.schedule(FileChangeHandler(manager, loop), path=path, recursive=True)
+    app.state.observer.start()
+
+# Stop file watcher
+@app.on_event("shutdown")
+async def shutdown_event():
+    if hasattr(app.state, "observer"):
+        app.state.observer.stop()
+        app.state.observer.join()
 
 app.include_router(chat_routes.router)
 app.include_router(file_routes.router)

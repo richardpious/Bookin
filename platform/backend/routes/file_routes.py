@@ -4,9 +4,15 @@ import re
 
 router = APIRouter()
 
+def get_root_dir():
+    # Adjusted to point to the correct root dir:
+    # Current: platform/backend/routes/file_routes.py
+    # Root: platform/../..
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
 @router.get("/files")
 async def list_files(path: str = "."):
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    root_dir = get_root_dir()
     target_dir = os.path.normpath(os.path.join(root_dir, path))
 
     if not target_dir.startswith(root_dir):
@@ -46,11 +52,16 @@ async def list_files(path: str = "."):
 
 @router.get("/file")
 async def get_file(path: str):
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    root_dir = get_root_dir()
 
     # If it's an absolute path, make it relative to root_dir first
     if os.path.isabs(path):
-        path = os.path.relpath(path, root_dir)
+        # Ensure we are working with the correct root
+        try:
+            path = os.path.relpath(path, root_dir)
+        except ValueError:
+            # If path is not inside root_dir, it will raise ValueError
+            return {"error": "Access denied: file outside root"}
 
     # Strip leading ../ segments — the agent sends paths like ../booksim/src/...
     # which are relative to a parent context; stripping gives us booksim/src/...
@@ -61,7 +72,6 @@ async def get_file(path: str):
     # Clean leading ./
     if path.startswith('./'):
         path = path[2:]
-
     target_path = os.path.normpath(os.path.join(root_dir, path))
     print(f"DEBUG: Resolved target_path={target_path}")
 
@@ -104,7 +114,7 @@ async def update_file(payload: dict = Body(...)):
     if not path or content is None:
         return {"error": "Missing path or content"}
         
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    root_dir = get_root_dir()
     target_path = os.path.normpath(os.path.join(root_dir, path))
 
     if not target_path.startswith(root_dir):
@@ -119,7 +129,7 @@ async def update_file(payload: dict = Body(...)):
 
 @router.get("/config-parameters")
 async def get_config_parameters():
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    root_dir = get_root_dir()
     config_path = os.path.join(root_dir, 'booksim', 'src', 'booksim_config.cpp')
     
     # Parameters to exclude from the UI

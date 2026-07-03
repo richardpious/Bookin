@@ -81,6 +81,7 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
 
   return (
     <Editor
+      key={filePath}
       height="100%"
       path={filePath}
       onMount={onMount}
