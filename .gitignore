@@ -18,12 +18,9 @@ logs/
 *.log
 *.tmp
 build/
-dist/
+
 
 # BookSim specific
-booksim/src/*.o
-booksim/src/*.a
-booksim/src/booksim
 
 # configs
 configs/*.cfg

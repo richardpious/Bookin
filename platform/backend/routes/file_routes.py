@@ -24,6 +24,11 @@ async def list_files(path: str = "."):
     # Define allowed directories at the root level
     allowed_root_items = ["booksim", "logs", "docs", "configs"]
 
+    # Define patterns to ignore
+    ignored_extensions = {'.d', '.o', '.a', '.docx', '.swp'}
+    ignored_files = {'lex.yy.c', 'y.tab.c', 'y.tab.h'}
+    ignored_dirs = {'work'}
+
     files = []
     try:
         items = sorted(os.listdir(target_dir))
@@ -40,6 +45,12 @@ async def list_files(path: str = "."):
 
             # Exclude AGENTS.md globally
             if name == "AGENTS.md":
+                continue
+
+            # Filter compiled files and build artifacts
+            if name in ignored_files or name in ignored_dirs:
+                continue
+            if any(name.endswith(ext) for ext in ignored_extensions):
                 continue
 
             full_path = os.path.join(target_dir, name)
