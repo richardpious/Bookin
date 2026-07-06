@@ -14,10 +14,9 @@ node_modules/
 .idea/
 
 # Logs and Build
-logs/
+
 *.log
 *.tmp
-build/
 
 
 # BookSim specific
