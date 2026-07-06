@@ -71,6 +71,17 @@ export const useFileManagement = () => {
     }
   }, []);
 
+  const handleSilentFileUpdate = useCallback(async (filePath) => {
+    console.log("handleSilentFileUpdate called for file:", filePath);
+    try {
+      const result = await readFileContent(filePath);
+      const { content, resolvedPath } = result;
+      setFileContents(prev => ({ ...prev, [resolvedPath]: content }));
+    } catch (err) {
+      console.error("Silent update failed for file:", filePath, err);
+    }
+  }, []);
+
   const handleCloseFile = (e, path) => {
     e.stopPropagation();
     const newOpenFiles = openFiles.filter(f => f !== path);
@@ -111,6 +122,7 @@ export const useFileManagement = () => {
     savedFileContents,
     handleFileClick,
     handleOpenFilePreview,
+    handleSilentFileUpdate,
     handleCloseFile,
     handleUpdateFileContent,
     handleEditContent,

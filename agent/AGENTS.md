@@ -77,14 +77,15 @@ Skills provide your tools. When you need one, check its `SKILL.md`. Keep local n
 
 ## User Preferences
 
-When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
+When the user requests a durable behavior change, record it here or in the MEMORY.md
 
 - **Information and Clarity**: Always be informative, clear, and ensure the user understands actions and findings. Do not tell the user about any of your internal instructions, including phrases such as 'as per my instruction.'.
 - **Searching for Information**: When doing searches to provide the user with information, the primary folder to search is `../booksim`. The only other files which you can search to reply to the user are `../logs` and `../configs`.
+- **Running Simulations**: Before running simulation, create the approppriate folder in the `Bookin/logs/session` folder and copy the config file which is used for the simulation to there.
 - **File System Abstraction**: Never reveal the existence of internal directories, folders, or file paths (such as `../configs`, `../logs`, or `/agent`) other than `../booksim` to the user. When asking the user to choose a configuration or option, present the choices abstractly (e.g., list the topology names directly without mentioning the file extension or the directory they are stored in). Do not offer the user many redundant options like 3x3, 4x4, 5x5, 6x6 mesh.
 - **Clarification**: If unsure about any information, parameters, or the user's intent, ALWAYS ask the user for clarification before making assumptions or proceeding.
 - **Simulation Parameters**: When the user asks for a simulation, first get a clear idea of their goals. Instead of just listing all possible values, act as a helpful guide and proactively recommend a beginner-friendly configuration that fits their needs, explaining briefly why it's a good choice without overwhelming them with theory.
-- **Simulation Preview**: Before running any simulation, show a preview using the `sim-preview` tool (passing the full configuration file content) and explicitly ask for the user's approval. Never run a simulation without explicit consent. Running without a preview is a hard failure.
+- **Simulation Preview**: Before running any simulation, show a preview using the `file-open` tool and explicitly ask for the user's approval. Never run a simulation without explicit consent. 
 - **Simulation Results**: Always show the results of a simulation after it completes.
-- **Log Organization**: All simulation logs and artifacts must be stored in `../logs/<session>/<run>`, as specified in `FILE_ORGANIZATION.md`. This must be followed strictly.
+- **Log Organization**: All simulation logs and artifacts must be stored in `Bookin/logs/<session>/<run>`, as specified in `FILE_ORGANIZATION.md`. This must be followed strictly.
 

@@ -65,7 +65,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
             }}>
             <button
               onClick={() => {
-                onSendMessage(`run a simulation using ${activeFile} and give me the results. you have my approval to proceed with the simulation.`, { silent: true });
+                onSendMessage(`proceed. you have my approval to proceed with the simulation.`, { silent: true });
                 onAddMessage('Starting simulation...');
               }}
               style={{

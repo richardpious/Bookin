@@ -41,7 +41,7 @@ function App() {
   };
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
-  const { openFiles, activeFile, fileContents, savedFileContents, handleFileClick, handleOpenFilePreview, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
+  const { openFiles, activeFile, fileContents, savedFileContents, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
 
   const handleRequireApproval = useCallback((data) => {
     setApprovalRequest(data);
@@ -49,6 +49,7 @@ function App() {
   const { messages, isLoading, handleSend, setMessages, messagesEndRef } = useChatManagement(
     sessionId,
     handleOpenFilePreview,
+    handleSilentFileUpdate,
     handleRequireApproval
   );
 

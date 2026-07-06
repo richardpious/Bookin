@@ -5,12 +5,12 @@ This document is the single source of truth for performing preparation, build, e
 ## Execution Workflow
 1.  **Preparation**: Verify environment paths (`../booksim`) and dependencies as per `../docs/booksim-docs`.
 2.  **Compilation**: Validate/rebuild the `../booksim/src/booksim` binary using appropriate build flags.
-3.  **Configuration**: Select the required `.cfg` file from `../configs/` and finalize runtime parameters.
+3.  **Configuration**: Select the required `.cfg` file from `Bookin/configs/` and finalize runtime parameters.
 4.  **Simulation Preview & Approval (MANDATORY)**:
-    *   Before execution, run `sim-preview` with the full config content and current session name (extracted from the webchat ID).
+    *   Before execution, use the file-open tool, unless approval has already been given by the user to proceed with the simulation.
     *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed.
 5.  **Execution & Logging**:
-    *   Create `../logs/session_[timestamp]/` for new sessions.
+    *   Create `../logs/<session>/` for new sessions.
     *   Create incremental run sub-folders for each simulation.
     *   Execute binary from the run folder; capture all output to `simulation.log`.
 6.  **Reporting**: Generate a summary including metrics and run metadata. 

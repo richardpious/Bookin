@@ -1,4 +1,4 @@
-export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePreview, onRequireApproval) => {
+export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval) => {
   const ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
 
   ws.onmessage = (event) => {
@@ -38,17 +38,8 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePrevi
       onRequireApproval(data.data);
     } else if (data.type === 'file-changed') {
         const fullPath = data.path;
-
-        // Use a relative approach rather than hardcoding the path
-        // The backend root is 3 levels up from routes/file_routes.py
-        // We can use the current window location or a common environment variable
-        // But for now, let's just use the filename to find it in openFiles
-        console.log("File changed, refreshing:", fullPath);
-
-        // Find if this file is open
-        // We might need a better way to map absolute path -> relative path
-        // For now, let's trigger a refresh if the file name matches
-        onFilePreview(fullPath);
+        console.log("File changed, silently updating:", fullPath);
+        onFileSilentUpdate(fullPath);
     } else if (data.type === 'file-preview') {
       onFilePreview(data.data); // data.data is now the file path string
     } else if (data.type === 'chunk') {

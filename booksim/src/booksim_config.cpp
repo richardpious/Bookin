@@ -93,7 +93,7 @@ BookSimConfig::BookSimConfig( )
 
   // enable next-hop-output queueing
   _int_map["noq"] = 0;
-
+  
   //==== Input-queued ======================================
 
   // Control of virtual channel speculation
@@ -282,9 +282,9 @@ BookSimConfig::BookSimConfig( )
   AddStrField("watch_packets", "");
   AddStrField("watch_transactions", "");
 
-  AddStrField("watch_out", "");
+  AddStrField("watch_out", "watch_out.txt");
 
-  AddStrField("stats_out", "");
+  AddStrField("stats_out", "stats.txt");
 
 #ifdef TRACK_FLOWS
   AddStrField("injected_flits_out", "injected_flits_out.txt");
@@ -303,7 +303,7 @@ BookSimConfig::BookSimConfig( )
 #endif
 
   // batch only -- packet sequence numbers
-  AddStrField("sent_packets_out", "");
+  AddStrField("sent_packets_out", "sent_packets_out.txt");
   
   //==================Power model params=====================
   _int_map["sim_power"] = 0;
