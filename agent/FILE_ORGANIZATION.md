@@ -5,12 +5,12 @@ This protocol defines the mandatory structure for simulation data to ensure cons
 ## Directory Structure
 ```text
 ../logs/
-└── session_YYYY_MM_DD_HH_MM/
+└── <sessionname>/
     └── run_<n>/
 ```
 
 ## Standard Procedures
-1.  **Preparation**: Before any simulation, identify or create the current `session_[timestamp]` directory.
+1.  **Preparation**: Before any simulation, identify or create the current `<session>` directory.
 2.  **Execution**: 
     *   Create and change into a new, sequential `run_<n>/` directory.
     *   Execute simulations **exclusively** from within this run folder.

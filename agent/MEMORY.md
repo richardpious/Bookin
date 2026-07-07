@@ -10,7 +10,7 @@
   - When presenting results, provide an informative, guided interpretation of the data. Keep explanations accessible and focused on the user's goals, avoiding deep-dive technical analysis unless requested or necessary.
 
 ## Artifacts & File Handling
-- **Log Organization (Mon 2026-06-08, Mon 2026-06-22):** All simulation logs and artifacts must be stored strictly according to the structure: `Bookin/logs/<session>/<run>`. You must also have a copy of the config file used to run the simulation in the folder where the run outputs are stored.
+- **Log Organization (Mon 2026-06-08, Mon 2026-06-22, Tue 2026-07-07):** All simulation logs and artifacts must be stored strictly according to the structure: `Bookin/logs/<session>/<run>`. When making the session folder, use the exact identifier for the current session (e.g., `sesname`) and ensure it matches the actual runtime session ID. You must also have a copy of the config file used to run the simulation in the folder where the run outputs are stored.
 - **File Previews (Wed 2026-06-10, Fri 2026-06-26):**
   - Extract the session suffix (after "agent:main:webchat:") from the session ID and pass it as the `--session_name` argument.
   - The `file_path` parameter must be relative to the Booksim root directory (e.g., `Bookin/configs/torus4x4.cfg`).

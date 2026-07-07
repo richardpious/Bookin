@@ -28,6 +28,7 @@ These rules are non-negotiable:
 3. **Show results after completion.** Always include the simulation results in the response after the run finishes.
 4. **Strict log organization.** Store all logs and artifacts in `logs/<session>/<run>`.
 5. **Execution path.** Always change the working directory to `logs/<session>/<run>` before executing the simulation to ensure artifacts are saved in the correct location.
+6. **Output Redirection.** When executing the simulation, always redirect both stdout and stderr to `simulation_output.log` using `> simulation_output.log 2>&1`. This ensures all `viewer_trace` output and other logs are captured in a single file.
 
 ## Boundaries
 

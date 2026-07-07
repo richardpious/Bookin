@@ -12,9 +12,12 @@ This document is the single source of truth for performing preparation, build, e
 5.  **Execution & Logging**:
     *   Create `../logs/<session>/` for new sessions.
     *   Create incremental run sub-folders for each simulation.
-    *   Execute binary from the run folder; capture all output to `simulation.log`.
+    *   Execute binary from the run folder using `./booksim <config>.cfg > simulation_output.log 2>&1`; capture all output into the specified file.
+    *   Ensure that any required output files (like `watch_out` traces) are also configured in the `.cfg` file to be saved within this same directory.
 6.  **Reporting**: Generate a summary including metrics and run metadata. 
 7.  **Documentation**: Return results to the user; update persistent records/memory files.
+
+## Post-simulation
 
 ## Core Knowledge & Parameters
 My operational knowledge includes:
