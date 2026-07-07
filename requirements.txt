@@ -4,7 +4,10 @@
 fastapi
 uvicorn
 pydantic
+watchdog
+websockets
 
 # System dependencies (install via OS package manager, not pip)
 # ripgrep  ->  sudo apt-get install ripgrep  (Ubuntu/Debian)
 #          ->  brew install ripgrep          (macOS)
+

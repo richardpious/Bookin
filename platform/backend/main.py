@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import asyncio
 import os
 from watchdog.observers import Observer
@@ -12,6 +13,11 @@ from models.file_watcher import FileChangeHandler
 from routes import chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, log_routes
 
 app = FastAPI()
+
+# Serve static files from the frontend build
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 # Add CORS middleware
 app.add_middleware(
@@ -77,4 +83,3 @@ app.include_router(log_routes.router)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
-

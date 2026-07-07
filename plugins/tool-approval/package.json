@@ -1,5 +1,5 @@
 {
-  "name": "tool-approval-plugin",
+  "name": "bookin-plugin-tool-approval",
   "version": "1.0.1",
   "description": "Requires user approval before sensitive tool execution",
   "main": "dist/index.js",
