@@ -1,0 +1,6 @@
+.git
+.gitignore
+.venv
+node_modules
+platform/frontend/bookin/node_modules
+platform/backend/__pycache__

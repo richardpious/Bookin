@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 PLUGINS=("file-preview" "tool-approval")
 
@@ -23,8 +24,4 @@ done
 
 echo "----------------------------------------"
 echo "All plugins processed successfully."
-
-echo "Restarting OpenClaw to apply changes..."
-openclaw gateway restart
-echo "OpenClaw restarted successfully."
 

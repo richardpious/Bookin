@@ -11,7 +11,7 @@
     "hooks": true
   },
   "devDependencies": {
-    "openclaw": "file:/home/dell/.openclaw/tools/node-v22.22.0/lib/node_modules/openclaw"
+    "openclaw": ">=2026.5.17"
   },
   "dependencies": {
     "typescript": "^6.0.3"
