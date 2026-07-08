@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y jq\
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (e.g., v20)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
