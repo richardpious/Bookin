@@ -45,6 +45,13 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Install Node dependencies
 RUN npm install
 
+# Build the frontend
+WORKDIR /workspace/platform/frontend/bookin
+RUN npm install && npm run build
+
+# Return to the project root
+WORKDIR /workspace
+
 # Install Openclaw using the official headless installer script
 RUN curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
 
@@ -62,8 +69,9 @@ COPY setup_plugins.sh start_servers.sh entrypoint.sh ./
 # Make scripts executable
 RUN chmod +x setup_plugins.sh start_servers.sh entrypoint.sh
 
-# Expose ports for FastAPI (e.g., 8000) and Vite (e.g., 5173)
-EXPOSE 8000 5173
+# Expose ports for FastAPI (e.g., 8000)
+EXPOSE 8000
 
 # Set the entrypoint
 CMD ["./entrypoint.sh"]
+
