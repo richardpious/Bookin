@@ -16,7 +16,15 @@ from routes import chat_routes, file_routes, session_routes, ws_routes, event_ro
 app = FastAPI()
 
 # Serve static files from the frontend build
-static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "bookin", "dist"))
+static_dir = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "frontend",
+        "bookin",
+        "dist"
+    )
+)
 
 @app.get("/")
 async def read_index():
@@ -26,7 +34,11 @@ async def read_index():
     return {"message": "Frontend not built or found."}
 
 if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app.mount(
+    "/assets",
+    StaticFiles(directory=os.path.join(static_dir, "assets")),
+    name="assets"
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -91,5 +103,5 @@ app.include_router(log_routes.router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=10000)
 
