@@ -25,21 +25,21 @@ echo "Gateway token is: $OPENCLAW_GATEWAY_TOKEN"
 jq '
 .plugins.allow = ["file-preview","tool-approval"]| 
 .gateway.auth.token = env.OPENCLAW_GATEWAY_TOKEN |
+.gateway.bind = "lan" |
 .agents.defaults.workspace = "/workspace/agent"
 ' "$CONFIG" > "$CONFIG.tmp" && mv "$CONFIG.tmp" "$CONFIG"  
 
 
 echo "Starting gateway..."
-# Run the gateway and redirect output to see logs in docker logs
-openclaw gateway run > /workspace/gateway.log 2>&1 &
+# Run the gateway in the background (logs will be interleaved in stdout)
+openclaw gateway run &
 GATEWAY_PID=$!
 echo "Gateway started with PID: $GATEWAY_PID"
 
 # Wait a moment, then check if it's still running
 sleep 2
 if ! ps -p $GATEWAY_PID > /dev/null; then
-    echo "Gateway failed to start! Printing logs:"
-    cat /workspace/gateway.log
+    echo "Gateway failed to start! Check the docker logs above for OpenClaw errors."
     exit 1
 fi
 
