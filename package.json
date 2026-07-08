@@ -3,9 +3,7 @@
   "private": true,
 
   "workspaces": [
-    "platform/frontend/bookin",
-    "plugins/file-preview",
-    "plugins/tool-approval"
+    "platform/frontend/bookin"
   ],
 
   "dependencies": {
