@@ -8,9 +8,6 @@
     "forceConsistentCasingInFileNames": true,
     "rootDir": "src",
     "outDir": "dist",
-    "paths": {
-      "openclaw/*": ["/home/dell/.openclaw/tools/node-v22.22.0/lib/node_modules/openclaw/dist/*"]
-    }
   },
   "include": ["src/**/*"]
 }
