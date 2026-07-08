@@ -35,8 +35,8 @@ async def read_index():
 
 if os.path.exists(static_dir):
     app.mount(
-    "/assets",
-    StaticFiles(directory=os.path.join(static_dir, "assets")),
+    "static/assets",
+    StaticFiles(directory= static_dir),
     name="assets"
 )
 
