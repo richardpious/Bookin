@@ -30,6 +30,15 @@ COPY package.json requirements.txt ./
 COPY platform/ ./platform/
 COPY plugins/ ./plugins/
 
+WORKDIR /workspace/plugins/tool-approval
+RUN npm install
+
+WORKDIR /workspace/plugins/file-preview
+RUN npm install
+
+# Return to the project root
+WORKDIR /workspace
+
 # Install Python dependencies globally
 # Ubuntu 22.04 pip doesn't need or support --break-system-packages
 RUN pip3 install --no-cache-dir -r requirements.txt
