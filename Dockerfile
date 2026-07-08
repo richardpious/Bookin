@@ -31,10 +31,10 @@ COPY platform/ ./platform/
 COPY plugins/ ./plugins/
 
 WORKDIR /workspace/plugins/tool-approval
-RUN npm install
+RUN npm install && npm run build
 
 WORKDIR /workspace/plugins/file-preview
-RUN npm install
+RUN npm install && npm run build
 
 # Return to the project root
 WORKDIR /workspace
