@@ -26,6 +26,8 @@ static_dir = os.path.abspath(
     )
 )
 
+assets_dir = os.path.join(static_dir, "assets")
+
 @app.get("/")
 async def read_index():
     index_path = os.path.join(static_dir, "index.html")
@@ -33,12 +35,12 @@ async def read_index():
         return FileResponse(index_path)
     return {"message": "Frontend not built or found."}
 
-if os.path.exists(static_dir):
-   app.mount(
-    "/assets",
-    StaticFiles(directory=os.path.join(static_dir, "assets")),
-    name="assets"
-)
+if os.path.isdir(assets_dir):
+    app.mount(
+        "/assets",
+        StaticFiles(directory=assets_dir),
+        name="assets"
+    )
 
 # Add CORS middleware
 app.add_middleware(
