@@ -28,19 +28,7 @@ static_dir = os.path.abspath(
 
 assets_dir = os.path.join(static_dir, "assets")
 
-@app.get("/")
-async def read_index():
-    index_path = os.path.join(static_dir, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"message": "Frontend not built or found."}
-
-if os.path.isdir(assets_dir):
-    app.mount(
-        "/static/assets",
-        StaticFiles(directory=assets_dir),
-        name="assets"
-    )
+# SPA routing is handled by a catch-all route at the bottom of this file.
 
 # Add CORS middleware
 app.add_middleware(
@@ -102,6 +90,19 @@ app.include_router(model_routes.router)
 app.include_router(search_routes.router)
 app.include_router(plugin_routes.router)
 app.include_router(log_routes.router)
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    # Try to serve a physical file from the dist directory first (e.g., assets, images)
+    file_path = os.path.join(static_dir, full_path)
+    if os.path.exists(file_path) and not os.path.isdir(file_path):
+        return FileResponse(file_path)
+    
+    # Fallback to index.html for client-side routing
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Frontend not built or found."}
 
 if __name__ == "__main__":
     import uvicorn
