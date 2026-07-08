@@ -28,7 +28,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # Copy the platform and plugins directories early so npm workspaces can find their package.json files
 COPY package.json requirements.txt ./
 COPY platform/ ./platform/
+
 COPY plugins/ ./plugins/
+RUN openclaw plugins install /workspace/plugins/file-preview
+RUN openclaw plugins install /workspace/plugins/tool-approval
 
 WORKDIR /workspace/plugins/tool-approval
 RUN npm install

@@ -28,8 +28,6 @@ jq '
 .agents.defaults.workspace = "/workspace/agent"
 ' "$CONFIG" > "$CONFIG.tmp" && mv "$CONFIG.tmp" "$CONFIG"  
 
-echo "Installing plugins..."
-./setup_plugins.sh
 
 echo "Starting gateway..."
 openclaw gateway run &
