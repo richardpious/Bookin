@@ -30,8 +30,18 @@ jq '
 
 
 echo "Starting gateway..."
-openclaw gateway run &
-sleep 5
+# Run the gateway and redirect output to see logs in docker logs
+openclaw gateway run > /workspace/gateway.log 2>&1 &
+GATEWAY_PID=$!
+echo "Gateway started with PID: $GATEWAY_PID"
+
+# Wait a moment, then check if it's still running
+sleep 2
+if ! ps -p $GATEWAY_PID > /dev/null; then
+    echo "Gateway failed to start! Printing logs:"
+    cat /workspace/gateway.log
+    exit 1
+fi
 
 echo "Starting servers..."
 exec ./start_servers.sh
