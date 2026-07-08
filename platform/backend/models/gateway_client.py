@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GatewayClient")
 
 class OpenClawGatewayClient:
-    def __init__(self, url="ws://127.0.0.1:18789",
+    def __init__(self, url="ws://localhost:18789",
                  token="34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece"):
         self.url = url
         self.token = token
