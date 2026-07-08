@@ -26,3 +26,6 @@ configs/*.cfg
 
 # Agent short term memory
 agent/memory/*.md
+
+# Environment variables
+.env
