@@ -36,8 +36,8 @@ async def read_index():
 if os.path.exists(static_dir):
    app.mount(
     "/assets",
-    StaticFiles(directory=os.path.join(static_dir, "static")),
-    name="static"
+    StaticFiles(directory=os.path.join(static_dir, "assets")),
+    name="assets"
 )
 
 # Add CORS middleware
