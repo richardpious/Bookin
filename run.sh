@@ -65,7 +65,7 @@ fi
 
 echo "Starting FastAPI backend..."
 cd "$PROJECT_ROOT/platform/backend"
-PORT=10000 uvicorn main:app --host 127.0.0.1 --port 10000 &
+PORT=10000 uvicorn main:app --host 0.0.0.0 --port 10000 &
 BACKEND_PID=$!
 
 # Wait for both processes to complete
