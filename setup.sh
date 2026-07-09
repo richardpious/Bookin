@@ -87,7 +87,7 @@ cd "$PROJECT_ROOT"
 echo "=== 7. Installing OpenClaw CLI ==="
 if ! command -v openclaw &> /dev/null; then
     echo "Installing OpenClaw CLI..."
-    curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
+    curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --no-onboard
     export PATH="$PATH:$HOME/.bin"
 fi
 
@@ -98,7 +98,7 @@ echo "=== 8. Registering Plugins with OpenClaw ==="
 openclaw plugins install "$PROJECT_ROOT/plugins/file-preview" --force
 openclaw plugins install "$PROJECT_ROOT/plugins/tool-approval" --force
 
-echo "=== Setup Complete! ==="
+echo "=== Setup Complete ==="
 echo "Make sure to set your GEMINI_API_KEY environment variable before running the app:"
 echo "  export GEMINI_API_KEY='your-api-key'"
 echo "Then start the servers using: ./run.sh"
