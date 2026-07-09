@@ -25,6 +25,7 @@ echo "Gateway token is: $OPENCLAW_GATEWAY_TOKEN"
 jq '
 .plugins.allow = ["file-preview","tool-approval"]| 
 .gateway.auth.token = env.OPENCLAW_GATEWAY_TOKEN |
+.gateway.bind = "auto" |
 .agents.defaults.workspace = "/workspace/agent"
 ' "$CONFIG" > "$CONFIG.tmp" && mv "$CONFIG.tmp" "$CONFIG"  
 

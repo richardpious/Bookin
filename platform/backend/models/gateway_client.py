@@ -3,14 +3,16 @@ import json
 import uuid
 import websockets
 import logging
+import os
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GatewayClient")
 
 class OpenClawGatewayClient:
-    def __init__(self, url="ws://localhost:18789",
-                 token="34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece"):
+    def __init__(self, url="ws://127.0.0.1:18789",
+                 token=None):
         self.url = url
-        self.token = token
+        self.token = token or os.environ.get("OPENCLAW_GATEWAY_TOKEN", "34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece")
         self.websocket = None
 
     async def connect(self):
