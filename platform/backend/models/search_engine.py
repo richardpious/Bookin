@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 # Calculate project root relative to this file's location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.getenv("PROJECT_ROOT", os.path.abspath(os.path.join(BASE_DIR, "../..")))
+PROJECT_ROOT = os.getenv("PROJECT_ROOT", os.path.abspath(os.path.join(BASE_DIR, "../../..")))
 BOOKSIM_DIR = os.path.join(PROJECT_ROOT, "booksim")
 
 
