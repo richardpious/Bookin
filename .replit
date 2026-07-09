@@ -1,0 +1,5 @@
+# .replit - Replit configuration file
+run = "./run.sh"
+
+[entrypoint]
+entrypoint = "platform/backend/main.py"
