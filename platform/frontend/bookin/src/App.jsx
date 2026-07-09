@@ -14,7 +14,7 @@ import './index.css'
 
 async function fetchSessions() {
   try {
-    const response = await fetch('http://localhost:8000/sessions');
+    const response = await fetch('/sessions');
     if (!response.ok) throw new Error('Failed to fetch sessions');
     const data = await response.json();
     return data.sessions || [];
@@ -57,7 +57,7 @@ function App() {
     console.log("Model changed to:", modelId);
 
     try {
-      const response = await fetch('http://localhost:8000/set-model', {
+      const response = await fetch('/set-model', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -79,7 +79,7 @@ function App() {
     try {
       // Assuming a backend route exists for this as well,
       // based on the provided message format requirements
-      const response = await fetch('http://localhost:8000/set-thinking-level', {
+      const response = await fetch('/set-thinking-level', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,7 +108,7 @@ function App() {
 
   const handleDeleteSession = useCallback(async (session, shouldReopen = false) => {
     try {
-      const response = await fetch(`http://localhost:8000/delete_session/${session}`, { method: 'POST' });
+      const response = await fetch(`/delete_session/${session}`, { method: 'POST' });
       let responseData = {};
       try {
         responseData = await response.json();
@@ -218,7 +218,7 @@ function App() {
             // Update sender to 'agent' to match CSS and DB conventions
             setMessages((prev) => [...prev, { id: Date.now(), sender: 'agent', text: msg, isStatus: true, isComplete: true }]);
             // Persist as 'agent'
-            fetch('http://localhost:8000/log-message', {
+            fetch('/log-message', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ sessionId, sender: 'agent', text: msg })

@@ -106,7 +106,7 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
       setLoading(true);
       setError(null);
       setSearchTerm(''); // Reset search term when modal opens
-      fetch('http://localhost:8000/config-parameters')
+      fetch('/config-parameters')
         .then(res => res.json())
         .then(data => {
           if (data.error) {

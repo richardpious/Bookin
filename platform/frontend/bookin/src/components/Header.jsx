@@ -10,7 +10,7 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
 
   const refreshSessionData = () => {
     if (sessionId) {
-      fetch(`http://localhost:8000/init-session?session_id=${sessionId}`)
+      fetch(`/init-session?session_id=${sessionId}`)
         .then(res => res.json())
         .then(data => {
           console.log("Refreshed session data:", data);

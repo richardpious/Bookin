@@ -26,7 +26,7 @@ export const HeaderSearch = ({ onSearch, onError }) => {
 
     setIsSearching(true);
     try {
-      const res = await fetch(`http://localhost:8000/search?query=${encodeURIComponent(q)}`);
+      const res = await fetch(`/search?query=${encodeURIComponent(q)}`);
       if (!res.ok) throw new Error('Search request failed');
       const data = await res.json();
       if (onSearch) onSearch(data.results, q);

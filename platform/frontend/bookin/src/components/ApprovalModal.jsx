@@ -5,7 +5,7 @@ const ApprovalModal = ({ isOpen, approvalRequest, setApprovalRequest }) => {
 
   const handleDecision = async (decision) => {
     console.log(`${decision} clicked`, approvalRequest.id);
-    await fetch('http://localhost:8000/approve', {
+    await fetch('/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: approvalRequest.id, decision })

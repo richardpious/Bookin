@@ -1,5 +1,6 @@
 export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval) => {
-  const ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/${client_id}`);
 
   ws.onmessage = (event) => {
     let data;

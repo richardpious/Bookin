@@ -1,6 +1,6 @@
 export const fetchFiles = async (path = ".") => {
   try {
-    const response = await fetch(`http://localhost:8000/files?path=${encodeURIComponent(path)}`);
+    const response = await fetch(`/files?path=${encodeURIComponent(path)}`);
     if (!response.ok) {
       throw new Error(`Error: ${response.statusText}`);
     }
@@ -14,7 +14,7 @@ export const fetchFiles = async (path = ".") => {
 
 export const readFileContent = async (path) => {
   try {
-    const response = await fetch(`http://localhost:8000/file?path=${encodeURIComponent(path)}`);
+    const response = await fetch(`/file?path=${encodeURIComponent(path)}`);
     if (!response.ok) {
       throw new Error(`Error: ${response.statusText}`);
     }
@@ -37,7 +37,7 @@ export const readFileContent = async (path) => {
 
 export const updateFileContent = async (path, content) => {
   try {
-    const response = await fetch(`http://localhost:8000/update-file`, {
+    const response = await fetch(`/update-file`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
