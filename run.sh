@@ -39,7 +39,11 @@ export OPENCLAW_GATEWAY_TOKEN="34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece"
 echo "Gateway token is: $OPENCLAW_GATEWAY_TOKEN"
 
 jq --arg ws "$PROJECT_ROOT/agent" '
-  .plugins.allow = ["file-preview","tool-approval"] | 
+  .plugins.entries = {
+    "google": {"enabled": true},
+    "tool-approval": {"enabled": true},
+    "file-preview": {"enabled": true} }|
+  .tools.alsoAllow = ["file-open"] |
   .gateway.auth.token = env.OPENCLAW_GATEWAY_TOKEN |
   .gateway.mode = "local" |
   .gateway.bind = "loopback" |
