@@ -18,6 +18,8 @@ node_modules/
 *.log
 *.tmp
 
+# .Local database files
+platform/backend/chat
 
 # BookSim specific
 

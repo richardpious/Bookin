@@ -41,7 +41,8 @@ echo "Gateway token is: $OPENCLAW_GATEWAY_TOKEN"
 jq --arg ws "$PROJECT_ROOT/agent" '
   .plugins.allow = ["file-preview","tool-approval"] | 
   .gateway.auth.token = env.OPENCLAW_GATEWAY_TOKEN |
-  .gateway.bind = "auto" |
+  .gateway.mode = "local" |
+  .gateway.bind = "loopback" |
   .agents.defaults.workspace = $ws
 ' "$CONFIG" > "$CONFIG.tmp" && mv "$CONFIG.tmp" "$CONFIG"
 
