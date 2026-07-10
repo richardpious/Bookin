@@ -13,12 +13,16 @@ OPENCLAW_HOME="$HOME/.openclaw"
 CONFIG="$OPENCLAW_HOME/openclaw.json"
 export PATH="$PATH:$HOME/.bin"
 
-# Activate the Python virtual environment (run setup if not present)
-if [ ! -f "venv/bin/activate" ]; then
+# Activate the Python virtual environment (skip on Replit, which manages env via Nix)
+if [ -n "$REPL_ID" ]; then
+    echo "Running on Replit — skipping venv, using Nix Python environment."
+    pip install -r requirements.txt --quiet
+elif [ ! -f "venv/bin/activate" ]; then
     echo "Virtual environment not found. Running setup.sh first..."
     ./setup.sh
+else
+    source venv/bin/activate
 fi
-source venv/bin/activate
 
 # Initialize OpenClaw configuration if not already onboarded
 if [ ! -f "$CONFIG" ]; then
