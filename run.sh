@@ -35,6 +35,7 @@ if [ ! -f "$CONFIG" ]; then
 fi
 
 # Configure gateway parameters, allowed plugins, and local workspace paths
+export BACKEND_PORT=10000
 export OPENCLAW_GATEWAY_TOKEN="34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece"
 echo "Gateway token is: $OPENCLAW_GATEWAY_TOKEN"
 
@@ -71,7 +72,7 @@ fi
 
 echo "Starting FastAPI backend..."
 cd "$PROJECT_ROOT/platform/backend"
-PORT=10000 uvicorn main:app --host 0.0.0.0 --port 10000 &
+PORT=$BACKEND_PORT uvicorn main:app --host 0.0.0.0 --port $BACKEND_PORT &
 BACKEND_PID=$!
 
 # Wait for both processes to complete

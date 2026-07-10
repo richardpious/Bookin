@@ -1,7 +1,8 @@
 import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 
-const BACKEND_URL = "http://127.0.0.1:8000";
+const BACKEND_PORT = process.env.BACKEND_PORT ?? "10000";
+const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`;
 
 export default defineToolPlugin({
   id: "file-preview",
