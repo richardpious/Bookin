@@ -47,7 +47,8 @@ jq --arg ws "$PROJECT_ROOT/agent" '
   .gateway.auth.token = env.OPENCLAW_GATEWAY_TOKEN |
   .gateway.mode = "local" |
   .gateway.bind = "loopback" |
-  .agents.defaults.workspace = $ws
+  .agents.defaults.workspace = $ws |
+  .agents.defaults.memorySearch = {"provider": "gemini"}
 ' "$CONFIG" > "$CONFIG.tmp" && mv "$CONFIG.tmp" "$CONFIG"
 
 cleanup() {

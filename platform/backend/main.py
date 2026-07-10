@@ -28,7 +28,10 @@ static_dir = os.path.abspath(
 
 assets_dir = os.path.join(static_dir, "assets")
 
-# SPA routing is handled by a catch-all route at the bottom of this file.
+# Mount BEFORE any routes so /static/assets/... is served with correct MIME types.
+# The catch-all route /{full_path:path} would otherwise intercept these requests first.
+if os.path.isdir(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Add CORS middleware
 app.add_middleware(
@@ -90,6 +93,7 @@ app.include_router(model_routes.router)
 app.include_router(search_routes.router)
 app.include_router(plugin_routes.router)
 app.include_router(log_routes.router)
+
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
