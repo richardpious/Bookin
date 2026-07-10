@@ -11,7 +11,7 @@ from models.connection_manager import ConnectionManager
 from models.gateway_client import OpenClawGatewayClient
 from models.search_engine import SearchEngine
 from models.file_watcher import FileChangeHandler
-from routes import chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, log_routes
+from routes import chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, log_routes, debug_routes
 
 app = FastAPI()
 
@@ -93,6 +93,7 @@ app.include_router(model_routes.router)
 app.include_router(search_routes.router)
 app.include_router(plugin_routes.router)
 app.include_router(log_routes.router)
+app.include_router(debug_routes.router)  # TODO: remove before production
 
 
 @app.get("/{full_path:path}")

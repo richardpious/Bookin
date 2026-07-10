@@ -10,7 +10,7 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, onSend, mes
     <div className="messages" style={{ flex: 1, overflowY: 'auto' }}>
       <AnimatePresence initial={false}>
         {messages.map(msg => (
-          <ChatMessage key={msg.id} sender={msg.sender === 'agent' ? 'bot' : msg.sender} text={msg.text} />
+          <ChatMessage key={msg.id} sender={msg.sender === 'agent' ? 'bot' : msg.sender} text={msg.text} isError={msg.isError} />
         ))}
         {isLoading && (
           <motion.div

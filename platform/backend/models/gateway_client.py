@@ -93,26 +93,40 @@ class OpenClawGatewayClient:
                                 if content and isinstance(content, list):
                                     text = content[0].get("text", "") if content[0].get("type") == "text" else ""
 
-                            if text or reasoning:
-                                session_key = chat_payload.get("sessionKey", "")
-                                for client_id, ws in manager.active_connections.items():
-                                    if f"agent:main:webchat:{client_id}" in session_key:
-                                        state = chat_payload.get("state")
-                                        if state == "delta":
-                                            payload = {"type": "chunk", "message": text}
-                                            if reasoning:
-                                                payload["reasoning"] = reasoning
-                                            await manager.send_personal_message(payload, client_id)
-                                        elif state in ["final", "done", "complete"]:
-                                            full_text = ""
-                                            if "message" in chat_payload:
-                                                content = chat_payload["message"].get("content", [])
-                                                if content and isinstance(content, list):
-                                                    full_text = content[0].get("text", "")
-                                            if full_text:
-                                                chat_db = manager.app.state.chat_db
-                                                chat_db.add_message(client_id, "agent", full_text)
-                                            await manager.send_personal_message({"type": "done"}, client_id)
+                            session_key = chat_payload.get("sessionKey", "")
+                            state = chat_payload.get("state")
+
+                            for client_id, ws in manager.active_connections.items():
+                                if f"agent:main:webchat:{client_id}" in session_key:
+                                    if state == "delta" and (text or reasoning):
+                                        payload = {"type": "chunk", "message": text}
+                                        if reasoning:
+                                            payload["reasoning"] = reasoning
+                                        await manager.send_personal_message(payload, client_id)
+
+                                    elif state in ["final", "done", "complete"]:
+                                        full_text = ""
+                                        if "message" in chat_payload:
+                                            content = chat_payload["message"].get("content", [])
+                                            if content and isinstance(content, list):
+                                                full_text = content[0].get("text", "") if content[0].get("type") == "text" else ""
+                                        if full_text:
+                                            chat_db = manager.app.state.chat_db
+                                            chat_db.add_message(client_id, "agent", full_text)
+                                        await manager.send_personal_message({"type": "done"}, client_id)
+
+                                    elif state == "error":
+                                        error_message = chat_payload.get("errorMessage", "unknown error")
+                                        logger.warning(f"Agent run error for session {client_id}: {error_message}")
+                                        # Persist the error to chat history with a clear prefix
+                                        chat_db = manager.app.state.chat_db
+                                        chat_db.add_message(client_id, "agent", f"[Error] {error_message}")
+                                        # Forward the raw error to the frontend for classification/display
+                                        await manager.send_personal_message(
+                                            {"type": "error", "message": error_message},
+                                            client_id
+                                        )
+
 
             except Exception as e:
                 logger.error(f"Error processing message: {e}")

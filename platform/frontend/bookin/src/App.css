@@ -212,6 +212,14 @@ body, html, #root {
   border-bottom-right-radius: 1rem;
 }
 
+.message-bubble.message-error {
+  background-color: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+  border-radius: 0.5rem;
+  padding-left: 0.85rem;
+}
+
 /* Input Area */
 .input-area {
   padding: 0.5rem 0.5rem;
