@@ -38,3 +38,8 @@ agent/memory/*.md
 
 # Environment variables
 .env
+
+
+# Temporary replit removal
+.replit
+replit.nix
