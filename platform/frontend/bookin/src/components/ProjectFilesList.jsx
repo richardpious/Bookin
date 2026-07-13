@@ -29,7 +29,7 @@ const FileNode = React.memo(({ name, path, isDir, onFileClick, activeFile, depth
   }
 
   const itemHeight = 28;
-  const stickyTop = 120 + (depth * itemHeight);
+  const stickyTop = 88 + (depth * itemHeight);
 
   return (
     <div style={{ marginBottom: '2px' }}>
@@ -98,14 +98,15 @@ export const ProjectFilesList = React.memo(({ onFileClick, activeFile }) => {
       <div className="project-section" style={{
         marginTop: '0',
         position: 'sticky',
-        top: '80px',
+        top: '48px',
         backgroundColor: 'var(--bg-sidebar)',
         zIndex: 15,
         padding: '0.5rem 0',
         height: '40px',
         boxSizing: 'border-box',
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
+        boxShadow: '0 2px 0 0 var(--bg-sidebar)'
       }}>
         <h3 style={{ margin: 0 }}>Booksim Files</h3>
       </div>

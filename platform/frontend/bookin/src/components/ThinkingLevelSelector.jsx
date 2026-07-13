@@ -9,11 +9,11 @@ export const ThinkingLevelSelector = ({ onLevelChange, sessionId, onToast, initi
   const levels = availableLevels && availableLevels.length > 0
     ? availableLevels.map(l => ({ id: l.id, name: l.label.charAt(0).toUpperCase() + l.label.slice(1) }))
     : [
-    { id: 'off', name: 'Off' },
-    { id: 'low', name: 'Low' },
-    { id: 'medium', name: 'Medium' },
-    { id: 'high', name: 'High' },
-  ];
+      { id: 'off', name: 'Off' },
+      { id: 'low', name: 'Low' },
+      { id: 'medium', name: 'Medium' },
+      { id: 'high', name: 'High' },
+    ];
 
   // Sync selectedLevel if availableLevels change and current selection is invalid
   useEffect(() => {
@@ -41,7 +41,7 @@ export const ThinkingLevelSelector = ({ onLevelChange, sessionId, onToast, initi
         if (onToast) onToast(`Error: ${result.error?.message || 'Level switch failed'}`, 'error');
       } else {
         setSelectedLevel(level.id);
-        if (onToast) onToast(`Switched to ${level.name} thinking`, 'success');
+        if (onToast) onToast(`Set thinking level to ${level.name} `, 'success');
       }
     } catch (err) {
       if (onToast) onToast(`Failed to switch: ${err.message || 'Unknown error'}`, 'error');

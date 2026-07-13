@@ -25,7 +25,7 @@ async def list_files(path: str = "."):
     allowed_root_items = ["booksim", "logs", "docs", "configs"]
 
     # Define patterns to ignore
-    ignored_extensions = {'.d', '.o', '.a', '.docx', '.swp'}
+    ignored_extensions = {'.d', '.o', '.a', '.docx', '.swp', '.gitignore'}
     ignored_files = {'lex.yy.c', 'y.tab.c', 'y.tab.h'}
     ignored_dirs = {'work'}
 
