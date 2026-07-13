@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CodeEditor } from './CodeEditor';
 import { MainContentHome } from './MainContentHome';
 import { ConfigParametersModal } from './ConfigParametersModal';
+import { LogsViewer } from './LogsViewer';
 import { X, List, Play } from 'lucide-react';
 
 export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, savedFileContents, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
@@ -37,14 +38,16 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
               }}
             >
               {isDirty && <span style={{ color: '#ffcc00', fontSize: '10px' }}>●</span>}
-              {path.split('/').pop()}
+              {path.startsWith('logs-viewer:') ? 'Logs' : path.split('/').pop()}
               <X size={14} onClick={(e) => onCloseTab(e, path)} style={{ cursor: 'pointer', opacity: 0.6 }} />
             </div>
           )
         })}
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
-        {activeFile && (
+        {activeFile && activeFile.startsWith('logs-viewer:') ? (
+          <LogsViewer session={activeFile.split(':')[1]} onFileClick={onFileClick} />
+        ) : activeFile ? (
           <CodeEditor
             filePath={activeFile}
             activeLine={activeLine}
@@ -54,7 +57,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
             onEditContent={onEditContent}
             onUpdateFile={onUpdateFile}
           />
-        )}
+        ) : null}
         {activeFile && !activeFile.toLowerCase().endsWith('.md') && activeFile.endsWith('.cfg') && (
           <div style={{
             position: 'absolute',
@@ -66,7 +69,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
           }}>
             <button
               onClick={() => {
-                onSendMessage(`proceed with the simulation and give me the results. you have my approval. also explain me the results properly after simulation.`, { silent: true });
+                onSendMessage(`proceed with the simulation and give me the results(this includes the statistics, such as latency, injection rate, stalls, etc.). you have my approval.`, { silent: true });
                 onAddMessage('Starting simulation...');
               }}
               style={{

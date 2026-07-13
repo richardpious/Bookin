@@ -55,6 +55,25 @@ class OpenClawGatewayClient:
             logger.error(f"Failed to connect to gateway: {e}")
             raise
 
+    async def send_agent_message(self, message: str, session_id: str):
+        """Sends a message or command to the OpenClaw Gateway."""
+        if not self.websocket:
+            raise Exception("Gateway WebSocket is not connected.")
+        
+        payload = {
+            "type": "req",
+            "id": str(uuid.uuid4()),
+            "method": "chat.send",
+            "params": {
+                "sessionKey": f"agent:main:webchat:{session_id}",
+                "sessionId": session_id,
+                "message": message,
+                "deliver": False,
+                "idempotencyKey": str(uuid.uuid4())
+            }
+        }
+        await self.websocket.send(json.dumps(payload))
+
     async def listen(self, manager=None):
         """Main loop to listen for events and optionally broadcast to the frontend."""
         if not self.websocket:

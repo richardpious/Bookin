@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, Activity } from 'lucide-react'
 import { SessionsList } from './SessionsList'
 import { ProjectFilesList } from './ProjectFilesList'
 
@@ -22,13 +22,24 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
           activeFile={activeFile}
         />
       </div>
-      <div
-        onClick={() => onFileClick('docs/index.md')}
-        className="sidebar-docs-link"
-      >
-            <BookOpen size={14} />
-            <div>Docs</div>
+      <div style={{ display: 'flex', borderTop: '1px solid var(--border-light)' }}>
+        <div
+          onClick={() => onFileClick('docs/index.md')}
+          className="sidebar-docs-link"
+          style={{ flex: 1, borderRight: '1px solid var(--border-light)', borderTop: 'none' }}
+        >
+          <BookOpen size={14} />
+          <div>Docs</div>
         </div>
+        <div
+          onClick={() => onFileClick('logs-viewer:' + currentSession)}
+          className="sidebar-docs-link"
+          style={{ flex: 1, borderTop: 'none' }}
+        >
+          <Activity size={14} />
+          <div>Logs</div>
+        </div>
+      </div>
     </aside>
   )
 })

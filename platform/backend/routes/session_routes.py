@@ -10,7 +10,7 @@ async def list_sessions(request: Request):
 async def delete_session(request: Request, session_id: str):
     manager = request.app.state.manager
     chat_db = request.app.state.chat_db
-    agent_bridge = request.app.state.agent_bridge
+    gateway_client = request.app.state.gateway_client
     try:
         if session_id in manager.active_connections:
             await manager.active_connections[session_id].send_json({"type": "command", "action": "reset"})
@@ -18,7 +18,7 @@ async def delete_session(request: Request, session_id: str):
         # Send reset command to openclaw
         try:
             # sessionId is just the UUID
-            await agent_bridge.send_message("/reset", session_id)
+            await gateway_client.send_agent_message("/reset", session_id)
         except Exception as e:
             print(f"Warning: Failed to reset openclaw agent session {session_id}: {e}")
 

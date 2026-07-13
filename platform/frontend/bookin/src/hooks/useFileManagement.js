@@ -18,7 +18,13 @@ export const useFileManagement = () => {
     // Check if the file is already open
     if (!newOpenFiles.includes(path)) {
       newOpenFiles.push(path);
-    setOpenFiles(newOpenFiles);
+      setOpenFiles(newOpenFiles);
+    }
+
+    // Intercept logs-viewer virtual tabs
+    if (path.startsWith('logs-viewer:')) {
+      setActiveFile(path);
+      return path;
     }
 
     // Always fetch content, because the backend might have redirected us
