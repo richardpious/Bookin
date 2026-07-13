@@ -46,7 +46,7 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
     <header className="app-header">
       {/* Left — Logo */}
       <div className="header-left">
-        <img src="/logolight.jpeg" alt="BookIn Logo" className="logo-img" />
+        <img src="/logolight.png" alt="BookIn Logo" className="logo-img" />
         <span className="logo">BookIn</span>
       </div>
 

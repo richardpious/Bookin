@@ -1,7 +1,6 @@
-export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval, setIsConnecting) => {
+export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval) => {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/${client_id}`);
-  if (setIsConnecting) setIsConnecting(true);
 
   ws.onmessage = (event) => {
     let data;
@@ -102,16 +101,9 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePrevi
     }
   };
 
-  ws.onopen = () => {
-    console.log('WebSocket connected');
-    // Delay clearing the connecting state so the banner is visible
-    // even on fast local connections where onopen fires in < 50ms.
-    if (setIsConnecting) setTimeout(() => setIsConnecting(false), 600);
-  };
-  ws.onclose = () => {
-    console.log('WebSocket disconnected');
-    if (setIsConnecting) setIsConnecting(true);
-  };
+  // onopen and onclose are intentionally left unset here.
+  // The calling hook (useChatManagement) assigns them to implement
+  // reconnect logic with proper cancellation and exponential backoff.
 
   return ws;
 };
