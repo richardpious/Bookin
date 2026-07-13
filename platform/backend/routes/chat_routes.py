@@ -9,14 +9,14 @@ async def chat_endpoint(request: Request):
     message = data.get("message")
     session_key = f"webchat:{session_id}"
     chat_db = request.app.state.chat_db
-    # Note: AgentBridge is now mostly deprecated in favor of gateway_client
-    # but we keep this for now to avoid breaking the /chat route
-    agent_bridge = request.app.state.agent_bridge
+    # Note: AgentBridge has been deprecated and removed. We route directly to gateway_client.
+    gateway_client = request.app.state.gateway_client
     try:
         chat_db.add_message(session_id, "user", message)
-        response = await agent_bridge.send_message(message, session_key)
-        chat_db.add_message(session_id, "agent", response)
-        return {"message": response}
+        await gateway_client.send_agent_message(message, session_id)
+        # The WebSocket listener will receive the streaming response.
+        # This HTTP endpoint is legacy and does not receive synchronous response.
+        return {"message": "Message sent"}
     except Exception as e:
         error_msg = str(e)
         chat_db.add_message(session_id, "agent", f"Error: {error_msg}")
