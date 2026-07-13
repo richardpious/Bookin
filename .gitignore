@@ -4,17 +4,18 @@
 .venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # Node/Dependencies
 node_modules/
-# package-lock.json
+package-lock.json
 
 # IDE/Editor
 .vscode/
 .idea/
 
 # Logs and Build
-
 *.log
 *.tmp
 
@@ -26,19 +27,31 @@ booksim/src/*.o
 booksim/src/*.d
 booksim/src/booksim
 
-
 # Chat db
 platform/backend/chat_history.db
+*.db
+*.sqlite
+*.sqlite3
 
-# configs
+# Configs (generated/user-specific)
 configs/*.cfg
 
 # Agent short term memory
 agent/memory/*.md
 
+# Agent / OpenClaw runtime state & generated files
+agent/openclaw-workspace-state.json
+agent/.openclaw/workspace-state.json
+agent/schema.json
+
+# Plugins (compiled/installed dependencies)
+plugins/*/node_modules/
+plugins/*/package-lock.json
+
 # Environment variables
 .env
-
+.env.*
+!.env.example
 
 # Temporary replit removal
 .replit
