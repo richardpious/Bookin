@@ -111,8 +111,17 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
         onClose={() => setIsModalOpen(false)}
         onAddParameter={(param) => {
           const currentContent = fileContents[activeFile] || '';
-          // Ensure file ends with newline before appending
-          const newContent = currentContent + (currentContent && !currentContent.endsWith('\n') ? '\n' : '') + `${param.name} = ${param.defaultValue || '""'};\n`;
+          const newLine = `${param.name} = ${param.defaultValue || '""'};`;
+          // Match an existing line for this parameter (handles optional spaces around '=')
+          const regex = new RegExp(`^${param.name}\\s*=.*$`, 'm');
+          let newContent;
+          if (regex.test(currentContent)) {
+            // Replace the existing line in-place
+            newContent = currentContent.replace(regex, newLine);
+          } else {
+            // Parameter not present — append it
+            newContent = currentContent + (currentContent && !currentContent.endsWith('\n') ? '\n' : '') + newLine + '\n';
+          }
           onUpdateFile(activeFile, newContent);
         }}
       />
