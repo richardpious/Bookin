@@ -8,7 +8,8 @@ export const MainContentHome = () => {
       alignItems: 'center', 
       justifyContent: 'center',
       userSelect: 'none',
-      WebkitUserSelect: 'none'
+      WebkitUserSelect: 'none',
+      backgroundColor: '#080807'
     }}>
       <img
         src="/logo.png"
