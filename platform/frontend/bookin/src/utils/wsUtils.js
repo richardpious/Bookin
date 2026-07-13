@@ -1,6 +1,7 @@
-export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval) => {
+export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval, setIsConnecting) => {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/${client_id}`);
+  if (setIsConnecting) setIsConnecting(true);
 
   ws.onmessage = (event) => {
     let data;
@@ -101,8 +102,16 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePrevi
     }
   };
 
-  ws.onopen = () => console.log('WebSocket connected');
-  ws.onclose = () => console.log('WebSocket disconnected');
+  ws.onopen = () => {
+    console.log('WebSocket connected');
+    // Delay clearing the connecting state so the banner is visible
+    // even on fast local connections where onopen fires in < 50ms.
+    if (setIsConnecting) setTimeout(() => setIsConnecting(false), 600);
+  };
+  ws.onclose = () => {
+    console.log('WebSocket disconnected');
+    if (setIsConnecting) setIsConnecting(true);
+  };
 
   return ws;
 };

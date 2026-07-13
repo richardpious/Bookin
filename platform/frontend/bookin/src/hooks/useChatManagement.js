@@ -5,6 +5,7 @@ import { setupWebSocket } from '../utils/wsUtils';
 export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilentFileUpdate, handleRequireApproval) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
   const [socket, setSocket] = useState(null);
   const messagesEndRef = useRef(null);
   const handleOpenFilePreviewRef = useRef(handleOpenFilePreview);
@@ -36,14 +37,15 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
       setIsLoading,
       (data) => handleOpenFilePreviewRef.current(data),
       (data) => handleSilentFileUpdateRef.current(data),
-      (data) => handleRequireApprovalRef.current(data)
+      (data) => handleRequireApprovalRef.current(data),
+      setIsConnecting
     );
     setSocket(ws);
     return () => ws.close();
   }, [sessionId]);
 
   const handleSend = async (text, metadata = {}) => {
-    if (text.trim() && socket) {
+    if (text.trim() && socket && !isConnecting) {
       if (!metadata.silent) {
       setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text }]);
     }
@@ -61,6 +63,6 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     }
   };
 
-  return { messages, isLoading, handleSend, setMessages, messagesEndRef };
+  return { messages, isLoading, isConnecting, handleSend, setMessages, messagesEndRef };
 };
 

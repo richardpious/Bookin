@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 
-export const ChatSidebar = React.memo(({ width, messages, isLoading, onSend, messagesEndRef }) => {
+export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnecting, onSend, messagesEndRef }) => {
   return (
   <aside className="sidebar agent-chat-sidebar" style={{ width, padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
     <div className="sidebar-header" style={{ padding: '1.5rem', flexShrink: 0 }}><h2>Agent Chat</h2></div>
@@ -24,10 +24,28 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, onSend, mes
         <div ref={messagesEndRef} />
       </AnimatePresence>
     </div>
+    <AnimatePresence>
+      {isConnecting && (
+        <motion.div
+          key="connecting-banner"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.2 }}
+          className="connecting-banner"
+        >
+          <span className="connecting-dots">
+            <span /><span /><span />
+          </span>
+          Connecting…
+        </motion.div>
+      )}
+    </AnimatePresence>
     <div className="input-area">
         <ChatInput
           onSend={onSend}
           isLoading={isLoading}
+          isConnecting={isConnecting}
         />
     </div>
   </aside>

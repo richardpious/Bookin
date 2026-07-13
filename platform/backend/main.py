@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 import asyncio
 import os
 from watchdog.observers import Observer
@@ -103,10 +103,14 @@ async def serve_spa(full_path: str):
     if os.path.exists(file_path) and not os.path.isdir(file_path):
         return FileResponse(file_path)
     
-    # Fallback to index.html for client-side routing
+    # Fallback to index.html for client-side routing.
+    # Always send no-cache so browsers pick up new builds immediately.
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
-        return FileResponse(index_path)
+        return FileResponse(
+            index_path,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        )
     return {"message": "Frontend not built or found."}
 
 if __name__ == "__main__":
