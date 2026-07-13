@@ -21,26 +21,27 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
         {openFiles.map(path => {
           const isDirty = fileContents[path] !== savedFileContents[path];
           return (
-          <div
-            key={path}
-            onClick={() => onTabClick(path)}
-            style={{
-              padding: '8px 12px',
-              cursor: 'pointer',
-              background: activeFile === path ? 'var(--bg-main)' : 'transparent',
-              borderRight: '1px solid var(--border-light)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '13px',
-              color: activeFile === path ? 'white' : 'var(--text-secondary)'
-            }}
-          >
-            {isDirty && <span style={{ color: '#ffcc00', fontSize: '10px' }}>●</span>}
-            {path.split('/').pop()}
-            <X size={14} onClick={(e) => onCloseTab(e, path)} style={{ cursor: 'pointer', opacity: 0.6 }} />
-          </div>
-        )})}
+            <div
+              key={path}
+              onClick={() => onTabClick(path)}
+              style={{
+                padding: '8px 12px',
+                cursor: 'pointer',
+                background: activeFile === path ? 'var(--bg-main)' : 'transparent',
+                borderRight: '1px solid var(--border-light)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                color: activeFile === path ? 'white' : 'var(--text-secondary)'
+              }}
+            >
+              {isDirty && <span style={{ color: '#ffcc00', fontSize: '10px' }}>●</span>}
+              {path.split('/').pop()}
+              <X size={14} onClick={(e) => onCloseTab(e, path)} style={{ cursor: 'pointer', opacity: 0.6 }} />
+            </div>
+          )
+        })}
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
         {activeFile && (
@@ -56,16 +57,16 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
         )}
         {activeFile && !activeFile.toLowerCase().endsWith('.md') && activeFile.endsWith('.cfg') && (
           <div style={{
-              position: 'absolute',
-              bottom: '24px',
-              right: '24px',
-              zIndex: 50,
-              display: 'flex',
-              gap: '8px'
-            }}>
+            position: 'absolute',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 50,
+            display: 'flex',
+            gap: '8px'
+          }}>
             <button
               onClick={() => {
-                onSendMessage(`proceed. you have my approval to proceed with the simulation.`, { silent: true });
+                onSendMessage(`proceed with the simulation and give me the results. you have my approval. also explain me the results properly after simulation.`, { silent: true });
                 onAddMessage('Starting simulation...');
               }}
               style={{
@@ -83,7 +84,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
             >
               <Play size={16} />
               Run Simulation
-          </button>
+            </button>
             <button
               onClick={() => setIsModalOpen(true)}
               style={{
