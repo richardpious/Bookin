@@ -60,6 +60,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 echo "=== 3. Installing Root Node Dependencies ==="
+rm -rf node_modules package-lock.json
 npm install
 
 echo "=== 4. Installing OpenClaw CLI ==="
