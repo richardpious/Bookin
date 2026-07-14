@@ -65,7 +65,8 @@ npm install
 
 echo "=== 4. Installing OpenClaw CLI ==="
 # Install OpenClaw into the project directory so it persists on Replit
-export OPENCLAW_HOME="$PROJECT_ROOT/.openclaw"
+# OPENCLAW_HOME acts like $HOME — the CLI appends /.openclaw/ to find its data
+export OPENCLAW_HOME="$PROJECT_ROOT"
 OPENCLAW_PREFIX="$PROJECT_ROOT/.openclaw"
 export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
 

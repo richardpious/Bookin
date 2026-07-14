@@ -9,9 +9,9 @@ if [ -z "$GEMINI_API_KEY" ]; then
 fi
 
 PROJECT_ROOT="$(pwd)"
-export OPENCLAW_HOME="$PROJECT_ROOT/.openclaw"
+export OPENCLAW_HOME="$PROJECT_ROOT"
 OPENCLAW_PREFIX="$PROJECT_ROOT/.openclaw"
-CONFIG="$OPENCLAW_HOME/openclaw.json"
+CONFIG="$OPENCLAW_PREFIX/openclaw.json"
 export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
 
 # Activate the Python virtual environment (run setup if not present)
