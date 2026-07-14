@@ -24,7 +24,7 @@ source .venv/bin/activate
 # Reinstall OpenClaw CLI if missing (e.g. corrupted install)
 if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
     echo "OpenClaw CLI not found. Reinstalling..."
-    curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard --prefix "$OPENCLAW_PREFIX"
+    npm install -g --prefix "$OPENCLAW_PREFIX" openclaw
 fi
 
 # Initialize OpenClaw configuration if not already onboarded
