@@ -28,7 +28,7 @@ if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
 fi
 
 # Initialize OpenClaw configuration if not already onboarded
-if [ ! -f "$CONFIG" ]; then
+if [ ! -f "$OPENCLAW_PREFIX/.onboarded" ]; then
     echo "First startup: onboarding OpenClaw..."
     openclaw onboard \
         --non-interactive \
@@ -39,6 +39,7 @@ if [ ! -f "$CONFIG" ]; then
         --custom-compatibility openai \
         --accept-risk \
         --skip-health
+    touch "$OPENCLAW_PREFIX/.onboarded"
 fi
 
 if [ ! -f "$CONFIG" ]; then
