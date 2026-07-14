@@ -23,8 +23,8 @@ package-lock.json
 platform/backend/chat
 
 # BookSim specific
-booksim/src/*.o
-booksim/src/*.d
+booksim/src/**/*.o
+booksim/src/**/*.d
 booksim/src/booksim
 
 # Chat db

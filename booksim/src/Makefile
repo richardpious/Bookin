@@ -55,7 +55,7 @@ OBJS :=  $(CPP_OBJS) $(LEX_OBJS) $(YACC_OBJS)
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	 $(CXX) $(LFLAGS) $^ -o $@  # Use LFLAGS for linking
+	 $(CXX) $^ $(LFLAGS) -o $@  # Use LFLAGS for linking
 
 $(LEX_SRCS): config.l
 	$(LEX) $<
