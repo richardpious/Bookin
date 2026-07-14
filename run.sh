@@ -14,11 +14,11 @@ CONFIG="$OPENCLAW_HOME/openclaw.json"
 export PATH="$PATH:$HOME/.bin"
 
 # Activate the Python virtual environment (run setup if not present)
-if [ ! -f "venv/bin/activate" ]; then
+if [ ! -f ".venv/bin/activate" ]; then
     echo "Virtual environment not found. Running setup.sh first..."
     ./setup.sh
 fi
-source venv/bin/activate
+source .venv/bin/activate
 
 # Initialize OpenClaw configuration if not already onboarded
 if [ ! -f "$CONFIG" ]; then
@@ -76,4 +76,4 @@ PORT=$BACKEND_PORT uvicorn main:app --host 0.0.0.0 --port $BACKEND_PORT &
 BACKEND_PID=$!
 
 # Wait for both processes to complete
-wait "$GATEWAY_PID" "$BACKEND_PID"
+wait "$GATEWAY_PID" "$BACKEND_PID" || true
