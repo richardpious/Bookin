@@ -43,6 +43,7 @@ agent/memory/*.md
 agent/openclaw-workspace-state.json
 agent/.openclaw/workspace-state.json
 agent/schema.json
+.openclaw/
 
 # Plugins (compiled/installed dependencies)
 plugins/*/node_modules/

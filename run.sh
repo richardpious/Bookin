@@ -9,9 +9,10 @@ if [ -z "$GEMINI_API_KEY" ]; then
 fi
 
 PROJECT_ROOT="$(pwd)"
-OPENCLAW_HOME="$HOME/.openclaw"
+export OPENCLAW_HOME="$PROJECT_ROOT/.openclaw"
+OPENCLAW_PREFIX="$PROJECT_ROOT/.openclaw"
 CONFIG="$OPENCLAW_HOME/openclaw.json"
-export PATH="$PATH:$HOME/.bin"
+export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
 
 # Activate the Python virtual environment (run setup if not present)
 if [ ! -f ".venv/bin/activate" ]; then
@@ -19,6 +20,12 @@ if [ ! -f ".venv/bin/activate" ]; then
     ./setup.sh
 fi
 source .venv/bin/activate
+
+# Reinstall OpenClaw CLI if missing (e.g. corrupted install)
+if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
+    echo "OpenClaw CLI not found. Reinstalling..."
+    curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --no-onboard --prefix "$OPENCLAW_PREFIX"
+fi
 
 # Initialize OpenClaw configuration if not already onboarded
 if [ ! -f "$CONFIG" ]; then

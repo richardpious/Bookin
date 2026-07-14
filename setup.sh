@@ -85,14 +85,15 @@ npm run build
 cd "$PROJECT_ROOT"
 
 echo "=== 7. Installing OpenClaw CLI ==="
-if ! command -v openclaw &> /dev/null; then
-    echo "Installing OpenClaw CLI..."
-    curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --no-onboard
-    export PATH="$PATH:$HOME/.bin"
-fi
+# Install OpenClaw into the project directory so it persists on Replit
+export OPENCLAW_HOME="$PROJECT_ROOT/.openclaw"
+OPENCLAW_PREFIX="$PROJECT_ROOT/.openclaw"
+export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
 
-# Ensure bin path is available
-export PATH="$PATH:$HOME/.bin"
+if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
+    echo "Installing OpenClaw CLI to $OPENCLAW_PREFIX..."
+    curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --no-onboard --prefix "$OPENCLAW_PREFIX"
+fi
 
 echo "=== 8. Registering Plugins with OpenClaw ==="
 openclaw plugins install "$PROJECT_ROOT/plugins/file-preview" --force
