@@ -32,11 +32,8 @@ if [ ! -f "$OPENCLAW_PREFIX/.onboarded" ]; then
     echo "First startup: onboarding OpenClaw..."
     openclaw onboard \
         --non-interactive \
-        --auth-choice custom-api-key \
-        --custom-base-url "https://generativelanguage.googleapis.com/v1beta/openai/" \
-        --custom-model-id "gemini-3.1-flash-lite" \
-        --custom-api-key "$GEMINI_API_KEY" \
-        --custom-compatibility openai \
+        --auth-choice gemini-api-key \
+        --gemini-api-key "$GEMINI_API_KEY" \
         --accept-risk \
         --skip-health
     touch "$OPENCLAW_PREFIX/.onboarded"
@@ -66,6 +63,7 @@ jq --arg ws "$PROJECT_ROOT/agent" '
   .gateway.mode = "local" |
   .gateway.bind = "loopback" |
   .agents.defaults.workspace = $ws |
+  .agents.defaults.model.primary = "google/gemini-3.1-flash-lite" |
   .agents.defaults.memorySearch = {"provider": "gemini"} |
   .hooks.internal.enabled = true |
   .hooks.internal.entries["boot-md"].enabled = true |
