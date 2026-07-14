@@ -59,6 +59,8 @@ jq --arg ws "$PROJECT_ROOT/agent" '
     "tool-approval": {"enabled": true},
     "file-preview": {"enabled": true} }|
   .tools.alsoAllow = ["file-open"] |
+  .tools.profile = "coding" |
+  .tools.exec = {"host": "gateway", "security": "full", "ask": "off"} |
   .gateway.auth.token = env.OPENCLAW_GATEWAY_TOKEN |
   .gateway.mode = "local" |
   .gateway.bind = "loopback" |
