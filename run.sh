@@ -41,6 +41,12 @@ if [ ! -f "$CONFIG" ]; then
         --skip-health
 fi
 
+if [ ! -f "$CONFIG" ]; then
+    echo "ERROR: Config file not found at expected path: $CONFIG"
+    echo "OpenClaw onboarding may have failed or written to the wrong location."
+    exit 1
+fi
+
 # Configure gateway parameters, allowed plugins, and local workspace paths
 export BACKEND_PORT=10000
 export OPENCLAW_GATEWAY_TOKEN="34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece"
@@ -57,7 +63,9 @@ jq --arg ws "$PROJECT_ROOT/agent" '
   .gateway.bind = "loopback" |
   .agents.defaults.workspace = $ws |
   .agents.defaults.memorySearch = {"provider": "gemini"}
-' "$CONFIG" > "$CONFIG.tmp" && mv "$CONFIG.tmp" "$CONFIG"
+' "$CONFIG" > "$CONFIG.tmp"
+
+mv "$CONFIG.tmp" "$CONFIG"
 
 cleanup() {
     echo "Shutting down servers..."
