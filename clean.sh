@@ -25,12 +25,15 @@ fi
 
 echo "5. Cleaning Plugin artifacts..."
 rm -rf "$PROJECT_ROOT/plugins/tool-approval/node_modules"
+rm -f "$PROJECT_ROOT/plugins/tool-approval/package-lock.json"
 rm -rf "$PROJECT_ROOT/plugins/tool-approval/dist"
 rm -rf "$PROJECT_ROOT/plugins/file-preview/node_modules"
+rm -f "$PROJECT_ROOT/plugins/file-preview/package-lock.json"
 rm -rf "$PROJECT_ROOT/plugins/file-preview/dist"
 
 echo "6. Cleaning Frontend artifacts..."
 rm -rf "$PROJECT_ROOT/platform/frontend/bookin/node_modules"
+rm -f "$PROJECT_ROOT/platform/frontend/bookin/package-lock.json"
 rm -rf "$PROJECT_ROOT/platform/frontend/bookin/dist"
 rm -rf "$PROJECT_ROOT/platform/frontend/bookin/.next" 2>/dev/null || true # In case it's a Next.js app
 
