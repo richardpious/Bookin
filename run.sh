@@ -58,6 +58,7 @@ jq --arg ws "$PROJECT_ROOT/agent" '
     "google": {"enabled": true},
     "tool-approval": {"enabled": true},
     "file-preview": {"enabled": true} }|
+  .plugins.allow = ["tool-approval", "file-preview"] |
   .tools.alsoAllow = ["file-open"] |
   .tools.profile = "coding" |
   .tools.exec = {"host": "gateway", "security": "full", "ask": "off"} |
@@ -65,7 +66,11 @@ jq --arg ws "$PROJECT_ROOT/agent" '
   .gateway.mode = "local" |
   .gateway.bind = "loopback" |
   .agents.defaults.workspace = $ws |
-  .agents.defaults.memorySearch = {"provider": "gemini"}
+  .agents.defaults.memorySearch = {"provider": "gemini"} |
+  .hooks.internal.enabled = true |
+  .hooks.internal.entries["boot-md"].enabled = true |
+  .hooks.internal.entries["bootstrap-extra-files"].enabled = true |
+  .hooks.internal.entries["bootstrap-extra-files"].config.files = ["RUNNING_SIMULATIONS.md", "FILE_ORGANIZATION.md"]
 ' "$CONFIG" > "$CONFIG.tmp"
 
 mv "$CONFIG.tmp" "$CONFIG"
