@@ -62,12 +62,23 @@ pip install -r requirements.txt
 echo "=== 3. Installing Root Node Dependencies ==="
 npm install
 
-echo "=== 4. Compiling Booksim ==="
+echo "=== 4. Installing OpenClaw CLI ==="
+# Install OpenClaw into the project directory so it persists on Replit
+export OPENCLAW_HOME="$PROJECT_ROOT/.openclaw"
+OPENCLAW_PREFIX="$PROJECT_ROOT/.openclaw"
+export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
+
+if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
+    echo "Installing OpenClaw CLI to $OPENCLAW_PREFIX..."
+    curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard --prefix "$OPENCLAW_PREFIX"
+fi
+
+echo "=== 5. Compiling Booksim ==="
 cd "$PROJECT_ROOT/booksim/src"
 make clean && make
 cd "$PROJECT_ROOT"
 
-echo "=== 5. Building Plugins ==="
+echo "=== 6. Building Plugins ==="
 cd "$PROJECT_ROOT/plugins/tool-approval"
 npm install
 npx tsc
@@ -78,22 +89,11 @@ npx tsc
 
 cd "$PROJECT_ROOT"
 
-echo "=== 6. Building Frontend ==="
+echo "=== 7. Building Frontend ==="
 cd "$PROJECT_ROOT/platform/frontend/bookin"
 npm install
 npm run build
 cd "$PROJECT_ROOT"
-
-echo "=== 7. Installing OpenClaw CLI ==="
-# Install OpenClaw into the project directory so it persists on Replit
-export OPENCLAW_HOME="$PROJECT_ROOT/.openclaw"
-OPENCLAW_PREFIX="$PROJECT_ROOT/.openclaw"
-export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
-
-if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
-    echo "Installing OpenClaw CLI to $OPENCLAW_PREFIX..."
-    curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --no-onboard --prefix "$OPENCLAW_PREFIX"
-fi
 
 echo "=== 8. Registering Plugins with OpenClaw ==="
 openclaw plugins install "$PROJECT_ROOT/plugins/file-preview" --force
