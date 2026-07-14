@@ -1,6 +1,6 @@
 #!/bin/bash
 # setup.sh - Installs system dependencies, node modules, compiles plugins & backend, and installs OpenClaw
-set -e
+set -eo pipefail
 
 PROJECT_ROOT="$(pwd)"
 
@@ -72,11 +72,17 @@ export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
 if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
     echo "Installing OpenClaw CLI to $OPENCLAW_PREFIX..."
     curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard --prefix "$OPENCLAW_PREFIX"
+    if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
+        echo "ERROR: OpenClaw CLI installation failed. Check the output above for errors."
+        exit 1
+    fi
 fi
 
 echo "=== 5. Compiling Booksim ==="
 cd "$PROJECT_ROOT/booksim/src"
-make clean && make
+if ! (make clean && make); then
+    echo "WARNING: Booksim compilation failed. Skipping (can be compiled later)."
+fi
 cd "$PROJECT_ROOT"
 
 echo "=== 6. Building Plugins ==="
