@@ -23,7 +23,8 @@ export default defineToolPlugin({
           parameters: Type.Object({
             filepath: Type.String({ description: "Path to the configuration file to preview." }),
           }) as any,
-          execute: async ({ filepath }: any) => {
+          execute: async (toolCallId: string, params: any) => {
+            const filepath = params?.filepath;
             try {
               await fetch(`${BACKEND_URL}/internal/file-preview`, {
                 method: "POST",
