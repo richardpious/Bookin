@@ -31,6 +31,16 @@ class ChatHistoryDB:
             message = ""
         conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
+        
+        cursor.execute(
+            'SELECT sender, message FROM messages WHERE session_id = ? ORDER BY id DESC LIMIT 1',
+            (session_id,)
+        )
+        last = cursor.fetchone()
+        if last and last[0] == sender and last[1] == message:
+            conn.close()
+            return
+
         cursor.execute(
             'INSERT INTO messages (session_id, sender, message) VALUES (?, ?, ?)',
             (session_id, sender, message)

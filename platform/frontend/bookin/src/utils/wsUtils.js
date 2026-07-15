@@ -92,7 +92,11 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePrevi
       } else if (/auth|unauthorized|401|403/i.test(raw)) {
         display = '⚠️ Authentication failed. Check provider credentials.';
       }
-      setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: display, isComplete: true, isError: true }]);
+      setMessages((prev) => {
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg && lastMsg.isError && lastMsg.text === display) return prev;
+        return [...prev, { id: Date.now(), sender: 'bot', text: display, isComplete: true, isError: true }];
+      });
       setIsLoading(false);
     } else if (data.message) {
         // Fallback for legacy format
