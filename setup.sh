@@ -36,9 +36,18 @@ else
     echo "All system dependencies are already installed."
 fi
 
-# Install Node.js if not already present
-if ! command -v node &> /dev/null; then
-    echo "Installing Node.js (v22)..."
+# Install Node.js (v22) if not already present or if version is less than 22
+NODE_MAJOR=0
+if command -v node &> /dev/null; then
+    NODE_MAJOR=$(node -v | sed -E 's/^v([0-9]+).*/\1/')
+fi
+
+if [ "$NODE_MAJOR" -lt 22 ]; then
+    if [ "$NODE_MAJOR" -gt 0 ]; then
+        echo "Node.js $(node -v) is installed, but v22 or higher is required. Upgrading..."
+    else
+        echo "Installing Node.js (v22)..."
+    fi
     if command -v apt-get &>/dev/null; then
         SUDO=""
         if [ "$EUID" -ne 0 ] && command -v sudo &>/dev/null; then
@@ -50,7 +59,7 @@ if ! command -v node &> /dev/null; then
         echo "WARNING: apt-get not found. Please install Node.js (v22) manually."
     fi
 else
-    echo "Node.js is already installed: $(node -v)"
+    echo "Node.js (v22 or higher) is already installed: $(node -v)"
 fi
 
 echo "=== 2. Creating Python Virtual Environment ==="
