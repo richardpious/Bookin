@@ -136,6 +136,11 @@ class OpenClawGatewayClient:
 
                                     elif state == "error":
                                         error_message = chat_payload.get("errorMessage", "unknown error")
+                                        
+                                        if "Exec failed:" in error_message or "⚠️ 🛠️" in error_message:
+                                            logger.info(f"Filtered out internal tool error for {client_id}")
+                                            continue
+                                            
                                         logger.warning(f"Agent run error for session {client_id}: {error_message}")
                                         # Persist the error to chat history with a clear prefix
                                         chat_db = manager.app.state.chat_db
