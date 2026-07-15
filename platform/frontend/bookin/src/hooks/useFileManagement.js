@@ -73,6 +73,12 @@ export const useFileManagement = () => {
       // For preview, we try to set the content even if it's an error
       // so the user knows something tried to open
       setFileContents(prev => ({ ...prev, [filePath]: `Error loading file: ${filePath}` }));
+      setOpenFiles(prev => {
+          if (!prev.includes(filePath)) {
+              return [...prev, filePath];
+          }
+          return prev;
+      });
       setActiveFile(filePath);
     }
   }, []);
