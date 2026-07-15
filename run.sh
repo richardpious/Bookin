@@ -14,6 +14,22 @@ OPENCLAW_PREFIX="$PROJECT_ROOT/.openclaw"
 CONFIG="$OPENCLAW_PREFIX/openclaw.json"
 export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
 
+# Ensure correct Node.js version is used if nvm is installed
+NVM_PATH=""
+if [ -n "$NVM_DIR" ] && [ -s "$NVM_DIR/nvm.sh" ]; then
+    NVM_PATH="$NVM_DIR/nvm.sh"
+elif [ -s "$HOME/.nvm/nvm.sh" ]; then
+    NVM_PATH="$HOME/.nvm/nvm.sh"
+    export NVM_DIR="$HOME/.nvm"
+elif [ -s "/usr/local/share/nvm/nvm.sh" ]; then
+    NVM_PATH="/usr/local/share/nvm/nvm.sh"
+    export NVM_DIR="/usr/local/share/nvm"
+fi
+if [ -n "$NVM_PATH" ]; then
+    \. "$NVM_PATH"
+    nvm use 22 &>/dev/null || true
+fi
+
 # Activate the Python virtual environment (run setup if not present)
 if [ ! -f ".venv/bin/activate" ]; then
     echo "Virtual environment not found. Running setup.sh first..."
