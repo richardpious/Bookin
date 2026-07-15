@@ -25,7 +25,13 @@ async function fetchSessions() {
 }
 
 function App() {
-  const [sessionId, setSessionId] = useState('default')
+  const [sessionId, setSessionId] = useState(() => {
+    return localStorage.getItem('activeSessionId') || 'default';
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('activeSessionId', sessionId);
+  }, [sessionId]);
   const [sessions, setSessions] = useState([])
   const [approvalRequest, setApprovalRequest] = useState(null)
   const [searchResults, setSearchResults] = useState(null)

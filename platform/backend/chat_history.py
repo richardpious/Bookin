@@ -62,7 +62,12 @@ class ChatHistoryDB:
     def get_all_sessions(self):
         conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
-        cursor.execute('SELECT DISTINCT session_id FROM messages')
+        cursor.execute('''
+            SELECT session_id 
+            FROM messages 
+            GROUP BY session_id 
+            ORDER BY MAX(timestamp) DESC
+        ''')
         sessions = [r[0] for r in cursor.fetchall()]
         conn.close()
         return sessions
