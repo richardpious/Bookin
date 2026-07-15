@@ -48,10 +48,20 @@ if [ "$NODE_MAJOR" -lt 22 ]; then
     else
         echo "Installing Node.js (v22)..."
     fi
-    if [ -s "$HOME/.nvm/nvm.sh" ]; then
-        echo "Detected nvm. Upgrading Node.js via nvm..."
+    NVM_PATH=""
+    if [ -n "$NVM_DIR" ] && [ -s "$NVM_DIR/nvm.sh" ]; then
+        NVM_PATH="$NVM_DIR/nvm.sh"
+    elif [ -s "$HOME/.nvm/nvm.sh" ]; then
+        NVM_PATH="$HOME/.nvm/nvm.sh"
         export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    elif [ -s "/usr/local/share/nvm/nvm.sh" ]; then
+        NVM_PATH="/usr/local/share/nvm/nvm.sh"
+        export NVM_DIR="/usr/local/share/nvm"
+    fi
+
+    if [ -n "$NVM_PATH" ]; then
+        echo "Detected nvm at $NVM_PATH. Upgrading Node.js via nvm..."
+        \. "$NVM_PATH"
         nvm install 22
         nvm use 22
         nvm alias default 22
