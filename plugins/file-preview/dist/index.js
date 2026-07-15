@@ -13,19 +13,32 @@ export default defineToolPlugin({
             parameters: Type.Object({
                 filepath: Type.String({ description: "Path to the configuration file to preview." }),
             }),
-            execute: async ({ filepath }, _config, _context) => {
-                try {
-                    await fetch(`${BACKEND_URL}/internal/file-preview`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ filepath, session_key: "" }),
-                    });
-                }
-                catch (err) {
-                    console.error("[file-open] Failed to notify backend:", err);
-                }
-                return { action: "preview_requested", filepath };
-            },
+            factory: ({ toolContext }) => {
+                return {
+                    name: "file-open",
+                    label: "File Open",
+                    description: "Shows the user a file providing a filepath.",
+                    parameters: Type.Object({
+                        filepath: Type.String({ description: "Path to the configuration file to preview." }),
+                    }),
+                    execute: async ({ filepath }) => {
+                        try {
+                            await fetch(`${BACKEND_URL}/internal/file-preview`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ filepath, session_key: toolContext.sessionKey || "" }),
+                            });
+                        }
+                        catch (err) {
+                            console.error("[file-open] Failed to notify backend:", err);
+                        }
+                        return {
+                            content: [{ type: "text", text: `Preview requested for ${filepath}` }],
+                            details: { action: "preview_requested", filepath }
+                        };
+                    }
+                };
+            }
         }),
     ],
 });

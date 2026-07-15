@@ -95,9 +95,13 @@ class OpenClawGatewayClient:
                 if manager:
                     # Forward all events as gateway logs to the frontend
                     if data.get("type") == "event":
+                        event_payload = data.get("payload", {})
+                        session_key = event_payload.get("sessionKey", "") if isinstance(event_payload, dict) else ""
+                        
                         forward_packet = {"type": "gateway_log", "payload": data}
                         for client_id in manager.active_connections:
-                            await manager.send_personal_message(forward_packet, client_id)
+                            if not session_key or f"agent:main:webchat:{client_id}" in session_key:
+                                await manager.send_personal_message(forward_packet, client_id)
 
                         # Handle chat events to stream text to the UI
                         if data.get("event") == "chat":
