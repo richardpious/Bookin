@@ -53,8 +53,8 @@ if [ "$NODE_MAJOR" -lt 22 ]; then
         if [ "$EUID" -ne 0 ] && command -v sudo &>/dev/null; then
             SUDO="sudo"
         fi
-        curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO bash -
-        $SUDO apt-get install -y nodejs
+        curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO bash - || echo "WARNING: NodeSource setup had warnings, continuing..."
+        $SUDO apt-get install -y nodejs || echo "WARNING: Failed to install Node.js via apt. You may need to upgrade manually."
     else
         echo "WARNING: apt-get not found. Please install Node.js (v22) manually."
     fi
