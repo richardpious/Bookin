@@ -72,7 +72,7 @@ export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
 
 if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
     echo "Installing OpenClaw CLI to $OPENCLAW_PREFIX..."
-    curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard --prefix "$OPENCLAW_PREFIX"
+    npm install -g --prefix "$OPENCLAW_PREFIX" openclaw
     if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
         echo "ERROR: OpenClaw CLI installation failed. Check the output above for errors."
         exit 1
