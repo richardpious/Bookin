@@ -48,10 +48,29 @@ if [ "$NODE_MAJOR" -lt 22 ]; then
     else
         echo "Installing Node.js (v22)..."
     fi
-    if command -v apt-get &>/dev/null; then
+    if [ -s "$HOME/.nvm/nvm.sh" ]; then
+        echo "Detected nvm. Upgrading Node.js via nvm..."
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm install 22
+        nvm use 22
+        nvm alias default 22
+    elif command -v npm &>/dev/null; then
+        echo "Detected npm. Upgrading Node.js via 'n' package manager..."
         SUDO=""
         if [ "$EUID" -ne 0 ] && command -v sudo &>/dev/null; then
             SUDO="sudo"
+        fi
+        $SUDO npm install -g n
+        $SUDO n 22
+    elif command -v apt-get &>/dev/null; then
+        SUDO=""
+        if [ "$EUID" -ne 0 ] && command -v sudo &>/dev/null; then
+            SUDO="sudo"
+        fi
+        # Remove broken yarn list which causes NodeSource script to fail in some Ubuntu VMs
+        if [ -f /etc/apt/sources.list.d/yarn.list ]; then
+            $SUDO rm -f /etc/apt/sources.list.d/yarn.list
         fi
         curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO bash - || echo "WARNING: NodeSource setup had warnings, continuing..."
         $SUDO apt-get install -y nodejs || echo "WARNING: Failed to install Node.js via apt. You may need to upgrade manually."
