@@ -97,6 +97,11 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM
 
+echo "Freeing up ghost processes to ensure clean startup..."
+sudo lsof -t -i:$BACKEND_PORT | xargs sudo kill -9 2>/dev/null || true
+openclaw gateway stop 2>/dev/null || true
+sleep 1
+
 echo "Starting OpenClaw Gateway..."
 openclaw gateway run &
 GATEWAY_PID=$!
