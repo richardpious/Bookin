@@ -115,19 +115,25 @@ const SessionHeader = React.memo(({ onAddClick }) => (
 ))
 
 export const SessionsList = React.memo(({ sessions, setSessions, currentSession, onSelectSession, onResetSession, sidebarRef }) => {
-  const [isCreating, setIsCreating] = useState(false)
+  const isEmpty = !sessions || sessions.length === 0
+  const [isCreating, setIsCreating] = useState(isEmpty)
   const [newSessionName, setNewSessionName] = useState('')
 
+  // Auto-expand the creation form when sessions become empty
   useEffect(() => {
-    // Close sidebar elements when clicking outside
+    if (isEmpty) setIsCreating(true)
+  }, [isEmpty])
+
+  useEffect(() => {
+    // Close sidebar elements when clicking outside (only if there are sessions to fall back to)
     const handleClickOutside = (event) => {
-      if (sidebarRef && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+      if (!isEmpty && sidebarRef && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
       setIsCreating(false)
     }
   }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [sidebarRef])
+  }, [sidebarRef, isEmpty])
 
   const handleCreateSession = (e) => {
     e.preventDefault()
@@ -157,6 +163,17 @@ export const SessionsList = React.memo(({ sessions, setSessions, currentSession,
             placeholder="New session name..."
             className="session-input"
           />
+          {isEmpty && (
+            <span style={{
+              display: 'block',
+              fontSize: '13px',
+              color: 'var(--text-secondary)',
+              padding: '6px 8px',
+              opacity: 0.85
+            }}>
+              Name your first session to get started
+            </span>
+          )}
         </form>
       )}
 

@@ -17,11 +17,15 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     handleRequireApprovalRef.current = handleRequireApproval;
   }, [handleOpenFilePreview, handleSilentFileUpdate, handleRequireApproval]);
   useEffect(() => {
+    if (!sessionId || !token) {
+      setMessages([]);
+      return;
+    }
     const loadHistory = async () => {
       const history = await fetchChatHistory(sessionId, token);
       setMessages(history.length > 0 ? history : [{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
     };
-    if (token) loadHistory();
+    loadHistory();
   }, [sessionId, token]);
 
   useEffect(() => {
@@ -31,7 +35,10 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
   }, [messages, sessionId]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionId || !token) {
+      setIsConnecting(false);
+      return;
+    }
     let currentWs = null;
     let cancelled = false;
     let retryTimeout = null;

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { v4 as uuidv4 } from 'uuid'
 import { Header } from './components/Header'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
@@ -49,11 +48,15 @@ function App() {
   };
 
   const [sessionId, setSessionId] = useState(() => {
-    return localStorage.getItem('activeSessionId') || 'default';
+    return localStorage.getItem('activeSessionId') || null;
   });
   
   useEffect(() => {
-    localStorage.setItem('activeSessionId', sessionId);
+    if (sessionId) {
+      localStorage.setItem('activeSessionId', sessionId);
+    } else {
+      localStorage.removeItem('activeSessionId');
+    }
   }, [sessionId]);
   const [sessions, setSessions] = useState([])
   const [approvalRequest, setApprovalRequest] = useState(null)
@@ -147,9 +150,9 @@ function App() {
           setSessionId(data[0]);
         }
       } else {
-        // If the user has no sessions, generate a fresh session ID
-        // so it doesn't conflict with any leftover IDs in localStorage.
-        setSessionId(uuidv4());
+        // No sessions — clear sessionId so the UI shows the empty state
+        // and prompts the user to create their first session.
+        setSessionId(null);
       }
     }
     loadSessions()
@@ -188,17 +191,10 @@ function App() {
           // Also set it in the UI so the user sees the message
           setMessages([{ id: 1, sender: 'bot', text: 'Session reset successfully. How can I help you?' }]);
         } else {
-          // If we deleted the current session, switch to a default or clear messages
-          const nextSession = newSessions.length > 0 ? newSessions[0] : uuidv4();
+          // If we deleted the current session, switch to the next available one
+          // or null (which triggers the empty state UI)
+          const nextSession = newSessions.length > 0 ? newSessions[0] : null;
           setSessionId(nextSession);
-          // If we have sessions, load the first one, otherwise show default message
-          if (newSessions.length > 0) {
-              // This is a bit simplified, ideally we'd trigger a fetch for the new session's messages
-              // But let's just clear for now if we can't easily fetch
-              setMessages([{ id: 1, sender: 'bot', text: `Switched to session: ${nextSession}` }]);
-          } else {
-            setMessages([{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
-          }
         }
       }
     } catch (err) {
@@ -297,6 +293,7 @@ function App() {
           isConnecting={isConnecting}
           onSend={handleSend}
           messagesEndRef={messagesEndRef}
+          sessionId={sessionId}
         />
         {toast && (
           <div className="toast-container">
