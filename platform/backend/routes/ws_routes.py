@@ -31,6 +31,17 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             try:
                 if not is_silent:
                     chat_db.add_message(client_id, "user", message)
+                    
+                    # Notify other tabs
+                    for ws in manager.active_connections.get(client_id, []):
+                        if ws != websocket:
+                            try:
+                                await ws.send_text(json.dumps({
+                                    "type": "user-message",
+                                    "message": message
+                                }))
+                            except:
+                                pass
                 
                 # Send the message through the persistent Gateway WebSocket connection
                 await gateway_client.websocket.send(json.dumps({
@@ -49,9 +60,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             except Exception as e:
                 error_msg = str(e)
                 chat_db.add_message(client_id, "agent", f"Error: {error_msg}")
-                await websocket.send_text(json.dumps({"type": "error", "message": error_msg}))
+                await manager.send_personal_message({"type": "error", "message": error_msg}, client_id)
     except WebSocketDisconnect:
-        manager.disconnect(client_id)
+        manager.disconnect(client_id, websocket)
     except Exception as e:
-        manager.disconnect(client_id)
+        manager.disconnect(client_id, websocket)
 

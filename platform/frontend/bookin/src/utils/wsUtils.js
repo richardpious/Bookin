@@ -98,6 +98,8 @@ export const setupWebSocket = (client_id, setMessages, setIsLoading, onFilePrevi
         return [...prev, { id: Date.now(), sender: 'bot', text: display, isComplete: true, isError: true }];
       });
       setIsLoading(false);
+    } else if (data.type === 'user-message') {
+      setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: data.message }]);
     } else if (data.message) {
         // Fallback for legacy format
         setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: data.message, isComplete: true }]);
