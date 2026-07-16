@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchChatHistory } from '../utils/historyUtils';
 import { setupWebSocket } from '../utils/wsUtils';
 
-export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilentFileUpdate, handleRequireApproval) => {
+export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilentFileUpdate, handleRequireApproval, token) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
@@ -18,11 +18,11 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
   }, [handleOpenFilePreview, handleSilentFileUpdate, handleRequireApproval]);
   useEffect(() => {
     const loadHistory = async () => {
-      const history = await fetchChatHistory(sessionId);
+      const history = await fetchChatHistory(sessionId, token);
       setMessages(history.length > 0 ? history : [{ id: 1, sender: 'bot', text: 'Hello! How can I help you with Booksim today?' }]);
     };
-    loadHistory();
-  }, [sessionId]);
+    if (token) loadHistory();
+  }, [sessionId, token]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -31,6 +31,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
   }, [messages, sessionId]);
 
   useEffect(() => {
+    if (!token) return;
     let currentWs = null;
     let cancelled = false;
     let retryTimeout = null;
@@ -45,6 +46,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
 
       const ws = setupWebSocket(
         sessionId,
+        token,
         setMessages,
         setIsLoading,
         (data) => handleOpenFilePreviewRef.current(data),
@@ -83,7 +85,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
       clearTimeout(retryTimeout);  // cancel a scheduled retry if one is queued
       if (currentWs) currentWs.close();
     };
-  }, [sessionId]);
+  }, [sessionId, token]);
 
   const handleSend = async (text, metadata = {}) => {
     if (text.trim() && socket && !isConnecting) {

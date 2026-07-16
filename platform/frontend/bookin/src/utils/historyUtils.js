@@ -1,6 +1,8 @@
-export const fetchChatHistory = async (sessionId) => {
+export const fetchChatHistory = async (sessionId, token) => {
   try {
-    const response = await fetch(`/history/${sessionId}?t=${Date.now()}`);
+    const response = await fetch(`/history/${sessionId}?t=${Date.now()}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch chat history');
     }

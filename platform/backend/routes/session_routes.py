@@ -1,10 +1,23 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from .auth_routes import get_current_user
 
 router = APIRouter()
+security = HTTPBearer()
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    user_id = get_current_user(credentials.credentials)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user_id
 
 @router.get("/sessions")
-async def list_sessions(request: Request):
-    return {"sessions": request.app.state.chat_db.get_all_sessions()}
+async def list_sessions(request: Request, user_id: int = Depends(verify_token)):
+    return {"sessions": [s["id"] for s in request.app.state.chat_db.get_user_sessions(user_id)]}
 
 @router.post("/delete_session/{session_id}")
 async def delete_session(request: Request, session_id: str):

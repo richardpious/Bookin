@@ -3,7 +3,7 @@ import { HeaderSearch } from './HeaderSearch';
 import { ModelSelector } from './ModelSelector';
 import { ThinkingLevelSelector } from './ThinkingLevelSelector';
 
-export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch }) => {
+export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch, username, onLogout }) => {
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState('success');
   const [sessionData, setSessionData] = useState(null);
@@ -56,21 +56,42 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
         onError={(msg) => showToast(msg, 'error')}
       />
 
-      {/* Right — Model selector */}
-      <ModelSelector
-        sessionId={sessionId}
-        initialModel={sessionData?.model}
-        availableModels={sessionData?.models}
-        onModelChange={handleModelChange}
-        onToast={showToast}
-      />
-      <ThinkingLevelSelector
-        sessionId={sessionId}
-        initialLevel={sessionData?.thinkingLevel}
-        availableLevels={sessionData?.thinkingLevels}
-        onLevelChange={onThinkingLevelChange}
-        onToast={showToast}
-      />
+      {/* Right — Model selector & User Profile */}
+      <div className="header-right">
+        <ModelSelector
+          sessionId={sessionId}
+          initialModel={sessionData?.model}
+          availableModels={sessionData?.models}
+          onModelChange={handleModelChange}
+          onToast={showToast}
+        />
+        <ThinkingLevelSelector
+          sessionId={sessionId}
+          initialLevel={sessionData?.thinkingLevel}
+          availableLevels={sessionData?.thinkingLevels}
+          onLevelChange={onThinkingLevelChange}
+          onToast={showToast}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            {username}
+          </span>
+          <button 
+            onClick={onLogout}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.75rem'
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
       {toast && (
         <div className="toast-container">

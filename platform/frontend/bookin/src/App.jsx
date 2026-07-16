@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import { Header } from './components/Header'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
 import { LeftSidebar } from './components/LeftSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
+import { AuthScreen } from './components/AuthScreen'
 import ApprovalModal from './components/ApprovalModal'
 import SearchResultsPanel from './components/SearchResultsPanel'
 import { useResizer } from './hooks/useResizer'
@@ -12,9 +14,13 @@ import { useChatManagement } from './hooks/useChatManagement'
 import './App.css'
 import './index.css'
 
-async function fetchSessions() {
+async function fetchSessions(token) {
   try {
-    const response = await fetch('/sessions');
+    const response = await fetch('/sessions', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     if (!response.ok) throw new Error('Failed to fetch sessions');
     const data = await response.json();
     return data.sessions || [];
@@ -25,6 +31,23 @@ async function fetchSessions() {
 }
 
 function App() {
+  const [token, setToken] = useState(() => localStorage.getItem('authToken'));
+  const [username, setUsername] = useState(() => localStorage.getItem('username'));
+
+  const handleLogin = (newToken, newUsername) => {
+    localStorage.setItem('authToken', newToken);
+    localStorage.setItem('username', newUsername);
+    setToken(newToken);
+    setUsername(newUsername);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+    setToken(null);
+    setUsername(null);
+  };
+
   const [sessionId, setSessionId] = useState(() => {
     return localStorage.getItem('activeSessionId') || 'default';
   });
@@ -56,7 +79,8 @@ function App() {
     sessionId,
     handleOpenFilePreview,
     handleSilentFileUpdate,
-    handleRequireApproval
+    handleRequireApproval,
+    token
   );
 
   const handleModelChange = useCallback(async (modelId) => {
@@ -65,7 +89,10 @@ function App() {
     try {
       const response = await fetch('/set-model', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           sessionId,
           model: modelId
@@ -87,7 +114,10 @@ function App() {
       // based on the provided message format requirements
       const response = await fetch('/set-thinking-level', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           key: `agent:main:webchat:${sessionId}`,
           agentId: "main",
@@ -105,16 +135,32 @@ function App() {
 
   // Load initial sessions
   useEffect(() => {
+    if (!token) return;
     const loadSessions = async () => {
-      const data = await fetchSessions()
+      const data = await fetchSessions(token)
       setSessions(data)
+      
+      if (data && data.length > 0) {
+        // If the current sessionId doesn't belong to this user's sessions,
+        // automatically select their most recent session.
+        if (!data.includes(sessionId)) {
+          setSessionId(data[0]);
+        }
+      } else {
+        // If the user has no sessions, generate a fresh session ID
+        // so it doesn't conflict with any leftover IDs in localStorage.
+        setSessionId(uuidv4());
+      }
     }
     loadSessions()
-  }, [])
+  }, [token])
 
   const handleDeleteSession = useCallback(async (session, shouldReopen = false) => {
     try {
-      const response = await fetch(`/delete_session/${session}`, { method: 'POST' });
+      const response = await fetch(`/delete_session/${session}`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       let responseData = {};
       try {
         responseData = await response.json();
@@ -126,7 +172,7 @@ function App() {
         throw new Error(responseData.error || responseData.message || 'Failed to delete session');
       }
 
-      const newSessions = await fetchSessions();
+      const newSessions = await fetchSessions(token);
       console.log("Updated sessions:", newSessions);
 
       // Ensure the reset session is kept in the list
@@ -172,6 +218,10 @@ function App() {
     console.log(`Opened ${resolvedPath} at line ${lineNumber}`);
   }, [handleFileClick]);
 
+  if (!token) {
+    return <AuthScreen onLogin={handleLogin} />;
+  }
+
   return (
     <div className="app-container">
       <Header
@@ -179,6 +229,8 @@ function App() {
         onThinkingLevelChange={handleThinkingLevelChange}
         sessionId={sessionId}
         onSearch={handleSearch}
+        username={username}
+        onLogout={handleLogout}
       />
       <ApprovalModal
         isOpen={!!approvalRequest}
@@ -226,7 +278,10 @@ function App() {
             // Persist as 'agent'
             fetch('/log-message', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
               body: JSON.stringify({ sessionId, sender: 'agent', text: msg })
             }).catch(console.error);
           }}

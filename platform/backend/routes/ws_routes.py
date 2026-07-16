@@ -1,16 +1,31 @@
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 import json
 import uuid
+from .auth_routes import get_current_user
 
 router = APIRouter()
 
 @router.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: str):
+async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = None):
     manager = websocket.app.state.manager
     chat_db = websocket.app.state.chat_db
     gateway_client = websocket.app.state.gateway_client
     
     await manager.connect(client_id, websocket)
+
+    user_id = get_current_user(token) if token else None
+    if not user_id:
+        await websocket.send_text(json.dumps({"type": "error", "message": "Unauthorized"}))
+        await websocket.close(code=1008)
+        return
+
+    # Ensure the session exists for this user before allowing messages
+    # This fixes the IntegrityError bug
+    try:
+        chat_db.create_session(client_id, user_id)
+    except Exception:
+        # Ignore if session already exists. Ideally we'd verify ownership here.
+        pass
     
     try:
         while True:

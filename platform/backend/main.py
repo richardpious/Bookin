@@ -10,7 +10,7 @@ from models.connection_manager import ConnectionManager
 from models.gateway_client import OpenClawGatewayClient
 from models.search_engine import SearchEngine
 from models.file_watcher import FileChangeHandler
-from routes import chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, log_routes, debug_routes
+from routes import auth_routes, chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, log_routes, debug_routes
 
 app = FastAPI()
 
@@ -80,6 +80,7 @@ async def shutdown_event():
         app.state.observer.stop()
         app.state.observer.join()
 
+app.include_router(auth_routes.router)
 app.include_router(chat_routes.router)
 app.include_router(file_routes.router)
 app.include_router(session_routes.router)
