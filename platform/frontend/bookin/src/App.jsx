@@ -143,8 +143,8 @@ function App() {
       if (data && data.length > 0) {
         // If the current sessionId doesn't belong to this user's sessions,
         // automatically select their most recent session.
-        if (!data.includes(sessionId)) {
-          setSessionId(data[0]);
+        if (!data.some(s => s.id === sessionId)) {
+          setSessionId(data[0].id);
         }
       } else {
         // If the user has no sessions, generate a fresh session ID
