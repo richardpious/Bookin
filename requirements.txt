@@ -6,6 +6,8 @@ uvicorn
 pydantic
 watchdog
 websockets
+PyJWT
+bcrypt
 
 # System dependencies (install via OS package manager, not pip)
 # ripgrep  ->  sudo apt-get install ripgrep  (Ubuntu/Debian)
