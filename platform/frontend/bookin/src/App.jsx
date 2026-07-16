@@ -143,8 +143,8 @@ function App() {
       if (data && data.length > 0) {
         // If the current sessionId doesn't belong to this user's sessions,
         // automatically select their most recent session.
-        if (!data.some(s => s.id === sessionId)) {
-          setSessionId(data[0].id);
+        if (!data.includes(sessionId)) {
+          setSessionId(data[0]);
         }
       } else {
         // If the user has no sessions, generate a fresh session ID
@@ -189,7 +189,7 @@ function App() {
           setMessages([{ id: 1, sender: 'bot', text: 'Session reset successfully. How can I help you?' }]);
         } else {
           // If we deleted the current session, switch to a default or clear messages
-          const nextSession = newSessions.length > 0 ? newSessions[0] : 'default';
+          const nextSession = newSessions.length > 0 ? newSessions[0] : uuidv4();
           setSessionId(nextSession);
           // If we have sessions, load the first one, otherwise show default message
           if (newSessions.length > 0) {
