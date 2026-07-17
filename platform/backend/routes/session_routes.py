@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from .auth_routes import get_current_user
+from .auth_routes import get_current_user, get_current_username, build_session_key
 
 router = APIRouter()
 security = HTTPBearer()
@@ -30,10 +30,19 @@ async def delete_session(request: Request, session_id: str, user_id: int = Depen
     if not any(s["id"] == session_id for s in sessions):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your session")
 
+    # Extract username from token for compound key and session key
+    auth_header = request.headers.get("authorization", "")
+    username = None
+    if auth_header.startswith("Bearer "):
+        username = get_current_username(auth_header.split(" ", 1)[1])
+
+    # Compound key used by connection manager: "username:session_id"
+    compound_key = f"{username}:{session_id}" if username else session_id
+
     try:
-        if session_id in manager.active_connections:
-            # Multi-tab support: active_connections[session_id] is a list of WebSockets
-            for ws in manager.active_connections[session_id]:
+        if compound_key in manager.active_connections:
+            # Multi-tab support: active_connections[compound_key] is a list of WebSockets
+            for ws in manager.active_connections[compound_key]:
                 try:
                     await ws.send_json({"type": "command", "action": "reset"})
                 except Exception:
@@ -41,8 +50,7 @@ async def delete_session(request: Request, session_id: str, user_id: int = Depen
 
         # Send reset command to openclaw
         try:
-            # sessionId is just the UUID
-            await gateway_client.send_agent_message("/reset", session_id)
+            await gateway_client.send_agent_message("/reset", session_id, username)
         except Exception as e:
             print(f"Warning: Failed to reset openclaw agent session {session_id}: {e}")
 
@@ -50,4 +58,3 @@ async def delete_session(request: Request, session_id: str, user_id: int = Depen
         return {"status": "success"}
     except Exception as e:
         return {"error": str(e)}
-

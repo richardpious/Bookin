@@ -23,6 +23,18 @@ def get_current_user(token: str):
     except jwt.PyJWTError:
         return None
 
+def get_current_username(token: str):
+    """Extract username from JWT token."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("username")
+    except jwt.PyJWTError:
+        return None
+
+def build_session_key(username: str, session_id: str) -> str:
+    """Build the OpenClaw session key for a given user and session."""
+    return f"agent:main:{username}:{session_id}"
+
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

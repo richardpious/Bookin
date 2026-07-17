@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends, Header as FastAPIHeader
+from typing import Optional
 import uuid
 import json
 import asyncio
+from .auth_routes import get_current_username, build_session_key
 
 router = APIRouter()
 
@@ -9,15 +11,20 @@ router = APIRouter()
 available_models = []
 
 @router.get("/init-session")
-async def init_session(session_id: str, request: Request):
+async def init_session(session_id: str, request: Request, authorization: Optional[str] = FastAPIHeader(None)):
+    # Extract username from token for per-user session isolation
+    username = None
+    if authorization and authorization.startswith("Bearer "):
+        username = get_current_username(authorization.split(" ", 1)[1])
+
     # 1. Fetch available models
     models_response = await get_models(request)
 
     # 2. Fetch session model
-    session_model_response = await get_session_model(session_id, request)
+    session_model_response = await get_session_model(session_id, request, username)
 
     # 3. Get session details for thinking level
-    session_data = await get_session_data(session_id, request)
+    session_data = await get_session_data(session_id, request, username)
 
     return {
         "models": models_response.get("models", []),
@@ -82,11 +89,18 @@ async def get_models(request: Request):
     return {"models": []}
 
 @router.post("/set-model")
-async def set_model(request: Request):
+async def set_model(request: Request, authorization: Optional[str] = FastAPIHeader(None)):
     data = await request.json()
     session_id = data.get("sessionId")
     model = data.get("model")
     gateway_client = request.app.state.gateway_client
+
+    # Extract username from token
+    username = None
+    if authorization and authorization.startswith("Bearer "):
+        username = get_current_username(authorization.split(" ", 1)[1])
+
+    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({
@@ -94,7 +108,7 @@ async def set_model(request: Request):
         "id": request_id,
         "method": "sessions.patch",
         "params": {
-            "key": f"agent:main:webchat:{session_id}",
+            "key": session_key,
             "model": model
         }
     }))
@@ -149,8 +163,10 @@ async def set_thinking_level(request: Request):
     return {"ok": False, "error": {"message": "Timed out waiting for thinking level update"}}
 
 @router.get("/get-session-model")
-async def get_session_model(session_id: str, request: Request):
+async def get_session_model(session_id: str, request: Request, username: str = None):
     gateway_client = request.app.state.gateway_client
+
+    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({
@@ -158,7 +174,7 @@ async def get_session_model(session_id: str, request: Request):
         "id": request_id,
         "method": "sessions.describe",
         "params": {
-            "key": f"agent:main:webchat:{session_id}"
+            "key": session_key
         }
     }))
 
@@ -183,8 +199,10 @@ async def get_session_model(session_id: str, request: Request):
 
     return {"model": None}
 
-async def get_session_data(session_id: str, request: Request):
+async def get_session_data(session_id: str, request: Request, username: str = None):
     gateway_client = request.app.state.gateway_client
+
+    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({
@@ -192,7 +210,7 @@ async def get_session_data(session_id: str, request: Request):
         "id": request_id,
         "method": "sessions.describe",
         "params": {
-            "key": f"agent:main:webchat:{session_id}"
+            "key": session_key
         }
     }))
 

@@ -16,7 +16,7 @@ async def file_preview(body: FilePreviewRequest, request: Request):
     session_key = body.session_key
 
     for client_id, ws in manager.active_connections.items():
-        if not session_key or f"agent:main:webchat:{client_id}" in session_key:
+        if not session_key or f"agent:main:{client_id}" in session_key:
             await manager.send_personal_message({
                 "type": "file-preview",
                 "data": body.filepath

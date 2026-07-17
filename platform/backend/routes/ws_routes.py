@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 import json
 import uuid
-from .auth_routes import get_current_user
+from .auth_routes import get_current_user, get_current_username, build_session_key
 
 router = APIRouter()
 
@@ -11,13 +11,19 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
     chat_db = websocket.app.state.chat_db
     gateway_client = websocket.app.state.gateway_client
     
-    await manager.connect(client_id, websocket)
-
     user_id = get_current_user(token) if token else None
-    if not user_id:
+    username = get_current_username(token) if token else None
+    if not user_id or not username:
+        await websocket.accept()
         await websocket.send_text(json.dumps({"type": "error", "message": "Unauthorized"}))
         await websocket.close(code=1008)
         return
+
+    # Compound key for connection manager: "{username}:{session_id}"
+    # This ensures two users with the same session name get separate routing
+    compound_key = f"{username}:{client_id}"
+    
+    await manager.connect(compound_key, websocket)
 
     # Ensure the session exists for this user before allowing messages
     # This fixes the IntegrityError bug
@@ -47,8 +53,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                 if not is_silent:
                     chat_db.add_message(client_id, "user", message)
                     
-                    # Notify other tabs
-                    for ws in manager.active_connections.get(client_id, []):
+                    # Notify other tabs (using compound_key for correct routing)
+                    for ws in manager.active_connections.get(compound_key, []):
                         if ws != websocket:
                             try:
                                 await ws.send_text(json.dumps({
@@ -64,8 +70,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                     "id": str(uuid.uuid4()),
                     "method": "chat.send",
                     "params": {
-                        "sessionKey": f"agent:main:webchat:{client_id}",
-                        "sessionId": client_id, # You might want to persist or reuse this
+                        "sessionKey": build_session_key(username, client_id),
+                        "sessionId": client_id,
                         "message": message,
                         "deliver": False,
                         "idempotencyKey": str(uuid.uuid4())
@@ -75,9 +81,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
             except Exception as e:
                 error_msg = str(e)
                 chat_db.add_message(client_id, "agent", f"Error: {error_msg}")
-                await manager.send_personal_message({"type": "error", "message": error_msg}, client_id)
+                await manager.send_personal_message({"type": "error", "message": error_msg}, compound_key)
     except WebSocketDisconnect:
-        manager.disconnect(client_id, websocket)
+        manager.disconnect(compound_key, websocket)
     except Exception as e:
-        manager.disconnect(client_id, websocket)
-
+        manager.disconnect(compound_key, websocket)

@@ -122,7 +122,7 @@ function App() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          key: `agent:main:webchat:${sessionId}`,
+          key: `agent:main:${username}:${sessionId}`,
           agentId: "main",
           thinkingLevel: level
         })

@@ -55,17 +55,23 @@ class OpenClawGatewayClient:
             logger.error(f"Failed to connect to gateway: {e}")
             raise
 
-    async def send_agent_message(self, message: str, session_id: str):
+    async def send_agent_message(self, message: str, session_id: str, username: str = None):
         """Sends a message or command to the OpenClaw Gateway."""
         if not self.websocket:
             raise Exception("Gateway WebSocket is not connected.")
+        
+        # Build session key with username for per-user isolation
+        if username:
+            session_key = f"agent:main:{username}:{session_id}"
+        else:
+            session_key = f"agent:main:webchat:{session_id}"
         
         payload = {
             "type": "req",
             "id": str(uuid.uuid4()),
             "method": "chat.send",
             "params": {
-                "sessionKey": f"agent:main:webchat:{session_id}",
+                "sessionKey": session_key,
                 "sessionId": session_id,
                 "message": message,
                 "deliver": False,
@@ -100,7 +106,7 @@ class OpenClawGatewayClient:
                         
                         forward_packet = {"type": "gateway_log", "payload": data}
                         for client_id in manager.active_connections:
-                            if not session_key or f"agent:main:webchat:{client_id}" in session_key:
+                            if not session_key or f"agent:main:{client_id}" in session_key:
                                 await manager.send_personal_message(forward_packet, client_id)
 
                         # Handle chat events to stream text to the UI
@@ -120,7 +126,10 @@ class OpenClawGatewayClient:
                             state = chat_payload.get("state")
 
                             for client_id, ws in manager.active_connections.items():
-                                if f"agent:main:webchat:{client_id}" in session_key:
+                                if f"agent:main:{client_id}" in session_key:
+                                    # Extract plain session_id from compound key "username:session_id"
+                                    db_session_id = client_id.split(":", 1)[1] if ":" in client_id else client_id
+                                    
                                     if state == "delta" and (text or reasoning):
                                         payload = {"type": "chunk", "message": text}
                                         if reasoning:
@@ -135,7 +144,7 @@ class OpenClawGatewayClient:
                                                 full_text = content[0].get("text", "") if content[0].get("type") == "text" else ""
                                         if full_text:
                                             chat_db = manager.app.state.chat_db
-                                            chat_db.add_message(client_id, "agent", full_text)
+                                            chat_db.add_message(db_session_id, "agent", full_text)
                                         await manager.send_personal_message({"type": "done"}, client_id)
 
                                     elif state == "error":
@@ -148,7 +157,7 @@ class OpenClawGatewayClient:
                                         logger.warning(f"Agent run error for session {client_id}: {error_message}")
                                         # Persist the error to chat history with a clear prefix
                                         chat_db = manager.app.state.chat_db
-                                        chat_db.add_message(client_id, "agent", f"[Error] {error_message}")
+                                        chat_db.add_message(db_session_id, "agent", f"[Error] {error_message}")
                                         # Forward the raw error to the frontend for classification/display
                                         await manager.send_personal_message(
                                             {"type": "error", "message": error_message},
