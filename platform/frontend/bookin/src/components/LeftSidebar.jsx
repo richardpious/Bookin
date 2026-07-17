@@ -3,7 +3,7 @@ import { BookOpen, Activity } from 'lucide-react'
 import { SessionsList } from './SessionsList'
 import { ProjectFilesList } from './ProjectFilesList'
 
-export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus }) => {
+export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username }) => {
   const sidebarRef = useRef(null)
 
   return (
@@ -32,7 +32,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
           <div>Docs</div>
         </div>
         <div
-          onClick={() => onFileClick('logs-viewer:' + currentSession)}
+          onClick={() => onFileClick('logs-viewer:' + username + '/' + currentSession)}
           className="sidebar-docs-link"
           style={{ flex: 1, borderTop: 'none' }}
         >

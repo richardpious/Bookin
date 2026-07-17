@@ -251,6 +251,7 @@ function App() {
             currentSession={sessionId}
             onSelectSession={setSessionId}
             onResetSession={handleDeleteSession}
+            username={username}
         />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         
