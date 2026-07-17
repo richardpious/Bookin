@@ -4,7 +4,7 @@ This document defines how I handle, parse, and analyze simulation log files gene
 
 **Workflow for Log Processing:**
 1)  **Locate Log Files**:
-    *   Simulations generate logs in a run-specific sub-folder within the session's log directory (e.g., `../logs/session_name]/run_[n]/`).
+    *   Simulations generate logs in a run-specific sub-folder within the session's log directory (e.g., `../logs/[username]/[session_name]/run_[n]/`).
 2)  **Parsing Strategy**:
     *   I navigate to the session directory to locate the latest run-specific sub-folder and extract the generated log file.
     *   I scan for headers like `====== Overall Traffic Statistics ======`.

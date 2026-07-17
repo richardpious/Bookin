@@ -63,8 +63,10 @@ class OpenClawGatewayClient:
         # Build session key with username for per-user isolation
         if username:
             session_key = f"agent:main:{username}:{session_id}"
+            openclaw_session_id = f"{username}:{session_id}"
         else:
             session_key = f"agent:main:webchat:{session_id}"
+            openclaw_session_id = session_id
         
         payload = {
             "type": "req",
@@ -72,7 +74,7 @@ class OpenClawGatewayClient:
             "method": "chat.send",
             "params": {
                 "sessionKey": session_key,
-                "sessionId": session_id,
+                "sessionId": openclaw_session_id,
                 "message": message,
                 "deliver": False,
                 "idempotencyKey": str(uuid.uuid4())

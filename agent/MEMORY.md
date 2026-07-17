@@ -4,13 +4,13 @@
 - **Execution (Mon 2026-06-01, Fri 2026-06-26):**
   - Do not run `make clean` or `make` repeatedly; just run the `booksim` command.
   - Do not run the simulation from any directory other than the one created specifically for the run. Doing so will clutter the filespace.
-  - Before executing the command, change the working directory to the designated log path (`../logs/<session>/<run>`) to ensure artifacts are saved correctly.
+  - Before executing the command, change the working directory to the designated log path (`../logs/<username>/<session>/<run>`) to ensure artifacts are saved correctly.
 - **Post-simulation (Mon 2026-06-01, Mon 2026-06-22, Fri 2026-06-26):**
   - Always provide the simulation results in the response.
   - When presenting results, provide an informative, guided interpretation of the data. Keep explanations accessible and focused on the user's goals, avoiding deep-dive technical analysis unless requested or necessary.
 
 ## Artifacts & File Handling
-- **Log Organization (Mon 2026-06-08, Mon 2026-06-22, Tue 2026-07-07):** All simulation logs and artifacts must be stored strictly according to the structure: `../logs/<session>/<run>`. The session name is the **last segment** of the session key (after the final colon). For example, if the session key is `agent:main:webchat:topologies`, the session folder name is `topologies`. **Never** use the full session key as a folder name. You must also have a copy of the config file used to run the simulation in the folder where the run outputs are stored.
+- **Log Organization (Mon 2026-06-08, Mon 2026-06-22, Tue 2026-07-07):** All simulation logs and artifacts must be stored strictly according to the structure: `../logs/<username>/<session>/<run>`. The username and session name are the **second-to-last** and **last** segments of the session key, respectively. For example, if the session key is `agent:main:richard:topologies`, the log folder path is `richard/topologies`. **Never** use the full session key as a folder name. You must also have a copy of the config file used to run the simulation in the folder where the run outputs are stored.
 - **File Previews (Wed 2026-06-10, Fri 2026-06-26):**
   - Extract the session suffix (after "agent:main:webchat:") from the session ID and pass it as the `--session_name` argument.
   - The `file_path` parameter must be relative to the Booksim root directory (e.g., `Bookin/configs/torus4x4.cfg`).

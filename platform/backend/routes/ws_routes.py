@@ -71,7 +71,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                     "method": "chat.send",
                     "params": {
                         "sessionKey": build_session_key(username, client_id),
-                        "sessionId": client_id,
+                        "sessionId": compound_key,
                         "message": message,
                         "deliver": False,
                         "idempotencyKey": str(uuid.uuid4())
