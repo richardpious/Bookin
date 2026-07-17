@@ -10,6 +10,7 @@ This document is the single source of truth for performing preparation, build, e
     *   Before execution, use the file-open tool, unless approval has already been given by the user to proceed with the simulation.
     *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed.
 5.  **Execution & Logging**:
+    *   Determine the session folder name: extract the **last segment** of the session key (after the final colon). For example, `agent:main:webchat:topologies` → `topologies`. **Never** use the full session key as a folder name.
     *   Create `../logs/<session>/` for new sessions.
     *   Create incremental run sub-folders for each simulation.
     *   Execute binary from the run folder using `./booksim <config>.cfg > simulation_output.log 2>&1`; capture all output into the specified file.

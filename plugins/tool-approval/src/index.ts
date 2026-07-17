@@ -9,10 +9,35 @@ export default definePluginEntry({
       "before_tool_call",
       async (event) => {
           console.log(`[Tool Approval] DEBUG: toolName=${event.toolName}, params=${JSON.stringify(event.params)}`);
-        
+
+        // --- Log path guardrail ---
+        // Normalize any relative or malformed log directory paths in exec commands
+        // to the correct absolute path before execution.
+        if (event.toolName === "exec" && event.params.command) {
+          const projectRoot = process.env.OPENCLAW_HOME || "/home/dell/Documents/Bookin";
+          const LOGS_DIR = `${projectRoot}/logs`;
+          const CONFIGS_DIR = `${projectRoot}/configs`;
+          const BOOKSIM_DIR = `${projectRoot}/booksim`;
+          let command = String(event.params.command);
+          let modified = false;
+
+          // Fix relative ../logs, ../configs, ../booksim references
+          command = command.replace(/\.\.\/logs\b/g, () => { modified = true; return LOGS_DIR; });
+          command = command.replace(/\.\.\/configs\b/g, () => { modified = true; return CONFIGS_DIR; });
+          command = command.replace(/\.\.\/booksim\b/g, () => { modified = true; return BOOKSIM_DIR; });
+
+          // Fix accidentally created "Bookin.logs" paths
+          command = command.replace(/Bookin\.logs/g, () => { modified = true; return LOGS_DIR; });
+
+          if (modified) {
+            console.log(`[Tool Approval] Rewrote path: ${event.params.command} → ${command}`);
+            return { params: { ...event.params, command } };
+          }
+        }
+
+        // --- Destructive command approval ---
         let requiresApproval = false;
 
-        // 2. Specific logic for 'exec': only true if it contains destructive commands
         if (event.toolName === "exec" && event.params.command) {
           const command = String(event.params.command);
           // Match 'rm', 'rmdir', 'unlink', 'shred'
