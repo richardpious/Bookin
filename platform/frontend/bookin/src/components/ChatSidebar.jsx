@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-
+import ToolAccordion from './ToolAccordion';
 export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnecting, onSend, messagesEndRef, sessionId }) => {
   const hasSession = sessionId !== null && sessionId !== undefined;
 
@@ -33,8 +33,23 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
       <>
         <div className="messages" style={{ flex: 1, overflowY: 'auto' }}>
           <AnimatePresence initial={false}>
-            {messages.map(msg => (
-              <ChatMessage key={msg.id} sender={msg.sender === 'agent' ? 'bot' : msg.sender} text={msg.text} isError={msg.isError} />
+            {messages.reduce((acc, msg) => {
+              if (msg.isStatus) {
+                if (acc.length > 0 && acc[acc.length - 1].isToolGroup) {
+                  acc[acc.length - 1].tools.push(msg);
+                } else {
+                  acc.push({ id: `group-${msg.id}`, isToolGroup: true, tools: [msg] });
+                }
+              } else {
+                acc.push(msg);
+              }
+              return acc;
+            }, []).map(msg => (
+              msg.isToolGroup ? (
+                <ToolAccordion key={msg.id} tools={msg.tools} />
+              ) : (
+                <ChatMessage key={msg.id} sender={msg.sender === 'agent' ? 'bot' : msg.sender} text={msg.text} isError={msg.isError} />
+              )
             ))}
             {isLoading && (
               <motion.div

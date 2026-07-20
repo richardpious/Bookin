@@ -17,6 +17,42 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
       console.group("OpenClaw Gateway Event");
       console.table(data.payload);
 
+      if (data.payload?.type === 'event' && data.payload?.event === 'agent') {
+        const agentEventData = data.payload.payload;
+        if (agentEventData?.stream === 'item') {
+           const { title, name, phase, kind, meta } = agentEventData.data || {};
+           
+           console.log("TOOL ITEM EVENT:", { title, name, phase, kind, meta });
+
+           if (kind === 'tool') {
+             setMessages(prev => {
+               const existingIndex = prev.findIndex(m => m.toolCallId === agentEventData.data.toolCallId);
+               
+               if (existingIndex >= 0) {
+                 const newMessages = [...prev];
+                 newMessages[existingIndex] = {
+                   ...newMessages[existingIndex],
+                   toolName: title || name,
+                   toolParams: meta || newMessages[existingIndex].toolParams
+                 };
+                 return newMessages;
+               } else {
+                 return [...prev, {
+                   id: Date.now() + Math.random(),
+                   toolCallId: agentEventData.data.toolCallId,
+                   sender: 'agent',
+                   isStatus: true,
+                   isComplete: true,
+                   toolName: title || name,
+                   toolParams: meta || {},
+                   text: `Using tool: ${title || name}`
+                 }];
+               }
+             });
+           }
+        }
+      }
+
       if (data.payload?.type === 'event' && data.payload?.event === 'plugin.approval.requested') {
         const approvalData = data.payload.payload;
         onRequireApproval({

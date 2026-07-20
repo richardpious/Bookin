@@ -103,9 +103,28 @@ class OpenClawGatewayClient:
                 if manager:
                     # Forward all events as gateway logs to the frontend
                     if data.get("type") == "event":
+                        event_name = data.get("event", "")
                         event_payload = data.get("payload", {})
                         session_key = event_payload.get("sessionKey", "") if isinstance(event_payload, dict) else ""
                         
+                        # Persist tool execution events to DB for long-term history
+                        if event_name == "agent":
+                            evt_data = event_payload.get("data", {})
+                            stream = event_payload.get("stream", "")
+                            
+                            if stream == "item" and evt_data.get("kind") == "tool" and evt_data.get("phase") == "start":
+                                if session_key and ":" in session_key:
+                                    parts = session_key.split(":")
+                                    if len(parts) >= 4:
+                                        db_session_id = parts[-1]
+                                        tool_json = json.dumps({
+                                            "toolCallId": evt_data.get("toolCallId"),
+                                            "title": evt_data.get("title", ""),
+                                            "name": evt_data.get("name", ""),
+                                            "meta": evt_data.get("meta", {})
+                                        })
+                                        manager.app.state.chat_db.add_message(db_session_id, "tool", tool_json)
+
                         forward_packet = {"type": "gateway_log", "payload": data}
                         for client_id in manager.active_connections:
                             if not session_key or f"agent:main:{client_id}" in session_key:

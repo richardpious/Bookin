@@ -8,7 +8,7 @@ export default definePluginEntry({
     api.on(
       "before_tool_call",
       async (event) => {
-          console.log(`[Tool Approval] DEBUG: toolName=${event.toolName}, params=${JSON.stringify(event.params)}`);
+        console.log(`[Tool Approval] DEBUG: toolName=${event.toolName}, params=${JSON.stringify(event.params)}`);
 
         // --- Path guardrail ---
         // Normalize any relative or malformed directory paths in exec commands
@@ -60,7 +60,7 @@ export default definePluginEntry({
 
         // Return undefined (nothing) if no approval is required
         if (!requiresApproval) {
-          return undefined; 
+          return undefined;
         }
 
         // Otherwise, return the approval request object
@@ -78,4 +78,3 @@ export default definePluginEntry({
     );
   },
 });
-
