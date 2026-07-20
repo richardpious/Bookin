@@ -10,24 +10,10 @@ import SearchResultsPanel from './components/SearchResultsPanel'
 import { useResizer } from './hooks/useResizer'
 import { useFileManagement } from './hooks/useFileManagement'
 import { useChatManagement } from './hooks/useChatManagement'
+import { useSessionManagement } from './hooks/useSessionManagement'
+import { useAgentSettings } from './hooks/useAgentSettings'
 import './App.css'
 import './index.css'
-
-async function fetchSessions(token) {
-  try {
-    const response = await fetch('/sessions', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to fetch sessions');
-    const data = await response.json();
-    return data.sessions || [];
-  } catch (error) {
-    console.error('Error fetching sessions:', error);
-    return [];
-  }
-}
 
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem('authToken'));
@@ -47,18 +33,8 @@ function App() {
     setUsername(null);
   };
 
-  const [sessionId, setSessionId] = useState(() => {
-    return localStorage.getItem('activeSessionId') || null;
-  });
-  
-  useEffect(() => {
-    if (sessionId) {
-      localStorage.setItem('activeSessionId', sessionId);
-    } else {
-      localStorage.removeItem('activeSessionId');
-    }
-  }, [sessionId]);
-  const [sessions, setSessions] = useState([])
+  const { sessions, setSessions, sessionId, setSessionId, deleteSession } = useSessionManagement(token);
+
   const [approvalRequest, setApprovalRequest] = useState(null)
   const [searchResults, setSearchResults] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -86,122 +62,14 @@ function App() {
     token
   );
 
-  const handleModelChange = useCallback(async (modelId) => {
-    console.log("Model changed to:", modelId);
-
-    try {
-      const response = await fetch('/set-model', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          sessionId,
-          model: modelId
-        })
-      });
-      const data = await response.json();
-      console.log("Model switch response:", data);
-      return data;
-    } catch (err) {
-      console.error("Error setting model:", err);
-      throw err;
-    }
-  }, [sessionId]);
-
-  const handleThinkingLevelChange = useCallback(async (level) => {
-    console.log("Thinking level changed to:", level);
-    try {
-      // Assuming a backend route exists for this as well,
-      // based on the provided message format requirements
-      const response = await fetch('/set-thinking-level', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          key: `agent:main:${username}:${sessionId}`,
-          agentId: "main",
-          thinkingLevel: level
-        })
-      });
-      const data = await response.json();
-      console.log("Thinking level switch response:", data);
-      return data;
-    } catch (err) {
-      console.error("Error setting thinking level:", err);
-      throw err;
-    }
-  }, [sessionId]);
-
-  // Load initial sessions
-  useEffect(() => {
-    if (!token) return;
-    const loadSessions = async () => {
-      const data = await fetchSessions(token)
-      setSessions(data)
-      
-      if (data && data.length > 0) {
-        // If the current sessionId doesn't belong to this user's sessions,
-        // automatically select their most recent session.
-        if (!data.includes(sessionId)) {
-          setSessionId(data[0]);
-        }
-      } else {
-        // No sessions — clear sessionId so the UI shows the empty state
-        // and prompts the user to create their first session.
-        setSessionId(null);
-      }
-    }
-    loadSessions()
-  }, [token])
+  const { handleModelChange, handleThinkingLevelChange } = useAgentSettings(token, username, sessionId);
 
   const handleDeleteSession = useCallback(async (session, shouldReopen = false) => {
-    try {
-      const response = await fetch(`/delete_session/${session}`, { 
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      let responseData = {};
-      try {
-        responseData = await response.json();
-      } catch (e) {
-        // ignore JSON parse error
-      }
+    await deleteSession(session, shouldReopen, () => {
+      setMessages([{ id: 1, sender: 'bot', text: 'Session reset successfully. How can I help you?' }]);
+    });
+  }, [deleteSession, setMessages]);
 
-      if (!response.ok || responseData.error) {
-        throw new Error(responseData.error || responseData.message || 'Failed to delete session');
-      }
-
-      const newSessions = await fetchSessions(token);
-      console.log("Updated sessions:", newSessions);
-
-      // Ensure the reset session is kept in the list
-      if (shouldReopen && !newSessions.includes(session)) {
-          setSessions([session, ...newSessions]);
-      } else {
-          setSessions(newSessions);
-      }
-
-      if (sessionId === session) {
-        if (shouldReopen) {
-         
-          // Also set it in the UI so the user sees the message
-          setMessages([{ id: 1, sender: 'bot', text: 'Session reset successfully. How can I help you?' }]);
-        } else {
-          // If we deleted the current session, switch to the next available one
-          // or null (which triggers the empty state UI)
-          const nextSession = newSessions.length > 0 ? newSessions[0] : null;
-          setSessionId(nextSession);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      alert(`Error deleting session: ${err.message}`);
-    }
-  }, [sessionId, setMessages, setSessionId]);
   const handleSearch = useCallback((results, query) => {
     setSearchResults(results);
     setSearchQuery(query);
@@ -241,7 +109,7 @@ function App() {
           onClose={() => setSearchResults(null)}
         />
       )}
-      <div className="main-layout" style={{ zIndex: 'auto', position: 'relative', overflow: 'hidden' }}>
+      <div className="main-layout">
         <LeftSidebar
             width={leftWidth}
             onFileClick={handleFileClick}
@@ -255,7 +123,7 @@ function App() {
         />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         
-        <div style={{ flex: 1, position: 'relative', zIndex: 0, overflow: 'hidden' }}>
+        <div className="main-content-window-wrapper">
         <MainContentWindow
           openFiles={openFiles}
           activeFile={activeFile}

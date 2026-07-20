@@ -25,6 +25,11 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
             <div
               key={path}
               onClick={() => onTabClick(path)}
+              onAuxClick={(e) => {
+                if (e.button === 1) {
+                  onCloseTab(e, path);
+                }
+              }}
               style={{
                 padding: '8px 12px',
                 cursor: 'pointer',

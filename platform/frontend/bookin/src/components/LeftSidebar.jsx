@@ -7,8 +7,8 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
   const sidebarRef = useRef(null)
 
   return (
-    <aside ref={sidebarRef} className="sidebar files-sidebar" style={{ width, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div className="sidebar-content" style={{ flex: 1, overflowY: 'auto' }}>
+    <aside ref={sidebarRef} className="sidebar files-sidebar" style={{ width }}>
+      <div className="sidebar-content">
         <SessionsList
           sessions={sessions}
           setSessions={setSessions}

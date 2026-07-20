@@ -8,8 +8,8 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
   const hasSession = sessionId !== null && sessionId !== undefined;
 
   return (
-  <aside className="sidebar agent-chat-sidebar" style={{ width, padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-    <div className="sidebar-header" style={{ padding: '1.5rem', flexShrink: 0 }}><h2>Agent Chat</h2></div>
+  <aside className="sidebar agent-chat-sidebar" style={{ width }}>
+    <div className="sidebar-header"><h2>Agent Chat</h2></div>
 
     {!hasSession ? (
       <div style={{
@@ -31,7 +31,7 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
       </div>
     ) : (
       <>
-        <div className="messages" style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="messages">
           <AnimatePresence initial={false}>
             {messages.reduce((acc, msg) => {
               if (msg.isStatus) {
