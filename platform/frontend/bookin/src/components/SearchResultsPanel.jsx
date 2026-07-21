@@ -120,10 +120,10 @@ const SearchResultsPanel = ({ results, query, onOpenFile, onClose }) => {
                   top: 0,
                   zIndex: 1,
                 }}>
-                  <FileText size={13} style={{ color: '#7c7c9e', flexShrink: 0 }} />
+                  <FileText size={13} style={{ color: '#808080', flexShrink: 0 }} />
                   <span style={{
                     fontSize: '12px',
-                    color: '#9898c0',
+                    color: '#a0a0a0',
                     fontFamily: 'ui-monospace, Consolas, monospace',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -165,7 +165,7 @@ const SearchResultsPanel = ({ results, query, onOpenFile, onClose }) => {
                     {/* Line number */}
                     <span style={{
                       minWidth: '36px',
-                      color: '#4b5563',
+                      color: '#757575',
                       textAlign: 'right',
                       userSelect: 'none',
                       flexShrink: 0,
