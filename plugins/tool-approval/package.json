@@ -4,7 +4,7 @@
   "description": "Requires user approval before sensitive tool execution",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "esbuild src/index.ts --bundle --outfile=dist/index.js --platform=node --format=esm --external:openclaw/plugin-sdk/tool-plugin --external:openclaw/plugin-sdk/hooks"
   },
   "type": "module",
   "openclaw": {
@@ -12,11 +12,5 @@
       "./dist/index.js"
     ],
     "hooks": true
-  },
-  "devDependencies": {
-    "openclaw": ">=2026.5.17"
-  },
-  "dependencies": {
-    "typescript": "^6.0.3"
   }
 }

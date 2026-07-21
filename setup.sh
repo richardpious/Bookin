@@ -126,12 +126,10 @@ cd "$PROJECT_ROOT"
 
 echo "=== 6. Building Plugins ==="
 cd "$PROJECT_ROOT/plugins/tool-approval"
-npm install
-npx tsc
+npm run build
 
 cd "$PROJECT_ROOT/plugins/file-preview"
-npm install
-npx tsc
+npm run build
 
 cd "$PROJECT_ROOT"
 
