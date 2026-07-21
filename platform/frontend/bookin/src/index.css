@@ -1141,10 +1141,12 @@ code {
 
 /* ── Tool Accordion ─────────────────────────────── */
 .tool-accordion {
-  margin: 12px 8px;
+  margin: 12px auto;
+  width: calc(100% - 32px);
+  box-sizing: border-box;
   border-radius: 8px;
   border: 1px solid var(--border);
-  overflow: visible;
+  overflow: hidden;
   background-color: var(--code-bg);
   transition: border-color 0.3s;
   flex-shrink: 0;
@@ -1153,6 +1155,7 @@ code {
 
 .tool-accordion-btn {
   width: 100%;
+  box-sizing: border-box;
   padding: 10px 16px;
   display: flex;
   flex-direction: row;
