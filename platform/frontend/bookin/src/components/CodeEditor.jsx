@@ -119,7 +119,7 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
       )
     };
     return (
-      <div style={{ padding: '40px', height: '100%', overflowY: 'scroll', display: 'flex', flexDirection: 'column' }} className="markdown-body">
+      <div style={{ padding: '40px', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }} className="markdown-body">
         <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{displayContent}</ReactMarkdown>
       </div>
