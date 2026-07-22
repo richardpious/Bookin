@@ -56,3 +56,19 @@ export const updateFileContent = async (path, content) => {
   }
 };
 
+export const fetchRunStats = async (path) => {
+  try {
+    const response = await fetch(`/run-stats?path=${encodeURIComponent(path)}`);
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch run stats:", error);
+    return { stats: null, error: error.message };
+  }
+};
+
+

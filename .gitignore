@@ -16,6 +16,7 @@ package-lock.json
 .idea/
 
 # Logs and Build
+logs/*
 *.log
 *.tmp
 

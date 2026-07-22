@@ -216,3 +216,128 @@ async def get_config_parameters():
     except Exception as e:
         return {"error": str(e)}
 
+@router.get("/run-stats")
+async def get_run_stats(path: str):
+    root_dir = get_root_dir()
+    
+    # Normalize and resolve path safely
+    while path.startswith('../'):
+        path = path[3:]
+    if path.startswith('./'):
+        path = path[2:]
+        
+    target_path = os.path.normpath(os.path.join(root_dir, path))
+    if not target_path.startswith(root_dir):
+        return {"error": "Access denied"}
+        
+    if not os.path.isdir(target_path):
+        # If passed a file directly, get its parent directory
+        if os.path.isfile(target_path):
+            target_path = os.path.dirname(target_path)
+        else:
+            return {"error": "Directory not found"}
+            
+    try:
+        items = os.listdir(target_path)
+        log_files = [f for f in items if f.endswith('.log')]
+        
+        if not log_files:
+            return {"stats": None, "message": "No .log file found in run directory"}
+            
+        # Prefer simulation_output.log
+        selected_log = "simulation_output.log" if "simulation_output.log" in log_files else log_files[0]
+        log_path = os.path.join(target_path, selected_log)
+        
+        file_size = os.path.getsize(log_path)
+        header_text = ""
+        tail_text = ""
+        
+        with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+            # Read first 8KB for header configs
+            header_text = f.read(8192)
+            
+            # Seek tail for end statistics
+            if file_size > 131072:
+                f.seek(file_size - 131072)
+            else:
+                f.seek(0)
+            tail_text = f.read()
+            
+        full_text = header_text + "\n" + tail_text
+        stats = {}
+        
+        # Parse cycles
+        cycles_match = re.search(r'Time taken is (\d+) cycles', tail_text)
+        if cycles_match:
+            stats['cycles'] = int(cycles_match.group(1))
+            
+        # Parse latencies
+        pkt_lat = re.search(r'Packet latency average = ([\d\.]+)', tail_text)
+        if pkt_lat:
+            stats['packetLatencyAvg'] = float(pkt_lat.group(1))
+            
+        flit_lat = re.search(r'Flit latency average = ([\d\.]+)', tail_text)
+        if flit_lat:
+            stats['flitLatencyAvg'] = float(flit_lat.group(1))
+            
+        net_lat = re.search(r'Network latency average = ([\d\.]+)', tail_text)
+        if net_lat:
+            stats['networkLatencyAvg'] = float(net_lat.group(1))
+            
+        # Parse rates
+        inj_pkt_rate = re.search(r'Injected packet rate average = ([\d\.]+)', tail_text)
+        if inj_pkt_rate:
+            stats['injectedPacketRateAvg'] = float(inj_pkt_rate.group(1))
+
+        acc_pkt_rate = re.search(r'Accepted packet rate average = ([\d\.]+)', tail_text)
+        if acc_pkt_rate:
+            stats['acceptedPacketRateAvg'] = float(acc_pkt_rate.group(1))
+
+        inj_rate = re.search(r'Injected flit rate average = ([\d\.]+)', tail_text)
+        if inj_rate:
+            stats['injectedFlitRateAvg'] = float(inj_rate.group(1))
+
+        acc_rate = re.search(r'Accepted flit rate average = ([\d\.]+)', tail_text)
+        if acc_rate:
+            stats['acceptedFlitRateAvg'] = float(acc_rate.group(1))
+            
+        # Parse hops
+        hops = re.search(r'Hops average = ([\d\.]+)', tail_text)
+        if hops:
+            stats['hopsAvg'] = float(hops.group(1))
+            
+        # Parse stalls
+        buf_busy = re.search(r'Buffer busy stall rate = ([\d\.]+)', tail_text)
+        if buf_busy:
+            stats['bufferBusyStallRate'] = float(buf_busy.group(1))
+            
+        buf_conflict = re.search(r'Buffer conflict stall rate = ([\d\.]+)', tail_text)
+        if buf_conflict:
+            stats['bufferConflictStallRate'] = float(buf_conflict.group(1))
+            
+        xbar_conflict = re.search(r'Crossbar conflict stall rate = ([\d\.]+)', tail_text)
+        if xbar_conflict:
+            stats['crossbarConflictStallRate'] = float(xbar_conflict.group(1))
+            
+        # Parse run time
+        run_time = re.search(r'Total run time ([\d\.]+)', tail_text)
+        if run_time:
+            stats['totalRunTime'] = float(run_time.group(1))
+            
+        # Parse header config parameters if present
+        top_match = re.search(r'topology\s*=\s*([^;]+);', full_text)
+        if top_match:
+            stats['topology'] = top_match.group(1).strip()
+            
+        traffic_match = re.search(r'traffic\s*=\s*([^;]+);', full_text)
+        if traffic_match:
+            stats['traffic'] = traffic_match.group(1).strip()
+
+        return {
+            "stats": stats if stats else None,
+            "logFile": selected_log
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
