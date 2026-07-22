@@ -6,6 +6,16 @@ export const useFileManagement = () => {
   const [activeFile, setActiveFile] = useState(null);
   const [fileContents, setFileContents] = useState({});
   const [savedFileContents, setSavedFileContents] = useState({}); // Track original saved state
+  const [hasUnreadLogs, setHasUnreadLogs] = useState(false);
+
+  const activeFileRef = useRef(activeFile);
+  useEffect(() => {
+    activeFileRef.current = activeFile;
+  }, [activeFile]);
+
+  const clearUnreadLogs = useCallback(() => {
+    setHasUnreadLogs(false);
+  }, []);
 
   const handleFileClick = async (path, replace = false) => {
     let newOpenFiles = [...openFiles];
@@ -23,6 +33,7 @@ export const useFileManagement = () => {
 
     // Intercept logs-viewer virtual tabs
     if (path.startsWith('logs-viewer:')) {
+      setHasUnreadLogs(false);
       setActiveFile(path);
       return path;
     }
@@ -85,6 +96,14 @@ export const useFileManagement = () => {
 
   const handleSilentFileUpdate = useCallback(async (filePath) => {
     console.log("handleSilentFileUpdate called for file:", filePath);
+    
+    // Check if the file is in logs/ or is a .log file
+    if (filePath && (filePath.includes('/logs/') || filePath.includes('logs/') || filePath.endsWith('.log'))) {
+      if (!activeFileRef.current?.startsWith('logs-viewer:')) {
+        setHasUnreadLogs(true);
+      }
+    }
+
     try {
       const result = await readFileContent(filePath);
       const { content, resolvedPath } = result;
@@ -132,6 +151,8 @@ export const useFileManagement = () => {
     activeFile,
     fileContents,
     savedFileContents,
+    hasUnreadLogs,
+    clearUnreadLogs,
     handleFileClick,
     handleOpenFilePreview,
     handleSilentFileUpdate,

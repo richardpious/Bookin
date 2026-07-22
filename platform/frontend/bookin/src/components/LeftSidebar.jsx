@@ -3,7 +3,7 @@ import { BookOpen, Activity } from 'lucide-react'
 import { SessionsList } from './SessionsList'
 import { ProjectFilesList } from './ProjectFilesList'
 
-export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username }) => {
+export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username, hasUnreadLogs, onClearUnreadLogs }) => {
   const sidebarRef = useRef(null)
 
   return (
@@ -32,12 +32,17 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
           <div>Docs</div>
         </div>
         <div
-          onClick={() => onFileClick('logs-viewer:' + username + '/' + currentSession)}
-          className="sidebar-docs-link"
-          style={{ flex: 1, borderTop: 'none' }}
+          onClick={() => {
+            onFileClick('logs-viewer:' + username + '/' + currentSession);
+            if (onClearUnreadLogs) onClearUnreadLogs();
+          }}
+          className={`sidebar-docs-link ${hasUnreadLogs ? 'logs-button-highlight' : ''}`}
+          style={{ flex: 1, borderTop: 'none', position: 'relative' }}
+          title={hasUnreadLogs ? "New logs generated!" : "View Logs"}
         >
-          <Activity size={14} />
+          <Activity size={14} className={hasUnreadLogs ? 'pulse-icon' : ''} />
           <div>Logs</div>
+          {hasUnreadLogs && <span className="unread-log-badge" />}
         </div>
       </div>
     </aside>

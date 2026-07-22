@@ -67,10 +67,10 @@ async def startup_event():
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     app.state.observer = Observer()
     # Watch relevant directories
-    for d in ["booksim", "docs", "configs"]:
+    for d in ["booksim", "docs", "configs", "logs"]:
         path = os.path.join(root_dir, d)
-        if os.path.exists(path):
-            app.state.observer.schedule(FileChangeHandler(manager, loop), path=path, recursive=True)
+        os.makedirs(path, exist_ok=True)
+        app.state.observer.schedule(FileChangeHandler(manager, loop), path=path, recursive=True)
     app.state.observer.start()
 
 # Stop file watcher

@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Request, Body
 import os
 import re
+import shutil
 
 router = APIRouter()
+
 
 def get_root_dir():
     # Adjusted to point to the correct root dir:
@@ -339,5 +341,79 @@ async def get_run_stats(path: str):
         }
     except Exception as e:
         return {"error": str(e)}
+
+@router.post("/delete-item")
+async def delete_item(payload: dict = Body(...)):
+    path = payload.get("path")
+    if not path:
+        return {"error": "Missing path"}
+
+    root_dir = get_root_dir()
+    while path.startswith('../'):
+        path = path[3:]
+    if path.startswith('./'):
+        path = path[2:]
+
+    target_path = os.path.normpath(os.path.join(root_dir, path))
+    if not target_path.startswith(root_dir):
+        return {"error": "Access denied"}
+
+    # Prevent deleting root_dir or main allowed top-level directories directly
+    if target_path == root_dir or target_path in [os.path.join(root_dir, d) for d in ["booksim", "logs", "docs", "configs"]]:
+        return {"error": "Cannot delete root system directory"}
+
+    if not os.path.exists(target_path):
+        return {"error": "Item not found"}
+
+    try:
+        if os.path.isdir(target_path):
+            shutil.rmtree(target_path)
+        else:
+            os.remove(target_path)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.post("/rename-item")
+async def rename_item(payload: dict = Body(...)):
+    old_path = payload.get("oldPath")
+    new_name = payload.get("newName")
+    if not old_path or not new_name:
+        return {"error": "Missing oldPath or newName"}
+
+    # Sanitize new_name to prevent directory traversal
+    new_name = os.path.basename(new_name.strip())
+    if not new_name:
+        return {"error": "Invalid new name"}
+
+    root_dir = get_root_dir()
+    while old_path.startswith('../'):
+        old_path = old_path[3:]
+    if old_path.startswith('./'):
+        old_path = old_path[2:]
+
+    target_old_path = os.path.normpath(os.path.join(root_dir, old_path))
+    if not target_old_path.startswith(root_dir):
+        return {"error": "Access denied"}
+
+    if not os.path.exists(target_old_path):
+        return {"error": "Source item not found"}
+
+    parent_dir = os.path.dirname(target_old_path)
+    target_new_path = os.path.join(parent_dir, new_name)
+
+    if not target_new_path.startswith(root_dir):
+        return {"error": "Access denied"}
+
+    if os.path.exists(target_new_path):
+        return {"error": f"An item named '{new_name}' already exists"}
+
+    try:
+        os.rename(target_old_path, target_new_path)
+        rel_new_path = os.path.relpath(target_new_path, root_dir)
+        return {"success": True, "newPath": rel_new_path, "newName": new_name}
+    except Exception as e:
+        return {"error": str(e)}
+
 
 

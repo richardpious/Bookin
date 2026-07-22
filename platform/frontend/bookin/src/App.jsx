@@ -49,7 +49,7 @@ function App() {
   };
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
-  const { openFiles, activeFile, fileContents, savedFileContents, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
+  const { openFiles, activeFile, fileContents, savedFileContents, hasUnreadLogs, clearUnreadLogs, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
 
   const handleRequireApproval = useCallback((data) => {
     setApprovalRequest(data);
@@ -113,13 +113,15 @@ function App() {
         <LeftSidebar
             width={leftWidth}
             onFileClick={handleFileClick}
-          activeFile={activeFile}
+            activeFile={activeFile}
             sessions={sessions}
             setSessions={setSessions}
             currentSession={sessionId}
             onSelectSession={setSessionId}
             onResetSession={handleDeleteSession}
             username={username}
+            hasUnreadLogs={hasUnreadLogs}
+            onClearUnreadLogs={clearUnreadLogs}
         />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         

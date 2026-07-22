@@ -71,4 +71,47 @@ export const fetchRunStats = async (path) => {
   }
 };
 
+export const deleteItem = async (path) => {
+  try {
+    const response = await fetch('/delete-item', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ path })
+    });
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    return data.success;
+  } catch (error) {
+    console.error("Failed to delete item:", error);
+    throw error;
+  }
+};
+
+export const renameItem = async (oldPath, newName) => {
+  try {
+    const response = await fetch('/rename-item', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ oldPath, newName })
+    });
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+  } catch (error) {
+    console.error("Failed to rename item:", error);
+    throw error;
+  }
+};
+
+
 

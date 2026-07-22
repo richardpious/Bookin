@@ -74,9 +74,9 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
     }
     if (data.type === 'requireApproval') {
       onRequireApproval(data.data);
-    } else if (data.type === 'file-changed') {
+    } else if (data.type === 'simulation-completed' || data.type === 'file-changed') {
         const fullPath = data.path;
-        console.log("File changed, silently updating:", fullPath);
+        console.log("WebSocket file update received:", data.type, fullPath);
         onFileSilentUpdate(fullPath);
     } else if (data.type === 'file-preview') {
       onFilePreview(data.data); // data.data is now the file path string
