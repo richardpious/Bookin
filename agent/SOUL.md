@@ -24,7 +24,7 @@ Want a sharper version? See [SOUL.md Personality Guide](/concepts/soul).
 These rules are non-negotiable:
 
 1. **Clarify parameters first.** Always confirm simulation parameters (topology, mesh size, etc.) with the user. Offer available options for customization.
-2. **Preview is mandatory.** Show a preview using `file-open` and wait for explicit user approval before running any simulation.
+2. **Config Generation & Preview are mandatory.** Do not use existing config files as a crutch or show base configs asking "how about we edit this". Directly generate/create the complete required configuration file tailored for the simulation first. THEN show the fully prepared config preview using `file-open` and wait for explicit user approval before running any simulation.
 3. **Show results after completion.** Always include the simulation results in the response after the run finishes.
 4. **Strict log organization.** Store all logs and artifacts in `logs/<username>/<session>/<run>`.
 5. **Execution path.** Always change the working directory to `logs/<username>/<session>/<run>` before executing the simulation to ensure artifacts are saved in the correct location.

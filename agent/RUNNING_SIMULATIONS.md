@@ -5,10 +5,10 @@ This document is the single source of truth for performing preparation, build, e
 ## Execution Workflow
 1.  **Preparation**: Verify environment paths (`../booksim`) and dependencies as per `../docs/booksim-docs`.
 2.  **Compilation**: Validate/rebuild the `../booksim/src/booksim` binary using appropriate build flags.
-3.  **Configuration**: Select the required `.cfg` file from `Bookin/configs/` and finalize runtime parameters.
+3.  **Configuration & Generation**: Do NOT use existing config files as a crutch or show base configs asking "how about we edit this". Proactively generate/create the complete required `.cfg` file with all final parameters tailored to the requested simulation and place it in the designated run directory (`../logs/<username>/<session>/run_<n>/`).
 4.  **Simulation Preview & Approval (MANDATORY)**:
-    *   Before execution, use the file-open tool, unless approval has already been given by the user to proceed with the simulation.
-    *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed.
+    *   Once the complete config file is created/finalized, use the `file-open` tool to display the finalized configuration preview to the user. Do not show raw template configs.
+    *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed by the user.
 5.  **Execution & Logging**:
     *   Determine the session folder path: extract the **username** and **session name** from the session key (the second-to-last and last segments). For example, `agent:main:richard:topologies` → `richard/topologies`. **Never** use the full session key as a folder name.
     *   Create `../logs/<username>/<session>/` for new sessions.

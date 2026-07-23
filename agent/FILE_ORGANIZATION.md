@@ -23,7 +23,7 @@ The session name for log directories should include the **username** and the **s
     *   Create and change into a new, sequential `run_<n>/` directory.
     *   Execute simulations **exclusively** from within this run folder.
     *   All simulation artifacts (logs, stats, etc.) must be contained within this run folder.
-3.  **Configuration**: Use configs from `../configs/`. **Do not modify base configurations.**
+3.  **Configuration**: Proactively generate and save the complete, finalized `.cfg` file directly inside the target `run_<n>/` directory. Do not use base configs in `../configs/` as a crutch or show them asking the user to edit them.
 
 ## Prohibited Behaviors
 *   Running simulations from the project root or arbitrary directories.
