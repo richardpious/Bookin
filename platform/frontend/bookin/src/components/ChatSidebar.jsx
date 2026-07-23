@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
@@ -6,6 +6,22 @@ import { ChatInput } from './ChatInput';
 import ToolAccordion from './ToolAccordion';
 export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnecting, onSend, messagesEndRef, sessionId }) => {
   const hasSession = sessionId !== null && sessionId !== undefined;
+
+  // Memoize message grouping so it only recomputes when messages change
+  const groupedMessages = useMemo(() => {
+    return messages.reduce((acc, msg) => {
+      if (msg.isStatus) {
+        if (acc.length > 0 && acc[acc.length - 1].isToolGroup) {
+          acc[acc.length - 1].tools.push(msg);
+        } else {
+          acc.push({ id: `group-${msg.id}`, isToolGroup: true, tools: [msg] });
+        }
+      } else {
+        acc.push(msg);
+      }
+      return acc;
+    }, []);
+  }, [messages]);
 
   return (
   <aside className="sidebar agent-chat-sidebar" style={{ width }}>
@@ -33,18 +49,7 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
       <>
         <div className="messages">
           <AnimatePresence initial={false}>
-            {messages.reduce((acc, msg) => {
-              if (msg.isStatus) {
-                if (acc.length > 0 && acc[acc.length - 1].isToolGroup) {
-                  acc[acc.length - 1].tools.push(msg);
-                } else {
-                  acc.push({ id: `group-${msg.id}`, isToolGroup: true, tools: [msg] });
-                }
-              } else {
-                acc.push(msg);
-              }
-              return acc;
-            }, []).map(msg => (
+            {groupedMessages.map(msg => (
               msg.isToolGroup ? (
                 <ToolAccordion key={msg.id} tools={msg.tools} />
               ) : (

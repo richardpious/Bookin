@@ -1,6 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { readFileContent, updateFileContent } from '../utils/fileUtils';
 
+const fastHash = (str) => {
+  if (!str) return 0;
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+  }
+  return hash;
+};
+
 export const useFileManagement = () => {
   const [openFiles, setOpenFiles] = useState(() => {
     try {
@@ -12,7 +21,8 @@ export const useFileManagement = () => {
     return localStorage.getItem('activeFile') || null;
   });
   const [fileContents, setFileContents] = useState({});
-  const [savedFileContents, setSavedFileContents] = useState({}); // Track original saved state
+  const [dirtyFiles, setDirtyFiles] = useState({}); // Track dirty state without storing full strings twice
+  const savedHashesRef = useRef({});
   const [hasUnreadLogs, setHasUnreadLogs] = useState(false);
 
   const activeFileRef = useRef(activeFile);
@@ -46,17 +56,18 @@ export const useFileManagement = () => {
       );
 
       const newContents = {};
-      const newSavedContents = {};
-      results.forEach((result, idx) => {
+      const newDirty = {};
+      results.forEach((result) => {
         if (result.status === 'fulfilled') {
           const { content, resolvedPath } = result.value;
           newContents[resolvedPath] = content;
-          newSavedContents[resolvedPath] = content;
+          savedHashesRef.current[resolvedPath] = fastHash(content);
+          newDirty[resolvedPath] = false;
         }
       });
 
       setFileContents(prev => ({ ...prev, ...newContents }));
-      setSavedFileContents(prev => ({ ...prev, ...newSavedContents }));
+      setDirtyFiles(prev => ({ ...prev, ...newDirty }));
     };
 
     restoreFileContents();
@@ -97,7 +108,8 @@ export const useFileManagement = () => {
 
       // Update contents with the actual resolved path
       setFileContents(prev => ({ ...prev, [resolvedPath]: content }));
-      setSavedFileContents(prev => ({ ...prev, [resolvedPath]: content })); // Init saved state
+      savedHashesRef.current[resolvedPath] = fastHash(content);
+      setDirtyFiles(prev => ({ ...prev, [resolvedPath]: false }));
 
       // If the path was redirected, update openFiles
       // Replace the placeholder 'path' with the 'resolvedPath' if needed
@@ -121,6 +133,8 @@ export const useFileManagement = () => {
       const { content, resolvedPath } = result;
 
       setFileContents(prev => ({ ...prev, [resolvedPath]: content }));
+      savedHashesRef.current[resolvedPath] = fastHash(content);
+      setDirtyFiles(prev => ({ ...prev, [resolvedPath]: false }));
 
       setOpenFiles(prev => {
           if (!prev.includes(resolvedPath)) {
@@ -159,6 +173,8 @@ export const useFileManagement = () => {
       const result = await readFileContent(filePath);
       const { content, resolvedPath } = result;
       setFileContents(prev => ({ ...prev, [resolvedPath]: content }));
+      savedHashesRef.current[resolvedPath] = fastHash(content);
+      setDirtyFiles(prev => ({ ...prev, [resolvedPath]: false }));
     } catch (err) {
       console.error("Silent update failed for file:", filePath, err);
     }
@@ -169,8 +185,14 @@ export const useFileManagement = () => {
     const newOpenFiles = openFiles.filter(f => f !== path);
     setOpenFiles(newOpenFiles);
 
-    // Clear content from memory
+    // Clear content & hashes from memory
+    delete savedHashesRef.current[path];
     setFileContents(prev => {
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
+    setDirtyFiles(prev => {
       const next = { ...prev };
       delete next[path];
       return next;
@@ -185,7 +207,8 @@ export const useFileManagement = () => {
     try {
       await updateFileContent(path, newContent);
       setFileContents(prev => ({ ...prev, [path]: newContent })); // Explicitly sync live state
-      setSavedFileContents(prev => ({ ...prev, [path]: newContent })); // Update saved state
+      savedHashesRef.current[path] = fastHash(newContent);
+      setDirtyFiles(prev => ({ ...prev, [path]: false }));
     } catch (err) {
       console.error(err);
       alert(`Error updating file: ${err.message}`);
@@ -193,15 +216,18 @@ export const useFileManagement = () => {
   };
 
   const handleEditContent = (path, newContent) => {
-    // Only update the live content, NOT the saved content
+    // Only update the live content & compute dirty boolean vs saved hash
     setFileContents(prev => ({ ...prev, [path]: newContent }));
+    const savedHash = savedHashesRef.current[path];
+    const isDirty = savedHash !== undefined ? fastHash(newContent) !== savedHash : false;
+    setDirtyFiles(prev => prev[path] === isDirty ? prev : { ...prev, [path]: isDirty });
   };
 
   return {
     openFiles,
     activeFile,
     fileContents,
-    savedFileContents,
+    dirtyFiles,
     hasUnreadLogs,
     clearUnreadLogs,
     handleFileClick,

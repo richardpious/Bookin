@@ -6,7 +6,7 @@ const CodeEditor = lazy(() => import('./CodeEditor'));
 const LogsViewer = lazy(() => import('./LogsViewer'));
 const ConfigParametersModal = lazy(() => import('./ConfigParametersModal'));
 
-export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, savedFileContents, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
+export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (openFiles.length === 0) {
@@ -21,7 +21,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
     <main className="main-content" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', flexShrink: 0 }}>
         {openFiles.map(path => {
-          const isDirty = fileContents[path] !== savedFileContents[path];
+          const isDirty = !!dirtyFiles?.[path];
           return (
             <div
               key={path}

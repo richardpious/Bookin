@@ -1,47 +1,52 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { EmbeddedFile } from './EmbeddedFile';
 
-export const ChatMessage = ({ sender, text, isError }) => {
-  // Regex to find [embed ... /] tags
-  const embedRegex = /\[embed\s+([^\]]+)\s*\/\]/g;
-  
-  // Parse the message text into chunks of either string or embed object
-  const parts = [];
-  let lastIndex = 0;
-  let match;
+const EMBED_REGEX = /\[embed\s+([^\]]+)\s*\/\]/g;
+const ATTR_REGEX = /(\w+)="([^"]*)"/g;
 
-  while ((match = embedRegex.exec(text)) !== null) {
-    // Add preceding text
-    if (match.index > lastIndex) {
-      parts.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+const remarkPlugins = [remarkGfm];
+
+export const ChatMessage = React.memo(({ sender, text, isError }) => {
+  // Memoize the embed parsing so it only re-runs when `text` changes
+  const parts = useMemo(() => {
+    const result = [];
+    let lastIndex = 0;
+    let match;
+    // Reset regex state since it has the global flag
+    EMBED_REGEX.lastIndex = 0;
+
+    while ((match = EMBED_REGEX.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+      }
+
+      const attrString = match[1];
+      ATTR_REGEX.lastIndex = 0;
+      const attrs = {};
+      let attrMatch;
+      while ((attrMatch = ATTR_REGEX.exec(attrString)) !== null) {
+        attrs[attrMatch[1]] = attrMatch[2];
+      }
+
+      result.push({ type: 'embed', attrs });
+      lastIndex = EMBED_REGEX.lastIndex;
     }
-    
-    // Parse attributes
-    const attrString = match[1];
-    const attrRegex = /(\w+)="([^"]*)"/g;
-    const attrs = {};
-    let attrMatch;
-    while ((attrMatch = attrRegex.exec(attrString)) !== null) {
-      attrs[attrMatch[1]] = attrMatch[2];
+
+    if (lastIndex < text.length) {
+      result.push({ type: 'text', content: text.substring(lastIndex) });
     }
-    
-    parts.push({ type: 'embed', attrs });
-    lastIndex = embedRegex.lastIndex;
-  }
-  
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push({ type: 'text', content: text.substring(lastIndex) });
-  }
+
+    return result;
+  }, [text]);
 
   // If no embeds were found, we can just render everything in one ReactMarkdown to avoid wrapping fragments
   if (parts.length === 1 && parts[0].type === 'text') {
     return (
       <div className={`message-row ${sender}`}>
         <div className={`message-bubble ${sender}${isError ? ' message-error' : ''}`}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          <ReactMarkdown remarkPlugins={remarkPlugins}>
             {text}
           </ReactMarkdown>
         </div>
@@ -55,7 +60,7 @@ export const ChatMessage = ({ sender, text, isError }) => {
         {parts.map((part, i) => {
           if (part.type === 'text') {
             return (
-              <ReactMarkdown key={i} remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown key={i} remarkPlugins={remarkPlugins}>
                 {part.content}
               </ReactMarkdown>
             );
@@ -74,4 +79,4 @@ export const ChatMessage = ({ sender, text, isError }) => {
       </div>
     </div>
   );
-};
+});

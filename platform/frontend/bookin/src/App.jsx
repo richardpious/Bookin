@@ -49,7 +49,7 @@ function App() {
   };
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
-  const { openFiles, activeFile, fileContents, savedFileContents, hasUnreadLogs, clearUnreadLogs, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
+  const { openFiles, activeFile, fileContents, dirtyFiles, hasUnreadLogs, clearUnreadLogs, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
 
   const handleRequireApproval = useCallback((data) => {
     setApprovalRequest(data);
@@ -133,7 +133,7 @@ function App() {
           activeFile={activeFile}
           activeLine={activeLine}
           fileContents={fileContents}
-          savedFileContents={savedFileContents}
+          dirtyFiles={dirtyFiles}
           onTabClick={(path) => { setActiveFile(path); setActiveLine(null); }}
           onCloseTab={handleCloseFile}
           onUpdateFile={handleUpdateFileContent}
