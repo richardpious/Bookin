@@ -11,18 +11,24 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
       console.error("Non-JSON message received:", event.data);
       return;
     }
-    console.log("WebSocket message received:", data);
+    if (import.meta.env.DEV) {
+      console.log("WebSocket message received:", data);
+    }
 
     if (data.type === 'gateway_log') {
-      console.group("OpenClaw Gateway Event");
-      console.table(data.payload);
+      if (import.meta.env.DEV) {
+        console.group("OpenClaw Gateway Event");
+        console.table(data.payload);
+      }
 
       if (data.payload?.type === 'event' && data.payload?.event === 'agent') {
         const agentEventData = data.payload.payload;
         if (agentEventData?.stream === 'item') {
            const { title, name, phase, kind, meta } = agentEventData.data || {};
            
-           console.log("TOOL ITEM EVENT:", { title, name, phase, kind, meta });
+           if (import.meta.env.DEV) {
+             console.log("TOOL ITEM EVENT:", { title, name, phase, kind, meta });
+           }
 
            if (kind === 'tool') {
              setMessages(prev => {
@@ -62,7 +68,9 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
         });
       }
 
-      console.groupEnd();
+      if (import.meta.env.DEV) {
+        console.groupEnd();
+      }
       return;
     }
 

@@ -8,32 +8,14 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
   const editorRef = useRef(null);
   const monaco = useMonaco();
   const saveFile = async (currentContent) => {
-    console.log(`Attempting to save to: ${filePath}`);
     try {
-      // Direct path to the router endpoint, assuming backend is running on same port
-      // or proxied correctly.
-      const response = await fetch('/update-file', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: filePath, content: currentContent }),
-      });
-      const result = await response.json();
-      if (result.success) {
+      if (onUpdateFile) {
+        await onUpdateFile(filePath, currentContent);
         if (onToast) onToast('File saved successfully', 'success');
-
-        // This will update both live content AND saved content via useFileManagement
-        if (onUpdateFile) {
-            onUpdateFile(filePath, currentContent);
-        }
-        // Force the parent to recognize the save by invoking the main update handler too if needed
-        // but since we updated the live content, that's enough to match the dirty check.
-      } else {
-        console.error('Save failed:', result.error);
-        if (onToast) onToast(`Error saving file: ${result.error}`, 'error');
       }
     } catch (error) {
-      console.error('Error connecting to backend:', error);
-      if (onToast) onToast(`Error connecting to backend: ${error.message}`, 'error');
+      console.error('Error saving file:', error);
+      if (onToast) onToast(`Error saving file: ${error.message}`, 'error');
     }
   };
 
@@ -44,38 +26,28 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
     editorRef.current = editor;
 
     editor.addCommand(monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.KeyS, () => {
-        saveFile(editor.getValue());
-      });
+      saveFile(editor.getValue());
+    });
 
     editor.onDidChangeModelContent(() => {
-        if (onEditContent) {
-            onEditContent(filePath, editor.getValue());
-        }
+      if (onEditContent) {
+        onEditContent(filePath, editor.getValue());
+      }
     });
 
     // Always focus and reveal on mount
     if (activeLine) {
-        editor.revealLineInCenter(activeLine);
-        editor.setPosition({ lineNumber: activeLine, column: 1 });
-        editor.focus();
+      editor.revealLineInCenter(activeLine);
+      editor.setPosition({ lineNumber: activeLine, column: 1 });
+      editor.focus();
     }
   };
 
   useEffect(() => {
-    if (monaco && editorRef.current) {
-        // Need to remove old command or handle multiple mounts properly if necessary
-        // But for this simple implementation, it should work fine on the first mount.
-    }
-  }, [monaco]);
-
-  useEffect(() => {
-    console.log("CodeEditor useEffect triggered, activeLine:", activeLine);
-    if (editorRef.current) {
-      if (activeLine) {
+    if (editorRef.current && activeLine) {
       editorRef.current.revealLineInCenter(activeLine);
       editorRef.current.setPosition({ lineNumber: activeLine, column: 1 });
       editorRef.current.focus();
-    }
     }
   }, [activeLine, content]);
 

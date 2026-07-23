@@ -26,9 +26,11 @@ export const useFileManagement = () => {
   const [hasUnreadLogs, setHasUnreadLogs] = useState(false);
 
   const activeFileRef = useRef(activeFile);
+  const openFilesRef = useRef(openFiles);
   useEffect(() => {
     activeFileRef.current = activeFile;
-  }, [activeFile]);
+    openFilesRef.current = openFiles;
+  }, [activeFile, openFiles]);
 
   // Persist openFiles and activeFile to localStorage
   useEffect(() => {
@@ -126,8 +128,6 @@ export const useFileManagement = () => {
   };
 
   const handleOpenFilePreview = useCallback(async (filePath) => {
-    console.log("handleOpenFilePreview called for file:", filePath);
-
     try {
       const result = await readFileContent(filePath);
       const { content, resolvedPath } = result;
@@ -160,14 +160,18 @@ export const useFileManagement = () => {
   }, []);
 
   const handleSilentFileUpdate = useCallback(async (filePath) => {
-    console.log("handleSilentFileUpdate called for file:", filePath);
+    if (!filePath) return;
     
     // Check if the file is in logs/ or is a .log file
-    if (filePath && (filePath.includes('/logs/') || filePath.includes('logs/') || filePath.endsWith('.log'))) {
+    if (filePath.includes('/logs/') || filePath.includes('logs/') || filePath.endsWith('.log')) {
       if (!activeFileRef.current?.startsWith('logs-viewer:')) {
         setHasUnreadLogs(true);
       }
     }
+
+    // Only fetch content if the file is currently open in openFiles
+    const isOpen = openFilesRef.current.some(openPath => openPath === filePath || filePath.endsWith(openPath));
+    if (!isOpen) return;
 
     try {
       const result = await readFileContent(filePath);

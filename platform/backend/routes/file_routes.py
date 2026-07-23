@@ -2,8 +2,18 @@ from fastapi import APIRouter, Request, Body
 import os
 import re
 import shutil
+import asyncio
 
 router = APIRouter()
+
+
+def _read_file_text(target_path: str) -> str:
+    with open(target_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+def _write_file_text(target_path: str, content: str):
+    with open(target_path, 'w', encoding='utf-8') as f:
+        f.write(content)
 
 
 def get_root_dir():
@@ -118,8 +128,7 @@ async def get_file(path: str):
         return {"error": f"Not a file: {target_path}"}
 
     try:
-        with open(target_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = await asyncio.to_thread(_read_file_text, target_path)
         return {"content": content, "path": resolved_path}
     except Exception as e:
         return {"error": str(e)}
@@ -138,8 +147,7 @@ async def update_file(payload: dict = Body(...)):
         return {"error": "Access denied"}
 
     try:
-        with open(target_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+        await asyncio.to_thread(_write_file_text, target_path, content)
         return {"success": True}
     except Exception as e:
         return {"error": str(e)}

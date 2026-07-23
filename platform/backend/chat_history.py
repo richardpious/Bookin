@@ -12,8 +12,9 @@ class ChatHistoryDB:
 
     def _init_db(self):
         conn = sqlite3.connect(self.db_path, timeout=10)
-        # Enable WAL mode for better concurrency
+        # Enable WAL mode for better concurrency and synchronous=NORMAL for write speed
         conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute("PRAGMA foreign_keys = ON;")
         cursor = conn.cursor()
         

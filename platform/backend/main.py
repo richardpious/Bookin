@@ -99,6 +99,12 @@ async def serve_spa(full_path: str):
     # Try to serve a physical file from the dist directory first (e.g., assets, images)
     file_path = os.path.join(static_dir, full_path)
     if os.path.exists(file_path) and not os.path.isdir(file_path):
+        # Apply long-term caching for immutable hashed assets
+        if "assets/" in full_path or full_path.startswith("assets/"):
+            return FileResponse(
+                file_path,
+                headers={"Cache-Control": "public, max-age=31536000, immutable"}
+            )
         return FileResponse(file_path)
     
     # Fallback to index.html for client-side routing.
