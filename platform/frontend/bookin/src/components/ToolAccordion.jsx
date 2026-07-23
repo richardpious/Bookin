@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiChevronDown, FiChevronRight, FiTool } from 'react-icons/fi';
+import { ChevronDown, ChevronRight, Wrench } from 'lucide-react';
 
 const ToolAccordion = ({ tools }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,12 +40,12 @@ const ToolAccordion = ({ tools }) => {
       >
         <span className="tool-accordion-left">
           <motion.span animate={{ rotate: isOpen ? 15 : 0 }} transition={{ duration: 0.2 }} className="tool-accordion-icon-wrapper">
-            <FiTool className="tool-accordion-icon" />
+            <Wrench size={14} className="tool-accordion-icon" />
           </motion.span>
           <span>Agent executed {tools.length} tool{tools.length !== 1 ? 's' : ''}</span>
         </span>
         <span className="tool-accordion-right">
-          {isOpen ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
+          {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
       </div>
 

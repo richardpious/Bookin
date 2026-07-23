@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { readFileContent } from '../utils/fileUtils';
-import { FiFile, FiMaximize2 } from 'react-icons/fi';
-import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp';
-import python from 'react-syntax-highlighter/dist/esm/languages/prism/python';
-import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
-import markdown from 'react-syntax-highlighter/dist/esm/languages/prism/markdown';
-import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash';
-
-SyntaxHighlighter.registerLanguage('cpp', cpp);
-SyntaxHighlighter.registerLanguage('python', python);
-SyntaxHighlighter.registerLanguage('json', json);
-SyntaxHighlighter.registerLanguage('markdown', markdown);
-SyntaxHighlighter.registerLanguage('bash', bash);
+import { FileText, Maximize2 } from 'lucide-react';
+import Editor from '@monaco-editor/react';
 
 export const EmbeddedFile = ({ refPath, title, height }) => {
   const [content, setContent] = useState('');
@@ -46,7 +34,7 @@ export const EmbeddedFile = ({ refPath, title, height }) => {
   }, [refPath]);
 
   const getLanguage = (path) => {
-    if (!path) return 'text';
+    if (!path) return 'plaintext';
     const ext = path.split('.').pop().toLowerCase();
     switch (ext) {
       case 'cpp':
@@ -61,11 +49,11 @@ export const EmbeddedFile = ({ refPath, title, height }) => {
       case 'md':
         return 'markdown';
       case 'sh':
-        return 'bash';
+        return 'shell';
       case 'cfg':
-        return 'bash'; // Basic highlighting for config
+        return 'ini';
       default:
-        return 'text';
+        return 'plaintext';
     }
   };
 
@@ -75,7 +63,7 @@ export const EmbeddedFile = ({ refPath, title, height }) => {
     borderRadius: '8px',
     overflow: 'hidden',
     border: '1px solid var(--border-color)',
-    backgroundColor: '#1e1e1e', // Dark theme background
+    backgroundColor: '#1e1e1e',
   };
 
   const headerStyle = {
@@ -89,22 +77,16 @@ export const EmbeddedFile = ({ refPath, title, height }) => {
     color: '#ccc',
   };
 
-  const contentStyle = {
-    maxHeight: height ? `${height}px` : '320px',
-    overflowY: 'auto',
-    margin: 0,
-    fontSize: '0.85rem',
-  };
+  const editorHeight = height ? `${height}px` : '320px';
 
   return (
     <div className="embedded-file" style={containerStyle}>
       <div style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FiFile size={14} />
+          <FileText size={14} />
           <span>{title || refPath.split('/').pop()}</span>
         </div>
         <div style={{ color: '#888' }}>
-           {/* Could add a button to open in full editor later */}
            {refPath}
         </div>
       </div>
@@ -114,15 +96,21 @@ export const EmbeddedFile = ({ refPath, title, height }) => {
       ) : error ? (
         <div style={{ padding: '20px', color: '#ff6b6b' }}>Failed to load file: {error}</div>
       ) : (
-        <div style={contentStyle}>
-          <SyntaxHighlighter 
-            language={getLanguage(refPath)} 
-            style={vscDarkPlus} 
-            customStyle={{ margin: 0, background: 'transparent', padding: '12px' }}
-          >
-            {content}
-          </SyntaxHighlighter>
-        </div>
+        <Editor
+          height={editorHeight}
+          language={getLanguage(refPath)}
+          value={content}
+          theme="vs-dark"
+          options={{
+            readOnly: true,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            lineNumbers: 'on',
+            fontSize: 13,
+            padding: { top: 8 },
+            domReadOnly: true,
+          }}
+        />
       )}
     </div>
   );

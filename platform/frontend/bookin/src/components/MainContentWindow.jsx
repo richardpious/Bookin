@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { CodeEditor } from './CodeEditor';
+import { useState, Suspense, lazy } from 'react';
 import { MainContentHome } from './MainContentHome';
-import { ConfigParametersModal } from './ConfigParametersModal';
-import { LogsViewer } from './LogsViewer';
 import { X, List, Play } from 'lucide-react';
+
+const CodeEditor = lazy(() => import('./CodeEditor'));
+const LogsViewer = lazy(() => import('./LogsViewer'));
+const ConfigParametersModal = lazy(() => import('./ConfigParametersModal'));
 
 export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, savedFileContents, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,6 +51,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
         })}
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
+        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>Loading...</div>}>
         {activeFile && activeFile.startsWith('logs-viewer:') ? (
           <LogsViewer session={activeFile.split(':')[1]} onFileClick={onFileClick} />
         ) : activeFile ? (
@@ -63,6 +65,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
             onUpdateFile={onUpdateFile}
           />
         ) : null}
+        </Suspense>
         {activeFile && !activeFile.toLowerCase().endsWith('.md') && activeFile.endsWith('.cfg') && (
           <div style={{
             position: 'absolute',
@@ -114,6 +117,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
           </div>
         )}
       </div>
+      <Suspense fallback={null}>
       <ConfigParametersModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -133,6 +137,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
           onUpdateFile(activeFile, newContent);
         }}
       />
+      </Suspense>
     </main>
   );
 };

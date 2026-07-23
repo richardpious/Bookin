@@ -543,3 +543,5 @@ export const LogsViewer = ({ session, onFileClick }) => {
     </div>
   );
 };
+
+export default LogsViewer;

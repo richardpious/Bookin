@@ -144,3 +144,4 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
   );
 });
 
+export default CodeEditor;

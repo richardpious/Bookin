@@ -241,3 +241,4 @@ export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
   );
 };
 
+export default ConfigParametersModal;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense, lazy } from 'react'
 import { Header } from './components/Header'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
@@ -6,7 +6,7 @@ import { LeftSidebar } from './components/LeftSidebar'
 import { MainContentWindow } from './components/MainContentWindow'
 import { AuthScreen } from './components/AuthScreen'
 import ApprovalModal from './components/ApprovalModal'
-import SearchResultsPanel from './components/SearchResultsPanel'
+const SearchResultsPanel = lazy(() => import('./components/SearchResultsPanel'))
 import { useResizer } from './hooks/useResizer'
 import { useFileManagement } from './hooks/useFileManagement'
 import { useChatManagement } from './hooks/useChatManagement'
@@ -102,12 +102,14 @@ function App() {
         setApprovalRequest={setApprovalRequest}
       />
       {searchResults !== null && (
+        <Suspense fallback={null}>
         <SearchResultsPanel
           results={searchResults}
           query={searchQuery}
           onOpenFile={handleOpenFileFromSearch}
           onClose={() => setSearchResults(null)}
         />
+        </Suspense>
       )}
       <div className="main-layout">
         <LeftSidebar
