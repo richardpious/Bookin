@@ -2,8 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { readFileContent, updateFileContent } from '../utils/fileUtils';
 
 export const useFileManagement = () => {
-  const [openFiles, setOpenFiles] = useState([]);
-  const [activeFile, setActiveFile] = useState(null);
+  const [openFiles, setOpenFiles] = useState(() => {
+    try {
+      const saved = localStorage.getItem('openFiles');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [activeFile, setActiveFile] = useState(() => {
+    return localStorage.getItem('activeFile') || null;
+  });
   const [fileContents, setFileContents] = useState({});
   const [savedFileContents, setSavedFileContents] = useState({}); // Track original saved state
   const [hasUnreadLogs, setHasUnreadLogs] = useState(false);
@@ -12,6 +19,50 @@ export const useFileManagement = () => {
   useEffect(() => {
     activeFileRef.current = activeFile;
   }, [activeFile]);
+
+  // Persist openFiles and activeFile to localStorage
+  useEffect(() => {
+    localStorage.setItem('openFiles', JSON.stringify(openFiles));
+  }, [openFiles]);
+
+  useEffect(() => {
+    if (activeFile) {
+      localStorage.setItem('activeFile', activeFile);
+    } else {
+      localStorage.removeItem('activeFile');
+    }
+  }, [activeFile]);
+
+  // On mount, re-fetch contents for any restored open files
+  useEffect(() => {
+    const restoreFileContents = async () => {
+      const filesToRestore = openFiles.filter(
+        path => !path.startsWith('logs-viewer:')
+      );
+      if (filesToRestore.length === 0) return;
+
+      const results = await Promise.allSettled(
+        filesToRestore.map(path => readFileContent(path))
+      );
+
+      const newContents = {};
+      const newSavedContents = {};
+      results.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          const { content, resolvedPath } = result.value;
+          newContents[resolvedPath] = content;
+          newSavedContents[resolvedPath] = content;
+        }
+      });
+
+      setFileContents(prev => ({ ...prev, ...newContents }));
+      setSavedFileContents(prev => ({ ...prev, ...newSavedContents }));
+    };
+
+    restoreFileContents();
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const clearUnreadLogs = useCallback(() => {
     setHasUnreadLogs(false);
