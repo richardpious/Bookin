@@ -42,6 +42,7 @@ echo "7. Cleaning Backend artifacts..."
 find "$PROJECT_ROOT" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
 echo "8. Killing any running ghost processes..."
+sudo lsof -t -i:18789 | xargs sudo kill -9 2>/dev/null || true
 sudo lsof -t -i:10000 | xargs sudo kill -9 2>/dev/null || true
 openclaw gateway stop 2>/dev/null || true
 
