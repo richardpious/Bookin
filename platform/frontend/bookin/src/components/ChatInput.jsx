@@ -1,8 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-export const ChatInput = ({ onSend, isLoading, isConnecting }) => {
+import React, { useState, useRef, useEffect, useImperativeHandle } from 'react';
+export const ChatInput = React.forwardRef(({ onSend, isLoading, isConnecting }, ref) => {
   const [input, setInput] = useState('');
   const textareaRef = useRef(null);
   const isBlocked = isLoading || isConnecting;
+
+  // Expose the internal textarea ref to the parent
+  useImperativeHandle(ref, () => textareaRef.current);
 
   const adjustHeight = () => {
     if (textareaRef.current) {
@@ -51,5 +54,4 @@ export const ChatInput = ({ onSend, isLoading, isConnecting }) => {
     </button>
   </div>
 );
-};
-
+});

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Suspense, lazy } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react'
 import { Header } from './components/Header'
 import { Resizer } from './components/Resizer'
 import { ChatSidebar } from './components/ChatSidebar'
@@ -33,7 +33,7 @@ function App() {
     setUsername(null);
   };
 
-  const { sessions, setSessions, sessionId, setSessionId, deleteSession } = useSessionManagement(token);
+  const { sessions, sessionsLoaded, setSessions, sessionId, setSessionId, deleteSession } = useSessionManagement(token);
 
   const [approvalRequest, setApprovalRequest] = useState(null)
   const [searchResults, setSearchResults] = useState(null)
@@ -50,6 +50,37 @@ function App() {
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
   const { openFiles, activeFile, fileContents, dirtyFiles, hasUnreadLogs, clearUnreadLogs, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
+
+  // Ref to the chat input textarea, used for global auto-focus
+  const chatInputRef = useRef(null);
+
+  // Auto-focus chat input on keypress when no text input is active (ChatGPT-style)
+  useEffect(() => {
+    const handleGlobalKeydown = (e) => {
+      // Ignore modifier-only keys & shortcuts
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Ignore non-printable keys (arrows, Escape, F-keys, Tab, etc.)
+      if (e.key.length !== 1) return;
+
+      // If focus is already inside an interactive text element, bail out
+      const active = document.activeElement;
+      const tag = active?.tagName;
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        active?.isContentEditable ||
+        active?.closest('.monaco-editor')
+      ) {
+        return;
+      }
+
+      // Focus the chat textarea and let the keystroke flow through
+      chatInputRef.current?.focus();
+    };
+
+    document.addEventListener('keydown', handleGlobalKeydown);
+    return () => document.removeEventListener('keydown', handleGlobalKeydown);
+  }, []);
 
   const handleRequireApproval = useCallback((data) => {
     setApprovalRequest(data);
@@ -117,6 +148,7 @@ function App() {
             onFileClick={handleFileClick}
             activeFile={activeFile}
             sessions={sessions}
+            sessionsLoaded={sessionsLoaded}
             setSessions={setSessions}
             currentSession={sessionId}
             onSelectSession={setSessionId}
@@ -167,6 +199,7 @@ function App() {
           onSend={handleSend}
           messagesEndRef={messagesEndRef}
           sessionId={sessionId}
+          chatInputRef={chatInputRef}
         />
         {toast && (
           <div className="toast-container">

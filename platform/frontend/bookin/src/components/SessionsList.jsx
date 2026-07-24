@@ -114,15 +114,15 @@ const SessionHeader = React.memo(({ onAddClick }) => (
   </div>
 ))
 
-export const SessionsList = React.memo(({ sessions, setSessions, currentSession, onSelectSession, onResetSession, sidebarRef }) => {
+export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, sidebarRef }) => {
   const isEmpty = !sessions || sessions.length === 0
-  const [isCreating, setIsCreating] = useState(isEmpty)
+  const [isCreating, setIsCreating] = useState(false)
   const [newSessionName, setNewSessionName] = useState('')
 
-  // Auto-expand the creation form when sessions become empty
+  // Auto-expand the creation form only after sessions have loaded and are confirmed empty
   useEffect(() => {
-    if (isEmpty) setIsCreating(true)
-  }, [isEmpty])
+    if (sessionsLoaded && isEmpty) setIsCreating(true)
+  }, [sessionsLoaded, isEmpty])
 
   useEffect(() => {
     // Close sidebar elements when clicking outside (only if there are sessions to fall back to)

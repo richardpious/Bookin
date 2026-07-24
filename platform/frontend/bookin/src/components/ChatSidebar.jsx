@@ -4,7 +4,7 @@ import { MessageSquare } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import ToolAccordion from './ToolAccordion';
-export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnecting, onSend, messagesEndRef, sessionId }) => {
+export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnecting, onSend, messagesEndRef, sessionId, chatInputRef }) => {
   const hasSession = sessionId !== null && sessionId !== undefined;
 
   // Memoize message grouping so it only recomputes when messages change
@@ -87,6 +87,7 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
         </AnimatePresence>
         <div className="input-area">
             <ChatInput
+              ref={chatInputRef}
               onSend={onSend}
               isLoading={isLoading}
               isConnecting={isConnecting}

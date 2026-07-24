@@ -18,6 +18,7 @@ async function fetchSessions(token) {
 
 export function useSessionManagement(token) {
   const [sessions, setSessions] = useState([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [sessionId, setSessionId] = useState(() => {
     return localStorage.getItem('activeSessionId') || null;
   });
@@ -37,6 +38,7 @@ export function useSessionManagement(token) {
     const loadSessions = async () => {
       const data = await fetchSessions(token);
       setSessions(data);
+      setSessionsLoaded(true);
       
       if (data && data.length > 0) {
         if (!data.includes(sessionId)) {
@@ -93,6 +95,7 @@ export function useSessionManagement(token) {
 
   return {
     sessions,
+    sessionsLoaded,
     setSessions,
     sessionId,
     setSessionId,

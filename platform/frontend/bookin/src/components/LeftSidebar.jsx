@@ -3,7 +3,7 @@ import { BookOpen, Activity } from 'lucide-react'
 import { SessionsList } from './SessionsList'
 import { ProjectFilesList } from './ProjectFilesList'
 
-export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username, hasUnreadLogs, onClearUnreadLogs }) => {
+export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username, hasUnreadLogs, onClearUnreadLogs }) => {
   const sidebarRef = useRef(null)
 
   return (
@@ -11,6 +11,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
       <div className="sidebar-content">
         <SessionsList
           sessions={sessions}
+          sessionsLoaded={sessionsLoaded}
           setSessions={setSessions}
           currentSession={currentSession}
           onSelectSession={onSelectSession}
