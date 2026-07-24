@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, FolderOpen, FileText, Activity, Clock, Zap, BarChart2, Route, Layers, ChevronDown, ChevronRight, AlertTriangle, MoreVertical, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Folder, FolderOpen, FileText, Activity, Clock, BarChart2, ChevronDown, ChevronRight, MoreVertical, Edit2, Trash2, Check, X } from 'lucide-react';
 import { fetchFiles, fetchRunStats, deleteItem, renameItem } from '../utils/fileUtils';
 
 export const LogsViewer = ({ session, onFileClick }) => {
@@ -322,119 +322,154 @@ export const LogsViewer = ({ session, onFileClick }) => {
               {isOpen && (
                 <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)', backgroundColor: 'rgba(0, 0, 0, 0.15)' }}>
                   
-                  {/* Statistics Display Card */}
-                  {statsData?.stats ? (
-                    <div style={{ padding: '16px', backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-h)', marginBottom: '14px' }}>
-                        <BarChart2 size={16} color="#81c784" />
-                        <span>Run Statistics</span>
-                        <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 'auto' }}>
-                          Source: {statsData.logFile}
-                        </span>
+                  {/* Statistics Display — Grouped Table */}
+                  {statsData?.stats ? (() => {
+                    const s = statsData.stats;
+                    
+                    // Helper: create a range entry (avg/min/max) or null
+                    const range = (label, prefix) => {
+                      if (s[prefix + 'Avg'] === undefined) return null;
+                      return { label, avg: s[prefix + 'Avg'], min: s[prefix + 'Min'], max: s[prefix + 'Max'], hasRange: s[prefix + 'Min'] !== undefined };
+                    };
+                    // Helper: create a simple entry or null
+                    const simple = (label, key, fmt) => {
+                      if (s[key] === undefined && !s[key]) return null;
+                      const val = s[key];
+                      if (val === undefined) return null;
+                      return { label, avg: fmt ? fmt(val) : val, hasRange: false };
+                    };
+
+                    const groups = [
+                      {
+                        label: 'Overview',
+                        color: '#64b5f6',
+                        entries: [
+                          s.topology && { label: 'Topology', avg: s.topology, hasRange: false },
+                          s.traffic && { label: 'Traffic Pattern', avg: s.traffic, hasRange: false },
+                          simple('Execution Cycles', 'cycles', v => v.toLocaleString()),
+                          simple('Total Run Time', 'totalRunTime', v => `${v}s`),
+                          simple('Average Hops', 'hopsAvg'),
+                          simple('Injected Packet Size', 'injectedPacketSizeAvg'),
+                          simple('Accepted Packet Size', 'acceptedPacketSizeAvg'),
+                        ].filter(Boolean)
+                      },
+                      {
+                        label: 'Latency',
+                        color: '#ffd54f',
+                        entries: [
+                          range('Packet Latency', 'packetLatency'),
+                          range('Flit Latency', 'flitLatency'),
+                          range('Network Latency', 'networkLatency'),
+                          range('Fragmentation', 'fragmentation'),
+                        ].filter(Boolean)
+                      },
+                      {
+                        label: 'Rates',
+                        color: '#81c784',
+                        entries: [
+                          range('Injected Packet Rate', 'injectedPacketRate'),
+                          range('Accepted Packet Rate', 'acceptedPacketRate'),
+                          range('Injected Flit Rate', 'injectedFlitRate'),
+                          range('Accepted Flit Rate', 'acceptedFlitRate'),
+                        ].filter(Boolean)
+                      },
+                      {
+                        label: 'Stalls',
+                        color: '#ef5350',
+                        entries: [
+                          simple('Buffer Busy', 'bufferBusyStallRate'),
+                          simple('Buffer Conflict', 'bufferConflictStallRate'),
+                          simple('Buffer Full', 'bufferFullStallRate'),
+                          simple('Buffer Reserved', 'bufferReservedStallRate'),
+                          simple('Crossbar Conflict', 'crossbarConflictStallRate'),
+                        ].filter(Boolean)
+                      },
+                    ].filter(g => g.entries.length > 0);
+
+                    // Check if a group has any range entries (for column headers)
+                    const groupHasRange = (group) => group.entries.some(e => e.hasRange);
+
+                    const valStyle = { fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', minWidth: '60px' };
+                    const minMaxStyle = { ...valStyle, fontWeight: 400, color: 'var(--text-secondary)', fontSize: '11px' };
+
+                    return (
+                      <div style={{ padding: '16px', backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-h)', marginBottom: '14px' }}>
+                          <BarChart2 size={16} color="#81c784" />
+                          <span>Run Statistics</span>
+                          <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 'auto' }}>
+                            Source: {statsData.logFile}
+                          </span>
+                        </div>
+
+                        {/* Grouped tables in a 2-column grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                          {groups.map(group => {
+                            const hasRange = groupHasRange(group);
+                            return (
+                              <div 
+                                key={group.label}
+                                style={{
+                                  borderRadius: '6px',
+                                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                                  overflow: 'hidden'
+                                }}
+                              >
+                                {/* Group header with column labels */}
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  padding: '8px 12px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.02)'
+                                }}>
+                                  <span style={{ color: group.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    {group.label}
+                                  </span>
+                                  {hasRange && (
+                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '0' }}>
+                                      <span style={{ width: '68px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: 500 }}>Avg</span>
+                                      <span style={{ width: '68px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: 400 }}>Min</span>
+                                      <span style={{ width: '68px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: 400 }}>Max</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Rows */}
+                                {group.entries.map((entry, i) => (
+                                  <div
+                                    key={entry.label}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      padding: '7px 12px',
+                                      fontSize: '12px',
+                                      borderBottom: i < group.entries.length - 1 ? '1px solid rgba(255, 255, 255, 0.03)' : 'none'
+                                    }}
+                                  >
+                                    <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{entry.label}</span>
+                                    {hasRange && entry.hasRange ? (
+                                      <div style={{ display: 'flex', gap: '0' }}>
+                                        <span style={{ ...valStyle, width: '68px' }}>{entry.avg}</span>
+                                        <span style={{ ...minMaxStyle, width: '68px' }}>{entry.min}</span>
+                                        <span style={{ ...minMaxStyle, width: '68px' }}>{entry.max}</span>
+                                      </div>
+                                    ) : (
+                                      <span style={valStyle}>{entry.avg}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                        {statsData.stats.cycles !== undefined && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <Clock size={13} color="#64b5f6" /> Execution Cycles
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.cycles.toLocaleString()}
-                            </div>
-                          </div>
-                        )}
-
-                        {statsData.stats.packetLatencyAvg !== undefined && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <Zap size={13} color="#ffd54f" /> Packet Latency Average
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.packetLatencyAvg}
-                            </div>
-                          </div>
-                        )}
-
-                        {statsData.stats.flitLatencyAvg !== undefined && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <Zap size={13} color="#ff8a65" /> Flit Latency Average
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.flitLatencyAvg}
-                            </div>
-                          </div>
-                        )}
-
-                        {statsData.stats.injectedPacketRateAvg !== undefined && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <Activity size={13} color="#81c784" /> Packet Injected Rate
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.injectedPacketRateAvg}
-                            </div>
-                          </div>
-                        )}
-
-                        {statsData.stats.injectedFlitRateAvg !== undefined && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <Activity size={13} color="#4fc3f7" /> Injected Flit Rate
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.injectedFlitRateAvg}
-                            </div>
-                          </div>
-                        )}
-
-                        {statsData.stats.hopsAvg !== undefined && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <Route size={13} color="#ba68c8" /> Average Network Hops
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.hopsAvg}
-                            </div>
-                          </div>
-                        )}
-
-                        {statsData.stats.topology && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <Layers size={13} color="#a1887f" /> Network Topology
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.topology}
-                            </div>
-                          </div>
-                        )}
-
-                        {statsData.stats.bufferBusyStallRate !== undefined && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <AlertTriangle size={13} color="#ef5350" /> Buffer Busy Stall Rate
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.bufferBusyStallRate}
-                            </div>
-                          </div>
-                        )}
-
-                        {statsData.stats.bufferConflictStallRate !== undefined && (
-                          <div style={{ padding: '10px 12px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <AlertTriangle size={13} color="#ff7043" /> Buffer Conflict Stall Rate
-                            </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e0e0e0', fontFamily: 'var(--mono)' }}>
-                              {statsData.stats.bufferConflictStallRate}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
+                    );
+                  })() : null}
 
                   {/* Sub-dropdown Accordion Header for Log Files */}
                   <div 

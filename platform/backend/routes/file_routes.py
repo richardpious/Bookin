@@ -284,63 +284,48 @@ async def get_run_stats(path: str):
         full_text = header_text + "\n" + tail_text
         stats = {}
         
-        # Parse cycles
-        cycles_match = re.search(r'Time taken is (\d+) cycles', tail_text)
-        if cycles_match:
-            stats['cycles'] = int(cycles_match.group(1))
-            
-        # Parse latencies
-        pkt_lat = re.search(r'Packet latency average = ([\d\.]+)', tail_text)
-        if pkt_lat:
-            stats['packetLatencyAvg'] = float(pkt_lat.group(1))
-            
-        flit_lat = re.search(r'Flit latency average = ([\d\.]+)', tail_text)
-        if flit_lat:
-            stats['flitLatencyAvg'] = float(flit_lat.group(1))
-            
-        net_lat = re.search(r'Network latency average = ([\d\.]+)', tail_text)
-        if net_lat:
-            stats['networkLatencyAvg'] = float(net_lat.group(1))
-            
-        # Parse rates
-        inj_pkt_rate = re.search(r'Injected packet rate average = ([\d\.]+)', tail_text)
-        if inj_pkt_rate:
-            stats['injectedPacketRateAvg'] = float(inj_pkt_rate.group(1))
-
-        acc_pkt_rate = re.search(r'Accepted packet rate average = ([\d\.]+)', tail_text)
-        if acc_pkt_rate:
-            stats['acceptedPacketRateAvg'] = float(acc_pkt_rate.group(1))
-
-        inj_rate = re.search(r'Injected flit rate average = ([\d\.]+)', tail_text)
-        if inj_rate:
-            stats['injectedFlitRateAvg'] = float(inj_rate.group(1))
-
-        acc_rate = re.search(r'Accepted flit rate average = ([\d\.]+)', tail_text)
-        if acc_rate:
-            stats['acceptedFlitRateAvg'] = float(acc_rate.group(1))
-            
-        # Parse hops
-        hops = re.search(r'Hops average = ([\d\.]+)', tail_text)
-        if hops:
-            stats['hopsAvg'] = float(hops.group(1))
-            
-        # Parse stalls
-        buf_busy = re.search(r'Buffer busy stall rate = ([\d\.]+)', tail_text)
-        if buf_busy:
-            stats['bufferBusyStallRate'] = float(buf_busy.group(1))
-            
-        buf_conflict = re.search(r'Buffer conflict stall rate = ([\d\.]+)', tail_text)
-        if buf_conflict:
-            stats['bufferConflictStallRate'] = float(buf_conflict.group(1))
-            
-        xbar_conflict = re.search(r'Crossbar conflict stall rate = ([\d\.]+)', tail_text)
-        if xbar_conflict:
-            stats['crossbarConflictStallRate'] = float(xbar_conflict.group(1))
-            
-        # Parse run time
-        run_time = re.search(r'Total run time ([\d\.]+)', tail_text)
-        if run_time:
-            stats['totalRunTime'] = float(run_time.group(1))
+        # Generic parser for stats that follow the pattern:
+        #   Stat name average = <val> (N samples)
+        #           minimum = <val> (N samples)
+        #           maximum = <val> (N samples)
+        def parse_stat_block(label, key_prefix):
+            pattern = (
+                re.escape(label) + r' average = ([\d\.]+).*?\n'
+                r'\s+minimum = ([\d\.]+).*?\n'
+                r'\s+maximum = ([\d\.]+)'
+            )
+            m = re.search(pattern, tail_text)
+            if m:
+                stats[key_prefix + 'Avg'] = float(m.group(1))
+                stats[key_prefix + 'Min'] = float(m.group(2))
+                stats[key_prefix + 'Max'] = float(m.group(3))
+        
+        # Parse all stat blocks with avg/min/max
+        parse_stat_block('Packet latency', 'packetLatency')
+        parse_stat_block('Network latency', 'networkLatency')
+        parse_stat_block('Flit latency', 'flitLatency')
+        parse_stat_block('Fragmentation', 'fragmentation')
+        parse_stat_block('Injected packet rate', 'injectedPacketRate')
+        parse_stat_block('Accepted packet rate', 'acceptedPacketRate')
+        parse_stat_block('Injected flit rate', 'injectedFlitRate')
+        parse_stat_block('Accepted flit rate', 'acceptedFlitRate')
+        
+        # Parse simple single-value stats
+        def parse_simple(pattern, key, cast=float):
+            m = re.search(pattern, tail_text)
+            if m:
+                stats[key] = cast(m.group(1))
+        
+        parse_simple(r'Time taken is (\d+) cycles', 'cycles', int)
+        parse_simple(r'Hops average = ([\d\.]+)', 'hopsAvg')
+        parse_simple(r'Injected packet size average = ([\d\.]+)', 'injectedPacketSizeAvg')
+        parse_simple(r'Accepted packet size average = ([\d\.]+)', 'acceptedPacketSizeAvg')
+        parse_simple(r'Buffer busy stall rate = ([\d\.]+)', 'bufferBusyStallRate')
+        parse_simple(r'Buffer conflict stall rate = ([\d\.]+)', 'bufferConflictStallRate')
+        parse_simple(r'Buffer full stall rate = ([\d\.]+)', 'bufferFullStallRate')
+        parse_simple(r'Buffer reserved stall rate = ([\d\.]+)', 'bufferReservedStallRate')
+        parse_simple(r'Crossbar conflict stall rate = ([\d\.]+)', 'crossbarConflictStallRate')
+        parse_simple(r'Total run time ([\d\.]+)', 'totalRunTime')
             
         # Parse header config parameters if present
         top_match = re.search(r'topology\s*=\s*([^;]+);', full_text)
