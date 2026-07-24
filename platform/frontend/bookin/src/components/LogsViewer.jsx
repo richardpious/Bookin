@@ -129,7 +129,7 @@ export const LogsViewer = ({ session, onFileClick }) => {
   }
   
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: '24px', backgroundColor: 'var(--bg-main)', color: 'var(--text)' }}>
+    <div style={{ height: '100%', overflowY: 'auto', padding: '24px 24px 80px 24px', boxSizing: 'border-box', backgroundColor: 'var(--bg-main)', color: 'var(--text)' }}>
       <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', fontSize: '18px', fontWeight: 600, color: 'var(--text-h)' }}>
         <Activity size={20} color="#b0b0b0" />
         Logs for Session: {session}
