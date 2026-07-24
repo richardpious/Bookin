@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import asyncio
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -69,7 +70,14 @@ async def list_files(path: str = "."):
             is_dir = os.path.isdir(full_path)
             rel_path = os.path.relpath(full_path, root_dir)
 
-            item_data = {"name": name, "path": rel_path, "isDir": is_dir}
+            # Get modification timestamp
+            try:
+                mtime = os.path.getmtime(full_path)
+                modified_at = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+            except OSError:
+                modified_at = None
+
+            item_data = {"name": name, "path": rel_path, "isDir": is_dir, "modifiedAt": modified_at}
             if is_dir: dir_list.append(item_data)
             else: file_list.append(item_data)
         files = dir_list + file_list

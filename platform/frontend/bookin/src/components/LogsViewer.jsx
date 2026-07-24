@@ -30,7 +30,14 @@ export const LogsViewer = ({ session, onFileClick }) => {
       try {
         const items = await fetchFiles(basePath);
         // We only care about directories (run folders) at the top level
-        setFolders(items.filter(item => item.isDir));
+        // Sort by modification time, newest first
+        const dirs = items.filter(item => item.isDir);
+        dirs.sort((a, b) => {
+          const timeA = a.modifiedAt ? new Date(a.modifiedAt).getTime() : 0;
+          const timeB = b.modifiedAt ? new Date(b.modifiedAt).getTime() : 0;
+          return timeB - timeA;
+        });
+        setFolders(dirs);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -204,10 +211,37 @@ export const LogsViewer = ({ session, onFileClick }) => {
                 ) : (
                   <span style={{ fontWeight: 500, color: 'var(--text-h)', fontSize: '14px' }}>{folder.name}</span>
                 )}
+
+                {/* Timestamp */}
+                {folder.modifiedAt && (
+                  <span style={{
+                    marginLeft: 'auto',
+                    marginRight: '8px',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    fontFamily: 'var(--mono)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    opacity: 0.8,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}>
+                    <Clock size={13} color="#90caf9" />
+                    {new Date(folder.modifiedAt).toLocaleString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })}
+                  </span>
+                )}
                 
                 {/* 3-Dots Context Menu */}
                 <div 
-                  style={{ marginLeft: 'auto', position: 'relative' }} 
+                  style={{ position: 'relative' }} 
                   onClick={e => e.stopPropagation()}
                 >
                   <button
