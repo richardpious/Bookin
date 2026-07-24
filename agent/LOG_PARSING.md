@@ -4,9 +4,9 @@ This document defines how I handle, parse, and analyze simulation log files gene
 
 **Workflow for Log Processing:**
 1)  **Locate Log Files**:
-    *   Simulations generate logs in a run-specific sub-folder within the session's log directory (e.g., `../logs/[username]/[session_name]/run_[n]/`).
+    *   Simulations generate logs in a run-specific sub-folder within the session's log directory (e.g., `../logs/[username]/[session_name]/run_[n]_[topology]_[descriptor]/`).
 2)  **Parsing Strategy**:
-    *   I navigate to the session directory to locate the latest run-specific sub-folder and extract the generated log file.
+    *   I navigate to the session directory to locate the latest run-specific sub-folder (e.g., `run_01_mesh4x4_uniform` or `run_02_mesh4x4_rate0.05`) and extract the generated log file.
     *   I scan for headers like `====== Overall Traffic Statistics ======`.
     *   I extract specific metrics for each traffic class, including:
         *   Packet/Network/Flit Latency averages.

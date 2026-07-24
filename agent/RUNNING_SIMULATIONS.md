@@ -5,14 +5,14 @@ This document is the single source of truth for performing preparation, build, e
 ## Execution Workflow
 1.  **Preparation**: Verify environment paths (`../booksim`) and dependencies as per `../docs/booksim-docs`.
 2.  **Compilation**: Validate/rebuild the `../booksim/src/booksim` binary using appropriate build flags.
-3.  **Configuration & Generation**: Do NOT use existing config files as a crutch or show base configs asking "how about we edit this". Proactively generate/create the complete required `.cfg` file with all final parameters tailored to the requested simulation and place it in the designated run directory (`../logs/<username>/<session>/run_<n>/`).
+3.  **Configuration & Generation**: Do NOT use existing config files as a crutch or show base configs asking "how about we edit this". Proactively generate/create the complete required `.cfg` file with all final parameters tailored to the requested simulation and place it in the designated run directory (`../logs/<username>/<session>/run_<n>_<topology>_<descriptor>/`, e.g., `run_01_mesh4x4_uniform/` or `run_02_mesh4x4_rate0.05/`).
 4.  **Simulation Preview & Approval (MANDATORY)**:
     *   Once the complete config file is created/finalized, use the `file-open` tool to display the finalized configuration preview to the user. Do not show raw template configs.
     *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed by the user.
 5.  **Execution & Logging**:
     *   Determine the session folder path: extract the **username** and **session name** from the session key (the second-to-last and last segments). For example, `agent:main:richard:topologies` → `richard/topologies`. **Never** use the full session key as a folder name.
     *   Create `../logs/<username>/<session>/` for new sessions.
-    *   Create incremental run sub-folders for each simulation.
+    *   Create incremental, descriptive run sub-folders for each simulation following the `run_<n>_<topology>_<descriptor>/` pattern (e.g., `run_01_mesh4x4_uniform/`), where `<descriptor>` represents the distinguishing parameter/variable for that run.
     *   Execute binary from the run folder using `./booksim <config>.cfg > simulation_output.log 2>&1`; capture all output into the specified file.
     *   Ensure that any required output files (like `watch_out` traces) are also configured in the `.cfg` file to be saved within this same directory.
 6.  **Reporting**: Generate a summary including metrics and run metadata. 
