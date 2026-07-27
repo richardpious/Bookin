@@ -115,7 +115,7 @@ fi
 
 echo "Starting FastAPI backend..."
 cd "$PROJECT_ROOT/platform/backend"
-PORT=$BACKEND_PORT uvicorn main:app --host 0.0.0.0 --port $BACKEND_PORT &
+PORT=$BACKEND_PORT uvicorn main:app --host 0.0.0.0 --port $BACKEND_PORT --ws-ping-interval 30 --ws-ping-timeout 10 &
 BACKEND_PID=$!
 
 # Wait for both processes to complete
