@@ -15,6 +15,9 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
       console.log("WebSocket message received:", data);
     }
 
+    // Silently discard keep-alive pong responses
+    if (data.type === 'pong') return;
+
     if (data.type === 'gateway_log') {
       if (import.meta.env.DEV) {
         console.group("OpenClaw Gateway Event");

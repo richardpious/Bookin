@@ -42,9 +42,11 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     let currentWs = null;
     let cancelled = false;
     let retryTimeout = null;
+    let pingInterval = null;
     let retryCount = 0;
     const BASE_DELAY_MS = 1000;
     const MAX_DELAY_MS = 30_000;
+    const PING_INTERVAL_MS = 25_000; // 25s — under most proxy idle thresholds
 
     const connect = () => {
       if (cancelled) return;
@@ -67,6 +69,17 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
         if (cancelled) { ws.close(); return; }
         console.log('WebSocket connected');
         retryCount = 0; // reset backoff on successful connection
+
+        // Application-level keep-alive: send a lightweight ping every 25s.
+        // This produces real data-frame traffic that cloud reverse proxies
+        // (CloudSandbox, Cloudflare, etc.) count as activity.
+        clearInterval(pingInterval);
+        pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, PING_INTERVAL_MS);
+
         // Small delay so the banner is visible even on fast local connections.
         setTimeout(() => {
           if (!cancelled) setIsConnecting(false);
@@ -74,6 +87,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
       };
 
       ws.onclose = () => {
+        clearInterval(pingInterval);
         if (cancelled) return; // intentional close on unmount/session-switch — don't reconnect
         console.log('WebSocket disconnected — scheduling reconnect…');
         setIsLoading(false); // clear any stuck loading spinner
@@ -90,6 +104,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     return () => {
       cancelled = true;            // prevent any pending reconnect from firing
       clearTimeout(retryTimeout);  // cancel a scheduled retry if one is queued
+      clearInterval(pingInterval); // stop keep-alive pings
       if (currentWs) currentWs.close();
     };
   }, [sessionId, token]);
