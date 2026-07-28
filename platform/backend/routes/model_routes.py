@@ -61,11 +61,10 @@ async def get_models(request: Request):
             payload = resp.get('payload') or {}
             models_data = payload.get('models', [])
 
-            # Filter to only models that are available (have provider auth/config)
-            # or belong to enabled providers (google, nvidia, etc.)
+            # Filter to strictly display only gemini-3.1-flash-lite (excludes 2.5 or other versions)
             filtered_models = [
                 m for m in models_data
-                if m.get('available') is True or m.get('provider') in ['google', 'nvidia']
+                if "gemini-3.1-flash-lite" in m.get('id', '').lower()
             ]
 
             # Group models by provider
