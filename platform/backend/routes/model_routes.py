@@ -61,9 +61,16 @@ async def get_models(request: Request):
             payload = resp.get('payload') or {}
             models_data = payload.get('models', [])
 
+            # Filter to only models that are available (have provider auth/config)
+            # or belong to enabled providers (google, nvidia, etc.)
+            filtered_models = [
+                m for m in models_data
+                if m.get('available') is True or m.get('provider') in ['google', 'nvidia']
+            ]
+
             # Group models by provider
             providers = {}
-            for m in models_data:
+            for m in filtered_models:
                 p = m.get('provider', 'unknown')
                 if p not in providers:
                     providers[p] = []
