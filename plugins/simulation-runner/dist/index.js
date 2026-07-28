@@ -4389,12 +4389,12 @@ async function resolveConfigPath(rawPath, projectRoot) {
   if (path.isAbsolute(rawPath)) {
     candidates.push(rawPath);
   } else {
-    candidates.push(path.resolve(process.cwd(), rawPath));
+    candidates.push(path.resolve(projectRoot, "configs", path.basename(rawPath)));
     candidates.push(path.resolve(projectRoot, rawPath));
     const stripped = rawPath.replace(/^(?:\.\.\/)+/, "");
     candidates.push(path.resolve(projectRoot, stripped));
+    candidates.push(path.resolve(process.cwd(), rawPath));
     candidates.push(path.resolve(process.cwd(), stripped));
-    candidates.push(path.resolve(projectRoot, "configs", path.basename(rawPath)));
   }
   console.log(`[run_simulation] Resolving config path for '${rawPath}'. Candidate paths to check:`, candidates);
   for (const candidate of candidates) {

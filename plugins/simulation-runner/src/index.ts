@@ -16,17 +16,17 @@ async function resolveConfigPath(rawPath: string, projectRoot: string): Promise<
   if (path.isAbsolute(rawPath)) {
     candidates.push(rawPath);
   } else {
-    // 1. Relative to current working directory (agent workspace e.g. /home/dell/Documents/Bookin/agent)
-    candidates.push(path.resolve(process.cwd(), rawPath));
+    // 1. Primary canonical location: inside configs/ directory (e.g. /home/dell/Documents/Bookin/configs/filename.cfg)
+    candidates.push(path.resolve(projectRoot, "configs", path.basename(rawPath)));
     // 2. Relative to project root (/home/dell/Documents/Bookin)
     candidates.push(path.resolve(projectRoot, rawPath));
-    // 3. Stripped leading ../ relative to project root
+    // 3. Stripped leading ../ relative to project root (e.g. ../configs/file.cfg -> configs/file.cfg)
     const stripped = rawPath.replace(/^(?:\.\.\/)+/, "");
     candidates.push(path.resolve(projectRoot, stripped));
-    // 4. Stripped leading ../ relative to process.cwd()
+    // 4. Relative to current working directory (agent workspace)
+    candidates.push(path.resolve(process.cwd(), rawPath));
+    // 5. Stripped leading ../ relative to process.cwd()
     candidates.push(path.resolve(process.cwd(), stripped));
-    // 5. Check in configs directory
-    candidates.push(path.resolve(projectRoot, "configs", path.basename(rawPath)));
   }
 
   console.log(`[run_simulation] Resolving config path for '${rawPath}'. Candidate paths to check:`, candidates);

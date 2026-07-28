@@ -5,7 +5,7 @@ This document is the single source of truth for performing preparation, build, e
 ## Execution Workflow
 1.  **Preparation**: Verify environment paths (`../booksim`) and dependencies as per `../docs/booksim-docs`.
 2.  **Compilation**: Validate/rebuild the `../booksim/src/booksim` binary using appropriate build flags.
-3.  **Configuration & Generation**: Proactively generate/create the complete required `.cfg` file directly using standard parameters (referencing existing configs in `../configs/` if needed). Do NOT search C++ source files in `../booksim/src/` to write `.cfg` files, and do NOT show raw base templates asking the user "how about we edit this".
+3.  **Configuration & Generation**: All generated configuration files (`.cfg`) MUST be created inside `../configs/` (e.g., `../configs/mesh4x4_uniform.cfg`). Do NOT create new folders like `simulations/` or place `.cfg` files outside `../configs/`. Do NOT search C++ source files in `../booksim/src/` to write `.cfg` files, and do NOT show raw base templates asking the user "how about we edit this".
 4.  **Simulation Preview & Approval (MANDATORY)**:
     *   Once the complete config file is created/finalized, use the `file-open` tool to display the finalized configuration preview to the user. Do not show raw template configs.
     *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed by the user.
