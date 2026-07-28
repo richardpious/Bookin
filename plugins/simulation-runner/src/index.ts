@@ -198,7 +198,7 @@ export default defineToolPlugin({
               run_folder_cleaned: true,
               error: `BookSim simulation execution failed. ${execErr.message || String(execErr)}`,
               log_snippet: logErrorSnippet,
-              instruction: "The simulation failed due to a syntax or configuration error. Inspect the log_snippet above, correct the invalid parameter in the .cfg file, preview the updated config to the user via file-open, and re-invoke run_simulation."
+              instruction: "The simulation failed due to a syntax or configuration error. Inspect the log_snippet above, correct the invalid parameter in the .cfg file, and re-invoke run_simulation."
             };
           }
 
