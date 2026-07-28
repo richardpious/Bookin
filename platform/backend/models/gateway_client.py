@@ -72,8 +72,6 @@ class OpenClawGatewayClient:
             openclaw_session_id = session_id
         
         req_id = str(uuid.uuid4())
-        self.pending_chat_requests[req_id] = openclaw_session_id
-
         payload = {
             "type": "req",
             "id": req_id,
@@ -85,6 +83,11 @@ class OpenClawGatewayClient:
                 "deliver": False,
                 "idempotencyKey": str(uuid.uuid4())
             }
+        }
+        self.pending_chat_requests[req_id] = {
+            "compound_key": openclaw_session_id,
+            "payload": payload,
+            "retry_count": 0
         }
         await self.websocket.send(json.dumps(payload))
 
@@ -104,10 +107,35 @@ class OpenClawGatewayClient:
 
                     # If this is a response to a chat.send request
                     if request_id in self.pending_chat_requests:
-                        compound_key = self.pending_chat_requests.pop(request_id)
+                        req_info = self.pending_chat_requests.pop(request_id)
+                        if isinstance(req_info, dict):
+                            compound_key = req_info.get("compound_key", "")
+                            payload = req_info.get("payload")
+                            retry_count = req_info.get("retry_count", 0)
+                        else:
+                            compound_key = req_info
+                            payload = None
+                            retry_count = 0
+
                         if not data.get("ok"):
                             err_info = data.get("error", {})
                             err_msg = err_info.get("message", "Failed to start agent run")
+
+                            if "initialization conflicted" in err_msg.lower() and payload and retry_count < 3:
+                                delay = 0.4 * (retry_count + 1)
+                                logger.info(f"Session initialization conflicted for {compound_key}. Retrying in {delay:.1f}s (attempt {retry_count + 1}/3)...")
+                                await asyncio.sleep(delay)
+                                new_req_id = str(uuid.uuid4())
+                                payload["id"] = new_req_id
+                                payload["params"]["idempotencyKey"] = str(uuid.uuid4())
+                                self.pending_chat_requests[new_req_id] = {
+                                    "compound_key": compound_key,
+                                    "payload": payload,
+                                    "retry_count": retry_count + 1
+                                }
+                                await self.websocket.send(json.dumps(payload))
+                                continue
+
                             logger.warning(f"chat.send rejected for {compound_key}: {err_msg}")
                             if manager and hasattr(manager, 'app'):
                                 manager.app.state.busy_sessions.discard(compound_key)

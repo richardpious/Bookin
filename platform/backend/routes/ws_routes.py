@@ -93,8 +93,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                 # Send the message through the persistent Gateway WebSocket connection
                 busy_sessions.add(compound_key)
                 req_id = str(uuid.uuid4())
-                gateway_client.pending_chat_requests[req_id] = compound_key
-                await gateway_client.websocket.send(json.dumps({
+                payload = {
                     "type": "req",
                     "id": req_id,
                     "method": "chat.send",
@@ -105,7 +104,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                         "deliver": False,
                         "idempotencyKey": str(uuid.uuid4())
                     }
-                }))
+                }
+                gateway_client.pending_chat_requests[req_id] = {
+                    "compound_key": compound_key,
+                    "payload": payload,
+                    "retry_count": 0
+                }
+                await gateway_client.websocket.send(json.dumps(payload))
                 
             except Exception as e:
                 # Clear busy flag on send failure so the session isn't permanently stuck
