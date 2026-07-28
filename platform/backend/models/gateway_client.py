@@ -18,7 +18,9 @@ class OpenClawGatewayClient:
     async def connect(self):
         """Connects to the Gateway and performs the mandatory handshake."""
         try:
-            self.websocket = await websockets.connect(self.url)
+            self.websocket = await websockets.connect(
+                self.url, ping_interval=20, ping_timeout=20
+            )
             logger.info("Connected to OpenClaw Gateway WebSocket.")
 
             # 1. Wait for challenge

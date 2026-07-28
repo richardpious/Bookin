@@ -43,15 +43,57 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     let cancelled = false;
     let retryTimeout = null;
     let pingInterval = null;
+    let pongTimeoutId = null;
     let retryCount = 0;
     const BASE_DELAY_MS = 1000;
     const MAX_DELAY_MS = 30_000;
     const PING_INTERVAL_MS = 25_000; // 25s — under most proxy idle thresholds
+    const PONG_TIMEOUT_MS = 10_000;  // 10s to receive pong before declaring dead
+
+    // --- Visibility-change handler ---
+    // When the user returns to a backgrounded tab (common with CodeSandbox),
+    // the VM may have hibernated and killed all sockets. Detect this and
+    // fast-track a reconnect instead of waiting for the next backoff timer.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || cancelled) return;
+
+      if (!currentWs || currentWs.readyState === WebSocket.CLOSED || currentWs.readyState === WebSocket.CLOSING) {
+        // Socket is already dead — skip any pending backoff and reconnect now
+        console.log('[WS] Tab visible with dead socket — fast-tracking reconnect');
+        clearTimeout(retryTimeout);
+        clearInterval(pingInterval);
+        clearTimeout(pongTimeoutId);
+        retryCount = 0;
+        connect();
+      } else if (currentWs.readyState === WebSocket.OPEN) {
+        // Socket *appears* open — send a probe ping to verify.
+        // If the connection is half-dead the pong timeout will close it.
+        try {
+          currentWs.send(JSON.stringify({ type: 'ping' }));
+          clearTimeout(pongTimeoutId);
+          pongTimeoutId = setTimeout(() => {
+            console.warn('[WS] Post-wake pong timeout — forcing close');
+            if (currentWs) currentWs.close();
+          }, PONG_TIMEOUT_MS);
+        } catch (e) {
+          console.error('[WS] Failed to send wake ping:', e);
+          if (currentWs) currentWs.close();
+        }
+      }
+      // If CONNECTING, let the normal flow handle it
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const connect = () => {
       if (cancelled) return;
 
       setIsConnecting(true);
+
+      // Pong callback: clears the dead-man timeout whenever the server replies
+      const onPong = () => {
+        clearTimeout(pongTimeoutId);
+      };
 
       const ws = setupWebSocket(
         sessionId,
@@ -60,23 +102,32 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
         setIsLoading,
         (data) => handleOpenFilePreviewRef.current(data),
         (data) => handleSilentFileUpdateRef.current(data),
-        (data) => handleRequireApprovalRef.current(data)
+        (data) => handleRequireApprovalRef.current(data),
+        onPong
       );
       currentWs = ws;
       setSocket(ws);
 
       ws.onopen = () => {
         if (cancelled) { ws.close(); return; }
-        console.log('WebSocket connected');
+        console.log('[WS] Connected');
         retryCount = 0; // reset backoff on successful connection
 
         // Application-level keep-alive: send a lightweight ping every 25s.
         // This produces real data-frame traffic that cloud reverse proxies
-        // (CloudSandbox, Cloudflare, etc.) count as activity.
+        // (CodeSandbox, Cloudflare, etc.) count as activity.
         clearInterval(pingInterval);
         pingInterval = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'ping' }));
+            // Dead-man switch: if no pong arrives within 10s, the connection
+            // is half-dead (common after CodeSandbox VM hibernate). Force close
+            // so the onclose handler can reconnect cleanly.
+            clearTimeout(pongTimeoutId);
+            pongTimeoutId = setTimeout(() => {
+              console.warn('[WS] Pong timeout — forcing socket close');
+              ws.close();
+            }, PONG_TIMEOUT_MS);
           }
         }, PING_INTERVAL_MS);
 
@@ -86,14 +137,23 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
         }, 600);
       };
 
+      ws.onerror = (err) => {
+        console.error('[WS] Error:', err);
+        // The browser fires onclose after onerror in most cases, but if it
+        // doesn't we force-close to guarantee the reconnect path runs.
+        try { ws.close(); } catch (_) { /* already closing */ }
+      };
+
       ws.onclose = () => {
         clearInterval(pingInterval);
-        if (cancelled) return; // intentional close on unmount/session-switch — don't reconnect
-        console.log('WebSocket disconnected — scheduling reconnect…');
-        setIsLoading(false); // clear any stuck loading spinner
+        clearTimeout(pongTimeoutId);
+        if (cancelled) return;          // intentional close on unmount/session-switch
+        if (ws !== currentWs) return;    // stale socket — a newer connect() already ran
+        console.log('[WS] Disconnected — scheduling reconnect…');
+        setIsLoading(false);             // clear any stuck loading spinner
         setIsConnecting(true);
         const delay = Math.min(BASE_DELAY_MS * 2 ** retryCount, MAX_DELAY_MS);
-        console.log(`Reconnecting in ${delay}ms (attempt ${retryCount + 1})`);
+        console.log(`[WS] Reconnecting in ${delay}ms (attempt ${retryCount + 1})`);
         retryCount++;
         retryTimeout = setTimeout(connect, delay);
       };
@@ -102,9 +162,11 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     connect();
 
     return () => {
-      cancelled = true;            // prevent any pending reconnect from firing
-      clearTimeout(retryTimeout);  // cancel a scheduled retry if one is queued
-      clearInterval(pingInterval); // stop keep-alive pings
+      cancelled = true;                                      // prevent any pending reconnect
+      clearTimeout(retryTimeout);                            // cancel a scheduled retry
+      clearInterval(pingInterval);                           // stop keep-alive pings
+      clearTimeout(pongTimeoutId);                           // cancel pong dead-man switch
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (currentWs) currentWs.close();
     };
   }, [sessionId, token]);
