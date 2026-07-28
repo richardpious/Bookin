@@ -40,7 +40,9 @@ export const ModelSelector = ({ onModelChange, sessionId, onToast, initialModel,
     }
   };
 
-  const selectedModelName = models.find(m => m.id === selectedModel)?.name || 'Select Model';
+  const normalizeId = (id) => (typeof id === 'string' ? id.split('/').pop() : '');
+  const selectedModelObj = models.find(m => !m.isHeader && (m.id === selectedModel || normalizeId(m.id) === normalizeId(selectedModel)));
+  const selectedModelName = selectedModelObj?.name || 'Select Model';
 
   return (
     <div className="header-right" ref={dropdownRef}>
@@ -62,7 +64,7 @@ export const ModelSelector = ({ onModelChange, sessionId, onToast, initialModel,
               <div
                 key={model.id}
                 onClick={() => handleModelSelect(model)}
-                className="model-item"
+                className={`model-item ${normalizeId(model.id) === normalizeId(selectedModel) ? 'selected' : ''}`}
               >
                 {model.name}
               </div>
