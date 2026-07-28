@@ -71,9 +71,10 @@ jq --arg ws "$PROJECT_ROOT/agent" '
   .plugins.entries = {
     "google": {"enabled": true},
     "tool-approval": {"enabled": true},
-    "file-preview": {"enabled": true} }|
-  .plugins.allow = ["tool-approval", "file-preview"] |
-  .tools.alsoAllow = ["file-open"] |
+    "file-preview": {"enabled": true},
+    "simulation-runner": {"enabled": true} }|
+  .plugins.allow = ["tool-approval", "file-preview", "simulation-runner"] |
+  .tools.alsoAllow = ["file-open", "run_simulation"] |
   .tools.profile = "coding" |
   .tools.exec = {"host": "gateway", "security": "full", "ask": "off"} |
   .gateway.auth.token = env.OPENCLAW_GATEWAY_TOKEN |

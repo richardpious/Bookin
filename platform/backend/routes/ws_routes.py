@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 import json
 import uuid
+import logging
 from .auth_routes import get_current_user, get_current_username, build_session_key
+
+logger = logging.getLogger("WebSocketRoutes")
 
 router = APIRouter()
 
@@ -76,11 +79,24 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                                 }))
                             except:
                                 pass
+
+                # Guard: prevent sending while an agent run is already in-flight
+                busy_sessions = websocket.app.state.busy_sessions
+                if compound_key in busy_sessions:
+                    logger.warning(f"Blocked duplicate chat.send for busy session: {compound_key}")
+                    await manager.send_personal_message(
+                        {"type": "error", "message": "Agent is still processing. Please wait for the current response to finish."},
+                        compound_key
+                    )
+                    continue
                 
                 # Send the message through the persistent Gateway WebSocket connection
+                busy_sessions.add(compound_key)
+                req_id = str(uuid.uuid4())
+                gateway_client.pending_chat_requests[req_id] = compound_key
                 await gateway_client.websocket.send(json.dumps({
                     "type": "req",
-                    "id": str(uuid.uuid4()),
+                    "id": req_id,
                     "method": "chat.send",
                     "params": {
                         "sessionKey": build_session_key(username, client_id),
@@ -92,10 +108,17 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                 }))
                 
             except Exception as e:
+                # Clear busy flag on send failure so the session isn't permanently stuck
+                websocket.app.state.busy_sessions.discard(compound_key)
                 error_msg = str(e)
                 chat_db.add_message(client_id, "agent", f"Error: {error_msg}")
                 await manager.send_personal_message({"type": "error", "message": error_msg}, compound_key)
     except WebSocketDisconnect:
         manager.disconnect(compound_key, websocket)
+        # Clear busy flag if no more connections remain for this session
+        if compound_key not in manager.active_connections:
+            websocket.app.state.busy_sessions.discard(compound_key)
     except Exception as e:
         manager.disconnect(compound_key, websocket)
+        if compound_key not in manager.active_connections:
+            websocket.app.state.busy_sessions.discard(compound_key)

@@ -131,6 +131,9 @@ npm run build
 cd "$PROJECT_ROOT/plugins/file-preview"
 npm run build
 
+cd "$PROJECT_ROOT/plugins/simulation-runner"
+npm run build
+
 cd "$PROJECT_ROOT"
 
 echo "=== 7. Building Frontend ==="
@@ -142,6 +145,7 @@ cd "$PROJECT_ROOT"
 echo "=== 8. Registering Plugins with OpenClaw ==="
 openclaw plugins install "$PROJECT_ROOT/plugins/file-preview" --force
 openclaw plugins install "$PROJECT_ROOT/plugins/tool-approval" --force
+openclaw plugins install "$PROJECT_ROOT/plugins/simulation-runner" --force
 
 echo "=== Setup Complete ==="
 echo "Make sure to set your GEMINI_API_KEY environment variable before running the app:"

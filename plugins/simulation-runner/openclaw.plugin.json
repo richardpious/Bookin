@@ -1,0 +1,19 @@
+{
+  "id": "simulation-runner",
+  "name": "Simulation Runner",
+  "description": "Executes BookSim simulations sequentially, staging config.cfg, logging output, and parsing metrics.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "run_simulation"
+    ]
+  }
+}

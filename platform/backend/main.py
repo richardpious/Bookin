@@ -52,6 +52,7 @@ app.state.manager = manager
 app.state.chat_db = chat_db
 app.state.gateway_client = gateway_client
 app.state.search_engine = search_engine
+app.state.busy_sessions = set()  # tracks sessions with an active agent run
 
 @app.on_event("startup")
 async def startup_event():

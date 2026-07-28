@@ -167,6 +167,7 @@ function App() {
           activeLine={activeLine}
           fileContents={fileContents}
           dirtyFiles={dirtyFiles}
+          isLoading={isLoading}
           onTabClick={(path) => { setActiveFile(path); setActiveLine(null); }}
           onCloseTab={handleCloseFile}
           onUpdateFile={handleUpdateFileContent}

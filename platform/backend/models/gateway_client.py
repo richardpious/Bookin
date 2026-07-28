@@ -14,6 +14,7 @@ class OpenClawGatewayClient:
         self.url = url
         self.token = token or os.environ.get("OPENCLAW_GATEWAY_TOKEN", "34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece")
         self.websocket = None
+        self.pending_chat_requests = {}  # req_id -> compound_key
 
     async def connect(self):
         """Connects to the Gateway and performs the mandatory handshake."""
@@ -70,9 +71,12 @@ class OpenClawGatewayClient:
             session_key = f"agent:main:webchat:{session_id}"
             openclaw_session_id = session_id
         
+        req_id = str(uuid.uuid4())
+        self.pending_chat_requests[req_id] = openclaw_session_id
+
         payload = {
             "type": "req",
-            "id": str(uuid.uuid4()),
+            "id": req_id,
             "method": "chat.send",
             "params": {
                 "sessionKey": session_key,
@@ -96,8 +100,26 @@ class OpenClawGatewayClient:
                 # Handle responses to our requests
                 if data.get("type") == "res":
                     logger.info(f"Received response: {data}")
+                    request_id = data.get("id")
+
+                    # If this is a response to a chat.send request
+                    if request_id in self.pending_chat_requests:
+                        compound_key = self.pending_chat_requests.pop(request_id)
+                        if not data.get("ok"):
+                            err_info = data.get("error", {})
+                            err_msg = err_info.get("message", "Failed to start agent run")
+                            logger.warning(f"chat.send rejected for {compound_key}: {err_msg}")
+                            if manager and hasattr(manager, 'app'):
+                                manager.app.state.busy_sessions.discard(compound_key)
+                                chat_db = manager.app.state.chat_db
+                                db_session_id = compound_key.split(":", 1)[1] if ":" in compound_key else compound_key
+                                chat_db.add_message(db_session_id, "agent", f"[Error] {err_msg}")
+                                await manager.send_personal_message(
+                                    {"type": "error", "message": err_msg},
+                                    compound_key
+                                )
+
                     if manager and hasattr(manager, 'app'):
-                        request_id = data.get("id")
                         if not hasattr(manager.app.state, 'pending_responses'):
                             manager.app.state.pending_responses = {}
                         manager.app.state.pending_responses[request_id] = data
@@ -168,6 +190,8 @@ class OpenClawGatewayClient:
                                         if full_text:
                                             chat_db = manager.app.state.chat_db
                                             chat_db.add_message(db_session_id, "agent", full_text)
+                                        # Clear busy flag — agent run finished
+                                        manager.app.state.busy_sessions.discard(client_id)
                                         await manager.send_personal_message({"type": "done"}, client_id)
 
                                     elif state == "error":
@@ -178,6 +202,8 @@ class OpenClawGatewayClient:
                                             continue
                                             
                                         logger.warning(f"Agent run error for session {client_id}: {error_message}")
+                                        # Clear busy flag — agent run errored out
+                                        manager.app.state.busy_sessions.discard(client_id)
                                         # Persist the error to chat history with a clear prefix
                                         chat_db = manager.app.state.chat_db
                                         chat_db.add_message(db_session_id, "agent", f"[Error] {error_message}")

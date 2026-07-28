@@ -172,7 +172,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
   }, [sessionId, token]);
 
   const handleSend = async (text, metadata = {}) => {
-    if (text.trim() && socket && !isConnecting) {
+    if (text.trim() && socket && !isConnecting && !isLoading) {
       if (!metadata.silent) {
       setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text }]);
     }

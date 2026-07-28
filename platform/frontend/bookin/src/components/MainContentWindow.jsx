@@ -6,7 +6,7 @@ const CodeEditor = lazy(() => import('./CodeEditor'));
 const LogsViewer = lazy(() => import('./LogsViewer'));
 const ConfigParametersModal = lazy(() => import('./ConfigParametersModal'));
 
-export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
+export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (openFiles.length === 0) {
@@ -77,24 +77,27 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
           }}>
             <button
               onClick={() => {
+                if (isLoading) return;
                 onSendMessage(`proceed with the simulation and give me the results(this includes the statistics, such as latency, injection rate, stalls, etc.). you have my approval.`, { silent: true });
                 onAddMessage('Starting simulation...');
               }}
+              disabled={isLoading}
               style={{
                 padding: '8px 16px',
-                background: '#4b4b4bff',
+                background: isLoading ? '#3a3a3a' : '#4b4b4bff',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: 'pointer',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                opacity: isLoading ? 0.5 : 1,
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
               }}
             >
               <Play size={16} />
-              Run Simulation
+              {isLoading ? 'Agent Busy...' : 'Run Simulation'}
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
