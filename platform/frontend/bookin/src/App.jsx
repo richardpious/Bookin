@@ -126,6 +126,7 @@ function App() {
         onSearch={handleSearch}
         username={username}
         onLogout={handleLogout}
+        token={token}
       />
       <ApprovalModal
         isOpen={!!approvalRequest}

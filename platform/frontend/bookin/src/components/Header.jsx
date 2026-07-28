@@ -3,14 +3,16 @@ import { HeaderSearch } from './HeaderSearch';
 import { ModelSelector } from './ModelSelector';
 import { ThinkingLevelSelector } from './ThinkingLevelSelector';
 
-export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch, username, onLogout }) => {
+export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch, username, onLogout, token }) => {
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState('success');
   const [sessionData, setSessionData] = useState(null);
 
   const refreshSessionData = () => {
     if (sessionId) {
-      fetch(`/init-session?session_id=${sessionId}`)
+      fetch(`/init-session?session_id=${sessionId}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
         .then(res => res.json())
         .then(data => {
           console.log("Refreshed session data:", data);
