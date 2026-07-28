@@ -80,6 +80,9 @@ jq --arg ws "$PROJECT_ROOT/agent" '
   .gateway.bind = "loopback" |
   .agents.defaults.workspace = $ws |
   .agents.defaults.model.primary = "google/gemini-3.1-flash-lite" |
+  .agents.defaults.models = {
+    "google/gemini-3.1-pro-preview": {},
+    "google/gemini-3.1-flash-lite": {} }|
   .agents.defaults.memorySearch = {"provider": "gemini"} |
   .hooks.internal.enabled = true |
   .hooks.internal.entries["boot-md"].enabled = true |
