@@ -12,6 +12,7 @@ PROJECT_ROOT="$(pwd)"
 export OPENCLAW_HOME="$PROJECT_ROOT"
 OPENCLAW_PREFIX="$PROJECT_ROOT/.openclaw"
 CONFIG="$OPENCLAW_PREFIX/openclaw.json"
+export OPENCLAW_CONFIG_PATH="$CONFIG"
 export PATH="$OPENCLAW_PREFIX/bin:$OPENCLAW_PREFIX/tools/node/bin:$PATH"
 
 # Ensure correct Node.js version is used if nvm is installed

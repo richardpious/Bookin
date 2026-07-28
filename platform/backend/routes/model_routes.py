@@ -42,7 +42,7 @@ async def get_models(request: Request):
         "type": "req",
         "id": request_id,
         "method": "models.list",
-        "params": {}
+        "params": {"view": "all"}
     }))
     
     # Ensure pending_responses dict exists
