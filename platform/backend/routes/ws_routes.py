@@ -40,18 +40,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
         while True:
             message_text = await websocket.receive_text()
 
-            # Application-level keep-alive: respond to pings immediately
-            # without processing them as chat messages. This generates real
-            # data-frame traffic that cloud reverse proxies (CloudSandbox,
-            # Cloudflare, etc.) recognise, preventing idle-timeout drops.
-            try:
-                _peek = json.loads(message_text)
-                if isinstance(_peek, dict) and _peek.get("type") == "ping":
-                    await websocket.send_text(json.dumps({"type": "pong"}))
-                    continue
-            except (json.JSONDecodeError, ValueError):
-                pass
-
             print(f"DEBUG: [WebSocket Received] {message_text}")
 
             # Check if it's a JSON command

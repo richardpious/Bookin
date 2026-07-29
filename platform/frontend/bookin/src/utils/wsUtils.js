@@ -1,4 +1,4 @@
-export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval, onPong) => {
+export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval) => {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const url = `${wsProtocol}//${window.location.host}/ws/${client_id}${token ? `?token=${token}` : ''}`;
   const ws = new WebSocket(url);
@@ -15,11 +15,6 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
       console.log("WebSocket message received:", data);
     }
 
-    // Keep-alive pong: notify caller so it can clear the dead-man timeout
-    if (data.type === 'pong') {
-      if (onPong) onPong();
-      return;
-    }
 
     if (data.type === 'gateway_log') {
       if (import.meta.env.DEV) {

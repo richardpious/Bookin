@@ -11,11 +11,13 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
   const handleOpenFilePreviewRef = useRef(handleOpenFilePreview);
   const handleSilentFileUpdateRef = useRef(handleSilentFileUpdate);
   const handleRequireApprovalRef = useRef(handleRequireApproval);
+
   useEffect(() => {
     handleOpenFilePreviewRef.current = handleOpenFilePreview;
     handleSilentFileUpdateRef.current = handleSilentFileUpdate;
     handleRequireApprovalRef.current = handleRequireApproval;
   }, [handleOpenFilePreview, handleSilentFileUpdate, handleRequireApproval]);
+
   useEffect(() => {
     if (!sessionId || !token) {
       setMessages([]);
@@ -42,58 +44,53 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     let currentWs = null;
     let cancelled = false;
     let retryTimeout = null;
-    let pingInterval = null;
-    let pongTimeoutId = null;
     let retryCount = 0;
     const BASE_DELAY_MS = 1000;
-    const MAX_DELAY_MS = 30_000;
-    const PING_INTERVAL_MS = 25_000; // 25s — under most proxy idle thresholds
-    const PONG_TIMEOUT_MS = 10_000;  // 10s to receive pong before declaring dead
+    const MAX_DELAY_MS = 3000; // Cap backoff at 3 seconds for fast recovery
 
-    // --- Visibility-change handler ---
-    // When the user returns to a backgrounded tab (common with CodeSandbox),
-    // the VM may have hibernated and killed all sockets. Detect this and
-    // fast-track a reconnect instead of waiting for the next backoff timer.
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible' || cancelled) return;
-
+    const triggerFastReconnect = () => {
+      if (cancelled) return;
       if (!currentWs || currentWs.readyState === WebSocket.CLOSED || currentWs.readyState === WebSocket.CLOSING) {
-        // Socket is already dead — skip any pending backoff and reconnect now
-        console.log('[WS] Tab visible with dead socket — fast-tracking reconnect');
+        console.log('[WS] Fast-tracking reconnect due to event (user interaction / online / tab focus)');
         clearTimeout(retryTimeout);
-        clearInterval(pingInterval);
-        clearTimeout(pongTimeoutId);
         retryCount = 0;
         connect();
-      } else if (currentWs.readyState === WebSocket.OPEN) {
-        // Socket *appears* open — send a probe ping to verify.
-        // If the connection is half-dead the pong timeout will close it.
-        try {
-          currentWs.send(JSON.stringify({ type: 'ping' }));
-          clearTimeout(pongTimeoutId);
-          pongTimeoutId = setTimeout(() => {
-            console.warn('[WS] Post-wake pong timeout — forcing close');
-            if (currentWs) currentWs.close();
-          }, PONG_TIMEOUT_MS);
-        } catch (e) {
-          console.error('[WS] Failed to send wake ping:', e);
-          if (currentWs) currentWs.close();
-        }
       }
-      // If CONNECTING, let the normal flow handle it
     };
 
+    // Fast-track reconnect if user clicks or presses a key while disconnected
+    const handleUserInteraction = () => {
+      triggerFastReconnect();
+    };
+
+    // Fast-track reconnect when returning to the tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        triggerFastReconnect();
+      }
+    };
+
+    window.addEventListener('pointerdown', handleUserInteraction);
+    window.addEventListener('keydown', handleUserInteraction);
+    window.addEventListener('online', triggerFastReconnect);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    const connect = () => {
+    const connect = async () => {
       if (cancelled) return;
 
       setIsConnecting(true);
 
-      // Pong callback: clears the dead-man timeout whenever the server replies
-      const onPong = () => {
-        clearTimeout(pongTimeoutId);
-      };
+      // HTTP Proxy Wake-up: Send a quick HTTP request to ensure the CodeSandbox
+      // container & reverse proxy routes are active before attempting WebSocket handshake.
+      try {
+        await fetch('/sessions', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (_) {
+        /* Ignore HTTP errors; sending packets wakes up the container route */
+      }
+
+      if (cancelled) return;
 
       const ws = setupWebSocket(
         sessionId,
@@ -102,8 +99,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
         setIsLoading,
         (data) => handleOpenFilePreviewRef.current(data),
         (data) => handleSilentFileUpdateRef.current(data),
-        (data) => handleRequireApprovalRef.current(data),
-        onPong
+        (data) => handleRequireApprovalRef.current(data)
       );
       currentWs = ws;
       setSocket(ws);
@@ -113,24 +109,6 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
         console.log('[WS] Connected');
         retryCount = 0; // reset backoff on successful connection
 
-        // Application-level keep-alive: send a lightweight ping every 25s.
-        // This produces real data-frame traffic that cloud reverse proxies
-        // (CodeSandbox, Cloudflare, etc.) count as activity.
-        clearInterval(pingInterval);
-        pingInterval = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'ping' }));
-            // Dead-man switch: if no pong arrives within 10s, the connection
-            // is half-dead (common after CodeSandbox VM hibernate). Force close
-            // so the onclose handler can reconnect cleanly.
-            clearTimeout(pongTimeoutId);
-            pongTimeoutId = setTimeout(() => {
-              console.warn('[WS] Pong timeout — forcing socket close');
-              ws.close();
-            }, PONG_TIMEOUT_MS);
-          }
-        }, PING_INTERVAL_MS);
-
         // Small delay so the banner is visible even on fast local connections.
         setTimeout(() => {
           if (!cancelled) setIsConnecting(false);
@@ -139,14 +117,10 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
 
       ws.onerror = (err) => {
         console.error('[WS] Error:', err);
-        // The browser fires onclose after onerror in most cases, but if it
-        // doesn't we force-close to guarantee the reconnect path runs.
         try { ws.close(); } catch (_) { /* already closing */ }
       };
 
       ws.onclose = () => {
-        clearInterval(pingInterval);
-        clearTimeout(pongTimeoutId);
         if (cancelled) return;          // intentional close on unmount/session-switch
         if (ws !== currentWs) return;    // stale socket — a newer connect() already ran
         console.log('[WS] Disconnected — scheduling reconnect…');
@@ -162,10 +136,11 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     connect();
 
     return () => {
-      cancelled = true;                                      // prevent any pending reconnect
-      clearTimeout(retryTimeout);                            // cancel a scheduled retry
-      clearInterval(pingInterval);                           // stop keep-alive pings
-      clearTimeout(pongTimeoutId);                           // cancel pong dead-man switch
+      cancelled = true;
+      clearTimeout(retryTimeout);
+      window.removeEventListener('pointerdown', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
+      window.removeEventListener('online', triggerFastReconnect);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (currentWs) currentWs.close();
     };
@@ -174,8 +149,8 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
   const handleSend = async (text, metadata = {}) => {
     if (text.trim() && socket && !isConnecting && !isLoading) {
       if (!metadata.silent) {
-      setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text }]);
-    }
+        setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text }]);
+      }
       setIsLoading(true);
 
       // Determine if we should send a JSON object for silent commands
@@ -186,10 +161,9 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
         }));
       } else {
         socket.send(text);
-    }
+      }
     }
   };
 
   return { messages, isLoading, isConnecting, handleSend, setMessages, messagesEndRef };
 };
-
