@@ -80,12 +80,10 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
 
       setIsConnecting(true);
 
-      // HTTP Proxy Wake-up: Send a quick HTTP request to ensure the CodeSandbox
+      // HTTP Proxy Wake-up: Send a lightweight HTTP request to ensure the CodeSandbox
       // container & reverse proxy routes are active before attempting WebSocket handshake.
       try {
-        await fetch('/sessions', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        await fetch('/health');
       } catch (_) {
         /* Ignore HTTP errors; sending packets wakes up the container route */
       }
