@@ -44,9 +44,11 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     let currentWs = null;
     let cancelled = false;
     let retryTimeout = null;
+    let healthInterval = null;
     let retryCount = 0;
     const BASE_DELAY_MS = 1000;
     const MAX_DELAY_MS = 3000; // Cap backoff at 3 seconds for fast recovery
+    const HEALTH_INTERVAL_MS = 60_000; // 1 minute HTTP keep-warm timer
 
     const triggerFastReconnect = () => {
       if (cancelled) return;
@@ -107,6 +109,13 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
         console.log('[WS] Connected');
         retryCount = 0; // reset backoff on successful connection
 
+        // Keep-Warm HTTP Timer: Send a lightweight HTTP request every 60s
+        // to prevent CodeSandbox container hibernation while tab is active.
+        clearInterval(healthInterval);
+        healthInterval = setInterval(() => {
+          if (!cancelled) fetch('/health').catch(() => {});
+        }, HEALTH_INTERVAL_MS);
+
         // Small delay so the banner is visible even on fast local connections.
         setTimeout(() => {
           if (!cancelled) setIsConnecting(false);
@@ -119,6 +128,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
       };
 
       ws.onclose = () => {
+        clearInterval(healthInterval);
         if (cancelled) return;          // intentional close on unmount/session-switch
         if (ws !== currentWs) return;    // stale socket — a newer connect() already ran
         console.log('[WS] Disconnected — scheduling reconnect…');
@@ -136,6 +146,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     return () => {
       cancelled = true;
       clearTimeout(retryTimeout);
+      clearInterval(healthInterval);
       window.removeEventListener('pointerdown', handleUserInteraction);
       window.removeEventListener('keydown', handleUserInteraction);
       window.removeEventListener('online', triggerFastReconnect);
