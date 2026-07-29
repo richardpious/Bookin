@@ -48,7 +48,7 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     let retryCount = 0;
     const BASE_DELAY_MS = 1000;
     const MAX_DELAY_MS = 3000; // Cap backoff at 3 seconds for fast recovery
-    const HEALTH_INTERVAL_MS = 60_000; // 1 minute HTTP keep-warm timer
+    const HEALTH_INTERVAL_MS = 25_000; // 25s keep-warm timer to prevent proxy route hibernation
 
     const triggerFastReconnect = () => {
       if (cancelled) return;
@@ -77,18 +77,14 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     window.addEventListener('online', triggerFastReconnect);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    const connect = async () => {
+    const connect = () => {
       if (cancelled) return;
 
       setIsConnecting(true);
 
-      // HTTP Proxy Wake-up: Send a lightweight HTTP request to ensure the CodeSandbox
-      // container & reverse proxy routes are active before attempting WebSocket handshake.
-      try {
-        await fetch('/health');
-      } catch (_) {
-        /* Ignore HTTP errors; sending packets wakes up the container route */
-      }
+      // Non-blocking HTTP Proxy Wake-up: Fire HTTP request in background without awaiting
+      // so WebSocket handshake starts immediately without 25-second delay.
+      fetch('/health').catch(() => {});
 
       if (cancelled) return;
 
@@ -109,11 +105,13 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
         console.log('[WS] Connected');
         retryCount = 0; // reset backoff on successful connection
 
-        // Keep-Warm HTTP Timer: Send a lightweight HTTP request every 60s
-        // to prevent CodeSandbox container hibernation while tab is active.
+        // Keep-Warm HTTP & WS Stream Timer: Send lightweight HTTP request every 25s
+        // to prevent CodeSandbox container hibernation and 5-minute proxy stream timeouts.
         clearInterval(healthInterval);
         healthInterval = setInterval(() => {
-          if (!cancelled) fetch('/health').catch(() => {});
+          if (!cancelled) {
+            fetch('/health').catch(() => {});
+          }
         }, HEALTH_INTERVAL_MS);
 
         // Small delay so the banner is visible even on fast local connections.
