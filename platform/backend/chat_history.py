@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import bcrypt
+import json
 from datetime import datetime
 
 class ChatHistoryDB:
@@ -155,6 +156,52 @@ class ChatHistoryDB:
             conn.commit()
         finally:
             conn.close()
+
+    def update_tool_message(self, session_id, tool_call_id, tool_data):
+        if not tool_call_id or not session_id:
+            return
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        try:
+            conn.execute("PRAGMA foreign_keys = ON;")
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT id, message FROM messages WHERE session_id = ? AND sender = "tool" ORDER BY id DESC',
+                (session_id,)
+            )
+            rows = cursor.fetchall()
+            target_id = None
+            target_json = {}
+            for row_id, msg_str in rows:
+                try:
+                    msg_obj = json.loads(msg_str)
+                    if msg_obj.get("toolCallId") == tool_call_id:
+                        target_id = row_id
+                        target_json = msg_obj
+                        break
+                except Exception:
+                    continue
+            
+            target_json.update(tool_data)
+            updated_str = json.dumps(target_json)
+
+            if target_id is not None:
+                cursor.execute(
+                    'UPDATE messages SET message = ? WHERE id = ?',
+                    (updated_str, target_id)
+                )
+            else:
+                cursor.execute(
+                    'INSERT INTO messages (session_id, sender, message) VALUES (?, "tool", ?)',
+                    (session_id, updated_str)
+                )
+            cursor.execute(
+                'UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                (session_id,)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
 
     def get_history(self, session_id):
         conn = sqlite3.connect(self.db_path, timeout=10)

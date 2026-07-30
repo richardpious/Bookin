@@ -161,21 +161,42 @@ class OpenClawGatewayClient:
                         
                         # Persist tool execution events to DB for long-term history
                         if event_name == "agent":
-                            evt_data = event_payload.get("data", {})
-                            stream = event_payload.get("stream", "")
+                            evt_data = event_payload.get("data", {}) if isinstance(event_payload, dict) else {}
+                            stream = event_payload.get("stream", "") if isinstance(event_payload, dict) else ""
                             
-                            if stream == "item" and evt_data.get("kind") == "tool" and evt_data.get("phase") == "start":
+                            is_tool_event = (stream == "item" and (evt_data.get("kind") == "tool" or evt_data.get("kind") == "command")) or (stream == "tool")
+                            if is_tool_event:
                                 if session_key and ":" in session_key:
                                     parts = session_key.split(":")
                                     if len(parts) >= 4:
                                         db_session_id = parts[-1]
-                                        tool_json = json.dumps({
-                                            "toolCallId": evt_data.get("toolCallId"),
-                                            "title": evt_data.get("title", ""),
-                                            "name": evt_data.get("name", ""),
-                                            "meta": evt_data.get("meta", {})
-                                        })
-                                        manager.app.state.chat_db.add_message(db_session_id, "tool", tool_json)
+                                        tool_call_id = evt_data.get("toolCallId") or evt_data.get("itemId") or evt_data.get("id")
+                                        if tool_call_id:
+                                            tool_data = {
+                                                "toolCallId": tool_call_id,
+                                                "title": evt_data.get("title") or evt_data.get("name") or "",
+                                                "name": evt_data.get("name") or evt_data.get("title") or "",
+                                            }
+                                            meta_val = evt_data.get("meta") or evt_data.get("args")
+                                            if meta_val:
+                                                tool_data["meta"] = meta_val
+                                            if evt_data.get("phase"):
+                                                tool_data["phase"] = evt_data.get("phase")
+                                            if "status" in evt_data:
+                                                tool_data["status"] = evt_data.get("status")
+                                            if "isError" in evt_data:
+                                                tool_data["isError"] = evt_data.get("isError")
+                                            
+                                            result_val = None
+                                            for k in ["result", "output", "progressText", "partialResult", "details", "content", "text", "error"]:
+                                                if k in evt_data and evt_data[k] is not None:
+                                                    result_val = evt_data[k]
+                                                    break
+                                            if result_val is not None:
+                                                tool_data["result"] = result_val
+
+                                            manager.app.state.chat_db.update_tool_message(db_session_id, tool_call_id, tool_data)
+
 
                         forward_packet = {"type": "gateway_log", "payload": data}
                         for client_id in manager.active_connections:

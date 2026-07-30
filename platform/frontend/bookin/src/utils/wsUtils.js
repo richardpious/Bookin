@@ -24,39 +24,66 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
 
       if (data.payload?.type === 'event' && data.payload?.event === 'agent') {
         const agentEventData = data.payload.payload;
-        if (agentEventData?.stream === 'item') {
-           const { title, name, phase, kind, meta } = agentEventData.data || {};
-           
-           if (import.meta.env.DEV) {
-             console.log("TOOL ITEM EVENT:", { title, name, phase, kind, meta });
-           }
+        const stream = agentEventData?.stream;
+        if (stream === 'item' || stream === 'tool') {
+          const evtData = agentEventData.data || {};
+          const { title, name, phase, kind, meta, args, result, output, partialResult, details, content, status, isError, progressText } = evtData;
+          const toolCallId = evtData.toolCallId || evtData.itemId || evtData.id;
 
-           if (kind === 'tool') {
-             setMessages(prev => {
-               const existingIndex = prev.findIndex(m => m.toolCallId === agentEventData.data.toolCallId);
-               
-               if (existingIndex >= 0) {
-                 const newMessages = [...prev];
-                 newMessages[existingIndex] = {
-                   ...newMessages[existingIndex],
-                   toolName: title || name,
-                   toolParams: meta || newMessages[existingIndex].toolParams
-                 };
-                 return newMessages;
-               } else {
-                 return [...prev, {
-                   id: Date.now() + Math.random(),
-                   toolCallId: agentEventData.data.toolCallId,
-                   sender: 'agent',
-                   isStatus: true,
-                   isComplete: true,
-                   toolName: title || name,
-                   toolParams: meta || {},
-                   text: `Using tool: ${title || name}`
-                 }];
-               }
-             });
-           }
+          if ((kind === 'tool' || kind === 'command' || stream === 'tool') && toolCallId) {
+            const extractedResult =
+              result !== undefined && result !== null ? result :
+                output !== undefined && output !== null ? output :
+                  progressText !== undefined && progressText !== null ? progressText :
+                    partialResult !== undefined && partialResult !== null ? partialResult :
+                      details !== undefined && details !== null ? details :
+                        content !== undefined && content !== null ? content :
+                          evtData.text !== undefined && evtData.text !== null ? evtData.text :
+                            null;
+
+            setMessages(prev => {
+              const existingIndex = prev.findIndex(m =>
+                m.toolCallId === toolCallId ||
+                (evtData.itemId && m.toolCallId === evtData.itemId) ||
+                (evtData.toolCallId && m.toolCallId === evtData.toolCallId)
+              );
+
+              const existing = existingIndex >= 0 ? prev[existingIndex] : null;
+              const hasMeta = meta && typeof meta === 'object' && Object.keys(meta).length > 0;
+              const hasArgs = args && typeof args === 'object' && Object.keys(args).length > 0;
+              const finalParams = hasMeta ? meta : (hasArgs ? args : existing?.toolParams || {});
+              const finalResult = extractedResult !== null ? extractedResult : existing?.toolResult;
+
+              if (existingIndex >= 0) {
+                const newMessages = [...prev];
+                newMessages[existingIndex] = {
+                  ...existing,
+                  toolName: title || name || existing.toolName,
+                  toolParams: finalParams,
+                  ...(phase && { phase }),
+                  ...(finalResult !== undefined && finalResult !== null && { toolResult: finalResult }),
+                  ...(status && { status }),
+                  ...(isError !== undefined && { isError: Boolean(isError) }),
+                  isComplete: phase === 'result' || phase === 'end' || Boolean(finalResult || status === 'completed' || status === 'failed')
+                };
+                return newMessages;
+              } else {
+                return [...prev, {
+                  id: Date.now() + Math.random(),
+                  toolCallId: toolCallId,
+                  sender: 'agent',
+                  isStatus: true,
+                  isComplete: phase === 'result' || phase === 'end' || Boolean(extractedResult || status === 'completed' || status === 'failed'),
+                  toolName: title || name || 'Tool',
+                  toolParams: finalParams,
+                  toolResult: finalResult,
+                  status: status || (isError ? 'failed' : 'running'),
+                  isError: Boolean(isError),
+                  text: `Using tool: ${title || name || 'Tool'}`
+                }];
+              }
+            });
+          }
         }
       }
 
@@ -84,9 +111,9 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
     if (data.type === 'requireApproval') {
       onRequireApproval(data.data);
     } else if (data.type === 'simulation-completed' || data.type === 'file-changed') {
-        const fullPath = data.path;
-        console.log("WebSocket file update received:", data.type, fullPath);
-        onFileSilentUpdate(fullPath);
+      const fullPath = data.path;
+      console.log("WebSocket file update received:", data.type, fullPath);
+      onFileSilentUpdate(fullPath);
     } else if (data.type === 'file-preview') {
       onFilePreview(data.data); // data.data is now the file path string
     } else if (data.type === 'chunk') {
@@ -147,9 +174,9 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
     } else if (data.type === 'user-message') {
       setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: data.message }]);
     } else if (data.message) {
-        // Fallback for legacy format
-        setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: data.message, isComplete: true }]);
-        setIsLoading(false);
+      // Fallback for legacy format
+      setMessages((prev) => [...prev, { id: Date.now(), sender: 'bot', text: data.message, isComplete: true }]);
+      setIsLoading(false);
     }
   };
 

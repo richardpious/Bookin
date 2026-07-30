@@ -1220,13 +1220,41 @@ code {
   padding: 12px 8px;
 }
 
+.tool-item-container {
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.tool-item-container:last-child {
+  border-bottom: none;
+}
+
 .tool-item {
-  padding: 6px 16px 6px 24px;
-  text-indent: -24px;
+  padding: 8px 12px;
   font-size: 12px;
   font-family: var(--mono);
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--text);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.tool-item.expandable {
+  cursor: pointer;
+}
+
+.tool-item.expandable:hover,
+.tool-item.expandable.active {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tool-item-left {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
 }
 
 .tool-item-prompt {
@@ -1234,10 +1262,12 @@ code {
   font-weight: bold;
   margin-right: 8px;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .tool-item-command-wrapper {
   word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .tool-item-command {
@@ -1246,11 +1276,90 @@ code {
 }
 
 .tool-item-params {
-  opacity: 0.6;
+  opacity: 0.7;
   font-family: var(--mono);
   color: var(--text);
   font-weight: normal;
   font-style: italic;
+}
+
+.tool-item-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tool-status-icon.success {
+  color: #10b981;
+}
+.tool-status-icon.error {
+  color: #ef4444;
+}
+.tool-status-icon.spinner {
+  color: #3b82f6;
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.tool-output-toggle-btn {
+  color: var(--text);
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+}
+
+.tool-section {
+  margin-top: 6px;
+}
+.tool-section:first-child {
+  margin-top: 2px;
+}
+
+.tool-section-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+  margin-bottom: 2px;
+  padding-left: 2px;
+}
+
+.tool-output-wrapper {
+  overflow: hidden;
+  padding: 0 4px 8px 24px;
+}
+
+.tool-output-content {
+  margin: 2px 0 0 0;
+  padding: 8px 10px;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text);
+  max-height: 260px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tool-output-content.error {
+  border-color: rgba(239, 68, 68, 0.4);
+  background-color: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
 }
 
 /* ── Layout Overrides ───────────────────────────── */

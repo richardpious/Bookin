@@ -65,10 +65,14 @@ export const ChatMessage = React.memo(({ sender, text, isError }) => {
               </ReactMarkdown>
             );
           } else if (part.type === 'embed') {
+            const ref = part.attrs?.ref;
+            if (!ref || ref === 'undefined' || ref.trim() === '') {
+              return null;
+            }
             return (
               <EmbeddedFile 
                 key={i} 
-                refPath={part.attrs.ref} 
+                refPath={ref} 
                 title={part.attrs.title} 
                 height={part.attrs.height} 
               />
