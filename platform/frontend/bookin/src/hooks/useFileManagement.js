@@ -49,7 +49,7 @@ export const useFileManagement = () => {
   useEffect(() => {
     const restoreFileContents = async () => {
       const filesToRestore = openFiles.filter(
-        path => !path.startsWith('logs-viewer:')
+        path => !path.startsWith('logs-viewer:') && !path.endsWith('.vcd')
       );
       if (filesToRestore.length === 0) return;
 
@@ -95,9 +95,11 @@ export const useFileManagement = () => {
       setOpenFiles(newOpenFiles);
     }
 
-    // Intercept logs-viewer virtual tabs
-    if (path.startsWith('logs-viewer:')) {
-      setHasUnreadLogs(false);
+    // Intercept logs-viewer virtual tabs and .vcd visualization tabs (do not load full VCD text into state)
+    if (path.startsWith('logs-viewer:') || path.endsWith('.vcd')) {
+      if (path.startsWith('logs-viewer:')) {
+        setHasUnreadLogs(false);
+      }
       setActiveFile(path);
       return path;
     }
@@ -128,6 +130,12 @@ export const useFileManagement = () => {
   };
 
   const handleOpenFilePreview = useCallback(async (filePath) => {
+    if (!filePath) return;
+    if (filePath.endsWith('.vcd')) {
+      setOpenFiles(prev => prev.includes(filePath) ? prev : [...prev, filePath]);
+      setActiveFile(filePath);
+      return;
+    }
     try {
       const result = await readFileContent(filePath);
       const { content, resolvedPath } = result;
@@ -160,7 +168,7 @@ export const useFileManagement = () => {
   }, []);
 
   const handleSilentFileUpdate = useCallback(async (filePath) => {
-    if (!filePath) return;
+    if (!filePath || filePath.endsWith('.vcd')) return;
     
     // Check if the file is in logs/ or is a .log file
     if (filePath.includes('/logs/') || filePath.includes('logs/') || filePath.endsWith('.log')) {

@@ -4476,21 +4476,31 @@ var index_default = defineToolPlugin({
           console.log(`[run_simulation] Base session log directory: '${baseSessionDir}'`);
           const existingEntries = await fs.readdir(baseSessionDir, { withFileTypes: true });
           let maxRunNum = 0;
+          let existingDescriptorFolder = null;
           for (const entry of existingEntries) {
             if (entry.isDirectory()) {
-              const match = entry.name.match(/^run_(\d+)_/);
+              const match = entry.name.match(/^run_(\d+)_(.+)$/);
               if (match) {
                 const num = parseInt(match[1], 10);
                 if (!isNaN(num) && num > maxRunNum) {
                   maxRunNum = num;
                 }
+                if (match[2] === runDescriptor) {
+                  existingDescriptorFolder = entry.name;
+                }
               }
             }
           }
-          const nextRunNum = (maxRunNum + 1).toString().padStart(2, "0");
-          const runFolderName = `run_${nextRunNum}_${runDescriptor}`;
+          let runFolderName;
+          if (existingDescriptorFolder) {
+            runFolderName = existingDescriptorFolder;
+            console.log(`[run_simulation] Reusing existing run folder for descriptor '${runDescriptor}': '${runFolderName}'`);
+          } else {
+            const nextRunNum = (maxRunNum + 1).toString().padStart(2, "0");
+            runFolderName = `run_${nextRunNum}_${runDescriptor}`;
+            console.log(`[run_simulation] Creating new run folder: '${runFolderName}'`);
+          }
           const runDir = path.join(baseSessionDir, runFolderName);
-          console.log(`[run_simulation] Creating run folder [${nextRunNum}]: '${runDir}'`);
           await fs.mkdir(runDir, { recursive: true });
           const targetConfigPath = path.join(runDir, "config.cfg");
           await fs.copyFile(absoluteConfigPath, targetConfigPath);
@@ -4528,19 +4538,15 @@ ${logErrorSnippet}
             } catch (rErr) {
               console.error(`[run_simulation] Could not read log file '${logFilePath}':`, rErr);
             }
-            console.log(`[run_simulation] Cleaning up failed run directory: '${runDir}'...`);
-            try {
-              await fs.rm(runDir, { recursive: true, force: true });
-              console.log(`[run_simulation] Cleanup complete.`);
-            } catch (rmErr) {
-              console.error(`[run_simulation] Failed to remove run directory:`, rmErr);
-            }
+            console.log(`[run_simulation] Preserving failed run directory for inspection: '${runDir}'`);
             return {
               success: false,
-              run_folder_cleaned: true,
+              run_folder_cleaned: false,
+              run_directory: runDir,
+              log_file: logFilePath,
               error: `BookSim simulation execution failed. ${execErr.message || String(execErr)}`,
               log_snippet: logErrorSnippet,
-              instruction: "The simulation failed due to a syntax or configuration error. Inspect the log_snippet above, correct the invalid parameter in the .cfg file, preview the updated config to the user via file-open, and re-invoke run_simulation."
+              instruction: "BookSim execution failed. Review the log_snippet or log_file for details. You may report the exact error to the user for clarification, or attempt a fix if the error is clear."
             };
           }
           console.log(`[run_simulation] Reading log file '${logFilePath}' for metric extraction...`);

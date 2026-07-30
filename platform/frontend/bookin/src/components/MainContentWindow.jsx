@@ -5,6 +5,7 @@ import { X, List, Play } from 'lucide-react';
 const CodeEditor = lazy(() => import('./CodeEditor'));
 const LogsViewer = lazy(() => import('./LogsViewer'));
 const ConfigParametersModal = lazy(() => import('./ConfigParametersModal'));
+const NetworkVisualizer = lazy(() => import('./NetworkVisualizer'));
 
 export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,7 +53,9 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
         <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>Loading...</div>}>
-        {activeFile && activeFile.startsWith('logs-viewer:') ? (
+        {activeFile && activeFile.endsWith('.vcd') ? (
+          <NetworkVisualizer filePath={activeFile} />
+        ) : activeFile && activeFile.startsWith('logs-viewer:') ? (
           <LogsViewer session={activeFile.split(':')[1]} onFileClick={onFileClick} />
         ) : activeFile ? (
           <CodeEditor

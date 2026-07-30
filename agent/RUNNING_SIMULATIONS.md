@@ -20,11 +20,10 @@ This document is the single source of truth for performing preparation, build, e
         - Stages the configuration file specifically as `config.cfg`.
         - Executes `./booksim config.cfg > simulation_output.log 2>&1` sequentially.
         - Parses `simulation_output.log` and returns extracted performance metrics (latency, throughput, packet rates).
-5a. **Error Recovery & Self-Correction (MANDATORY)**:
-    *   If `run_simulation` returns `success: false`, do NOT give up or end your turn immediately.
-    *   Inspect the returned `log_snippet` to diagnose the syntax error or invalid parameter.
-    *   Edit the `.cfg` file to correct the parameter error.
-    *   Preview the updated configuration via `file-open`, ask for user approval, and re-invoke `run_simulation` to complete the run successfully.
+5a. **Error Recovery & Handling**:
+    *   If `run_simulation` returns `success: false`, inspect the returned `log_snippet` or log file.
+    *   If the issue is a simple syntax error, you may edit the `.cfg` file and try once more.
+    *   If the error is ambiguous or fails a second time, report the error log snippet directly to the user and request guidance rather than attempting repeated trial-and-error edits.
 6.  **Reporting**: Present the extracted metrics summary returned by `run_simulation` to the user in chat.
 7.  **Documentation**: Return results to the user; update persistent records/memory files.
 

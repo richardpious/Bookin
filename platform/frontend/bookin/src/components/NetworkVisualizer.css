@@ -1,0 +1,510 @@
+/* ─── Network Visualizer ─── */
+
+.net-viz {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ─── Loading / Error States ─── */
+
+.net-viz-loading,
+.net-viz-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.net-viz-error {
+  color: #ef4444;
+}
+
+.net-viz-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: netVizSpin 0.8s linear infinite;
+}
+
+@keyframes netVizSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Topology Canvas ─── */
+
+.net-viz-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.net-viz-canvas svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Router nodes */
+.router-node {
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.router-node:hover {
+  filter: brightness(1.3);
+}
+
+.router-rect {
+  rx: 8;
+  ry: 8;
+  stroke-width: 1.5;
+  transition: stroke 0.15s ease, fill 0.15s ease;
+}
+
+.router-label {
+  fill: #e2e8f0;
+  font-size: 11px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Links */
+.mesh-link {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Flit dots */
+.flit-dot {
+  transition: cx 0.15s ease-out, cy 0.15s ease-out;
+  filter: drop-shadow(0 0 4px currentColor);
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.flit-dot-head {
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.flit-dot-tail {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1;
+}
+
+/* VC occupancy bars */
+.vc-bar-bg {
+  fill: rgba(255, 255, 255, 0.06);
+  rx: 1;
+}
+
+.vc-bar-fill {
+  rx: 1;
+  transition: width 0.15s ease;
+}
+
+/* ─── Tooltip ─── */
+
+.net-viz-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(15, 15, 20, 0.95);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e2e8f0;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 140px;
+  transform: translate(-50%, -100%);
+  margin-top: -12px;
+}
+
+.net-viz-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: rgba(15, 15, 20, 0.95);
+  border-right: 1px solid rgba(99, 102, 241, 0.3);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.tooltip-label {
+  color: #94a3b8;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.tooltip-value {
+  color: #f1f5f9;
+  font-weight: 500;
+}
+
+/* ─── Info Badge (top-right overlay) ─── */
+
+.net-viz-info-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(15, 15, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  display: flex;
+  gap: 16px;
+  z-index: 10;
+}
+
+.net-viz-info-badge span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge-accent {
+  color: #818cf8;
+  font-weight: 600;
+}
+
+/* ─── Timeline Controls ─── */
+
+.net-viz-timeline {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-sidebar);
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeline-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  padding: 0;
+}
+
+.timeline-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.timeline-btn.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #818cf8;
+}
+
+.timeline-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.speed-selector {
+  display: flex;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+.speed-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.speed-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.speed-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.speed-btn.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+}
+
+.cycle-display {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cycle-current {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.cycle-total {
+  color: var(--text-secondary);
+}
+
+.cycle-events {
+  margin-left: 12px;
+  font-size: 11px;
+  color: #818cf8;
+}
+
+/* ─── Timeline Bar + Activity Minimap ─── */
+
+.timeline-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.timeline-bar:hover {
+  height: 10px;
+}
+
+.timeline-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  border-radius: 4px;
+  transition: width 0.05s linear;
+  pointer-events: none;
+}
+
+.timeline-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+  pointer-events: none;
+  z-index: 2;
+  transition: left 0.05s linear;
+}
+
+/* Activity minimap */
+.activity-minimap {
+  height: 32px;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.activity-bar {
+  flex: 1;
+  min-width: 1px;
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 1px 1px 0 0;
+  transition: background 0.1s ease;
+}
+
+.activity-bar:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+.activity-bar.current {
+  background: #818cf8;
+}
+
+/* ─── Cycle Input ─── */
+
+.cycle-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.cycle-input {
+  width: 60px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 4px 6px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.cycle-input:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+/* ─── Legend ─── */
+
+.net-viz-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(15, 15, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 12px;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-dot-head {
+  border: 1.5px solid #fff;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 768px) {
+  .net-viz-timeline {
+    padding: 8px 10px 12px;
+  }
+
+  .speed-selector {
+    display: none;
+  }
+}
+
+/* ─── Highlighted Path Overlay ─── */
+
+.path-line-glow {
+  stroke: rgba(245, 158, 11, 0.35);
+  stroke-width: 8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+}
+
+.path-line-flow {
+  stroke: #f59e0b;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: 6 6;
+  animation: pathDashFlow 0.6s linear infinite;
+}
+
+@keyframes pathDashFlow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.flit-selected-ring {
+  fill: none;
+  stroke: #f59e0b;
+  stroke-width: 2;
+  animation: flitPulseRing 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes flitPulseRing {
+  0% { r: 10px; opacity: 1; }
+  100% { r: 18px; opacity: 0; }
+}
+
+.flit-dot-selected {
+  stroke: #f59e0b !important;
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 8px #f59e0b) !important;
+}
+
+.router-badge-src {
+  fill: #4ade80;
+  font-size: 8px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+.router-badge-dest {
+  fill: #c084fc;
+  font-size: 8px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
