@@ -278,6 +278,13 @@ BookSimConfig::BookSimConfig( )
   // batch only -- packet sequence numbers
   AddStrField("sent_packets_out", "sent_packets_out.txt");
   
+  _int_map["vcd_trace"] = 0;
+  AddStrField("vcd_trace_file", "booksim.vcd");
+  _int_map["vcd_trace_start"] = 0;
+  _int_map["vcd_trace_end"] = -1;
+  _int_map["vcd_trace_flit"] = -1;
+  _int_map["vcd_trace_packet"] = -1;
+
   //==================Power model params=====================
   _int_map["sim_power"] = 0;
   AddStrField("power_output_file","pwr_tmp");

@@ -19,6 +19,7 @@
 #include "allocator.hpp"
 #include "switch_monitor.hpp"
 #include "buffer_monitor.hpp"
+#include "vcd_tracer.hpp"
 
 IQRouter::IQRouter( Configuration const & config, Module *parent, 
 		    string const & name, int id, int inputs, int outputs )
@@ -251,6 +252,14 @@ void IQRouter::_InternalStep( )
 
   _OutputQueuing( );
 
+  if(gVCDTracer) {
+    for(int input = 0; input < _inputs; ++input) {
+      for(int vc = 0; vc < _vcs; ++vc) {
+        gVCDTracer->TraceVCOccupancy(_id, input, vc, _buf[input]->GetOccupancy(vc));
+      }
+    }
+  }
+
   _bufferMonitor->cycle( );
   _switchMonitor->cycle( );
 }
@@ -276,6 +285,24 @@ bool IQRouter::_ReceiveFlits( )
 #ifdef TRACK_FLOWS
       ++_received_flits[f->cl][input];
 #endif
+
+      if(gVCDTracer) {
+        gVCDTracer->TraceRouterInput(_id, input, f);
+      }
+      if(gTrace) {
+        int trace_src = f->src;
+        int trace_dest = f->dest;
+        if(gVCDTracer) {
+          gVCDTracer->LookupPacket(f->pid, &trace_src, &trace_dest);
+        }
+        cout << "Router " << _id
+             << " receiving Flit through Inport " << input << endl;
+        cout << "  FLIT_ID:" << f->id
+             << " | PKT_ID:" << f->pid
+             << " | VC:" << f->vc
+             << " | SRC:" << trace_src
+             << " | DEST:" << trace_dest << endl;
+      }
 
       if(f->watch) {
 	*gWatchOut << GetSimTime() << " | " << FullName() << " | "
@@ -2123,6 +2150,10 @@ void IQRouter::_SwitchEvaluate( )
     int const expanded_input = iter->second.second.first;
     int const expanded_output = iter->second.second.second;
       
+    if(gVCDTracer) {
+      gVCDTracer->TraceCrossbarBegin(_id, expanded_input / _input_speedup, expanded_output / _output_speedup, f);
+    }
+      
     if(f->watch) {
       *gWatchOut << GetSimTime() << " | " << FullName() << " | "
 		 << "Beginning crossbar traversal for flit " << f->id
@@ -2156,6 +2187,10 @@ void IQRouter::_SwitchUpdate( )
     int const expanded_output = item.second.second.second;
     int const output = expanded_output / _output_speedup;
     assert((output >= 0) && (output < _outputs));
+
+    if(gVCDTracer) {
+      gVCDTracer->TraceCrossbarEnd(_id, input, output, f);
+    }
 
     if(f->watch) {
       *gWatchOut << GetSimTime() << " | " << FullName() << " | "
@@ -2220,6 +2255,10 @@ void IQRouter::_SendFlits( )
 #ifdef TRACK_FLOWS
       ++_sent_flits[f->cl][output];
 #endif
+
+      if(gVCDTracer) {
+        gVCDTracer->TraceRouterOutput(_id, output, f);
+      }
 
       if(f->watch)
 	*gWatchOut << GetSimTime() << " | " << FullName() << " | "

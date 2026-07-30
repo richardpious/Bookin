@@ -26,6 +26,7 @@
 #include "network.hpp"
 #include "injection.hpp"
 #include "power_module.hpp"
+#include "vcd_tracer.hpp"
 //#include "dpi_socket_server.hpp"
 
 
@@ -90,6 +91,15 @@ bool Simulate( BookSimConfig const & config )
    */
 
   assert(trafficManager == NULL);
+  int vcd_nodes = net.empty() ? 0 : net[0]->NumNodes();
+  int vcd_routers = net.empty() ? 0 : net[0]->NumRouters();
+  int vcd_router_outputs = 0;
+  if(!net.empty()) {
+    for(int r = 0; r < vcd_routers; ++r) {
+      vcd_router_outputs = std::max(vcd_router_outputs, net[0]->GetRouter(r)->NumOutputs());
+    }
+  }
+  gVCDTracer = new VCDTracer(config, vcd_nodes, vcd_routers, vcd_router_outputs, config.GetInt("num_vcs"));
   trafficManager = TrafficManager::New( config, net ) ;
 
   g_tm = trafficManager; 
@@ -123,6 +133,9 @@ bool Simulate( BookSimConfig const & config )
 
   delete trafficManager;
   trafficManager = NULL;
+
+  delete gVCDTracer;
+  gVCDTracer = 0;
 
   return result;
 }

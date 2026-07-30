@@ -12,6 +12,7 @@
 
 #include "router.hpp"
 #include "globals.hpp"
+#include "vcd_tracer.hpp"
 
 // ----------------------------------------------------------------------
 //  $Author: jbalfour $
@@ -51,11 +52,44 @@ void FlitChannel::ReadInputs() {
 	       << " with delay " << _delay
 	       << "." << endl;
   }
+  int trace_src = f ? f->src : -1;
+  int trace_dest = f ? f->dest : -1;
+  if(f && gVCDTracer) {
+    gVCDTracer->LookupPacket(f->pid, &trace_src, &trace_dest);
+  }
+  if(gTrace && f && !_routerSource && _routerSink) {
+    cout << "Link Traversal: Node " << trace_src
+         << " to Router " << _routerSink->GetID() << endl;
+    cout << "  FLIT_ID:" << f->id
+         << " | PKT_ID:" << f->pid
+         << " | VC:" << f->vc
+         << " | SRC:" << trace_src
+         << " | DEST:" << trace_dest << endl;
+  }
+  if(gTrace && f && _routerSource && _routerSink) {
+    cout << "Link Traversal: Router " << _routerSource->GetID()
+         << " to Router " << _routerSink->GetID() << endl;
+    cout << "  FLIT_ID:" << f->id
+         << " | PKT_ID:" << f->pid
+         << " | VC:" << f->vc
+         << " | SRC:" << trace_src
+         << " | DEST:" << trace_dest << endl;
+  }
+  if(gVCDTracer && f) {
+    int source = _routerSource ? _routerSource->GetID() : -1;
+    int sink = _routerSink ? _routerSink->GetID() : -1;
+    gVCDTracer->TraceChannelBegin(FullName(), source, _routerSourcePort, sink, _routerSinkPort, _delay, f);
+  }
   Channel<Flit>::ReadInputs();
 }
 
 void FlitChannel::WriteOutputs() {
   Channel<Flit>::WriteOutputs();
+  if(gVCDTracer && _output) {
+    int source = _routerSource ? _routerSource->GetID() : -1;
+    int sink = _routerSink ? _routerSink->GetID() : -1;
+    gVCDTracer->TraceChannelEnd(FullName(), source, _routerSourcePort, sink, _routerSinkPort, _output);
+  }
   if(_output && _output->watch) {
     *gWatchOut << GetSimTime() << " | " << FullName() << " | "
 	       << "Completed channel traversal for flit " << _output->id

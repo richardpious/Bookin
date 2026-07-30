@@ -11,6 +11,9 @@ int GetSimTime();
 class Stats;
 Stats * GetStats(const std::string & name);
 
+class VCDTracer;
+extern VCDTracer * gVCDTracer;
+
 extern bool gPrintActivity;
 
 extern int gK;

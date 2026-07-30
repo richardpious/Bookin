@@ -12,6 +12,7 @@
 #include "random_utils.hpp"
 #include "trafficmanager.hpp"
 #include "vc.hpp"
+#include "vcd_tracer.hpp"
 
 TrafficManager *TrafficManager::New(Configuration const &config,
                                     vector<Network *> const &net) {
@@ -886,6 +887,11 @@ void TrafficManager::_GeneratePacket(int source, int stype, int cl, int time) {
       f->dest = -1;
     }
 
+    if(gVCDTracer && i == 0) {
+      gVCDTracer->TracePacketGenerated(source, pid, source, packet_destination,
+                                       f->id, f->id + size - 1);
+    }
+
     if (gTrace) {
       if (i == 0) {
         cout << " New Packet Generated | Packet ID: " << pid
@@ -960,6 +966,9 @@ void TrafficManager::_Inject() {
 }
 
 void TrafficManager::_Step() {
+  if(gVCDTracer) {
+    gVCDTracer->Cycle(_time);
+  }
   bool flits_in_flight = false;
   for (int c = 0; c < _classes; ++c) {
     flits_in_flight |= !_total_in_flight_flits[c].empty();
@@ -1242,6 +1251,16 @@ void TrafficManager::_Step() {
         ++_injected_flits[c][n];
 #endif
 
+        if(gVCDTracer) {
+          gVCDTracer->TraceInject(n, subnet, f);
+        }
+        if(gTrace) {
+          cout << "Node " << n
+               << " flit injection to link"
+               << " (FLIT_ID:" << f->id
+               << ", PACKET_ID:" << f->pid << ")" << endl;
+        }
+
         _net[subnet]->WriteFlit(f, n);
       }
     }
@@ -1254,6 +1273,9 @@ void TrafficManager::_Step() {
         Flit *const f = iter->second;
 
         f->atime = _time;
+        if(gVCDTracer) {
+          gVCDTracer->TraceEject(n, subnet, f);
+        }
         if (f->watch) {
           *gWatchOut << GetSimTime() << " | "
                      << "node" << n << " | "
