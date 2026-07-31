@@ -4505,22 +4505,25 @@ var index_default = defineToolPlugin({
           const targetConfigPath = path.join(runDir, "config.cfg");
           await fs.copyFile(absoluteConfigPath, targetConfigPath);
           console.log(`[run_simulation] Staged config.cfg from '${absoluteConfigPath}' to '${targetConfigPath}'`);
-          const booksimBinary = path.resolve(projectRoot, "booksim/src/booksim");
-          console.log(`[run_simulation] Checking BookSim binary at '${booksimBinary}'...`);
+          let containerName = "openclaw-sbx-main";
           try {
-            await fs.access(booksimBinary);
-            console.log(`[run_simulation] -> BookSim binary verified.`);
-          } catch {
-            const errStr = `BookSim binary not found at path: ${booksimBinary}. Please build BookSim first.`;
-            console.error(`[run_simulation] FAILED: ${errStr}`);
-            return {
-              success: false,
-              error: errStr
-            };
+            const { stdout } = await execAsync(`docker ps --filter "label=openclaw.sandbox" --format "{{.Names}}"`);
+            const containers = stdout.trim().split("\\n").filter(Boolean);
+            const sessionKey = context?.toolContext?.sessionKey || "main";
+            const match = containers.find((c) => c.includes(sessionKey));
+            if (match) {
+              containerName = match;
+            } else if (containers.length > 0) {
+              containerName = containers[0];
+            }
+          } catch (e) {
+            console.warn(`[run_simulation] Could not query docker containers, falling back to ${containerName}`);
           }
+          console.log(`[run_simulation] Using docker container: '${containerName}'`);
           const logFilePath = path.join(runDir, "simulation_output.log");
-          const execCommand = `${booksimBinary} config.cfg > simulation_output.log 2>&1`;
-          console.log(`[run_simulation] Executing binary command: '${execCommand}' in directory '${runDir}'...`);
+          const dockerRunDir = `/mnt/logs/${sessionPath}/${runFolderName}`;
+          const execCommand = `docker exec -w ${dockerRunDir} ${containerName} sh -c '/home/sandbox/booksim/src/booksim config.cfg > simulation_output.log 2>&1'`;
+          console.log(`[run_simulation] Executing docker command: '${execCommand}'...`);
           try {
             const execStart = Date.now();
             await execAsync(execCommand, { cwd: runDir, maxBuffer: 50 * 1024 * 1024 });

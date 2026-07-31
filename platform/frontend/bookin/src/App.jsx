@@ -85,7 +85,7 @@ function App() {
   const handleRequireApproval = useCallback((data) => {
     setApprovalRequest(data);
   }, []);
-  const { messages, isLoading, isConnecting, handleSend, setMessages, messagesEndRef } = useChatManagement(
+  const { messages, isLoading, isConnecting, handleSend, handleAbort, setMessages, messagesEndRef } = useChatManagement(
     sessionId,
     handleOpenFilePreview,
     handleSilentFileUpdate,
@@ -199,6 +199,7 @@ function App() {
           isLoading={isLoading}
           isConnecting={isConnecting}
           onSend={handleSend}
+          onAbort={handleAbort}
           messagesEndRef={messagesEndRef}
           sessionId={sessionId}
           chatInputRef={chatInputRef}

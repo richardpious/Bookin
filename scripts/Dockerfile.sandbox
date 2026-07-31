@@ -1,0 +1,20 @@
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  bash ca-certificates curl git jq python3 ripgrep \
+  build-essential g++ make flex bison \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash sandbox
+USER sandbox
+WORKDIR /home/sandbox
+
+# Copy booksim source and build it inside the image
+COPY --chown=sandbox:sandbox booksim /home/sandbox/booksim
+WORKDIR /home/sandbox/booksim/src
+RUN make
+
+WORKDIR /home/sandbox
+CMD ["sleep", "infinity"]

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useImperativeHandle } from 'react';
-export const ChatInput = React.forwardRef(({ onSend, isLoading, isConnecting }, ref) => {
+import { Square } from 'lucide-react';
+
+export const ChatInput = React.forwardRef(({ onSend, onAbort, isLoading, isConnecting }, ref) => {
   const [input, setInput] = useState('');
   const textareaRef = useRef(null);
-  const isBlocked = isLoading || isConnecting;
 
   // Expose the internal textarea ref to the parent
   useImperativeHandle(ref, () => textareaRef.current);
@@ -19,7 +20,7 @@ export const ChatInput = React.forwardRef(({ onSend, isLoading, isConnecting }, 
   }, [input]);
 
   const handleSend = () => {
-    if (input.trim() && !isBlocked) {
+    if (input.trim() && !isLoading && !isConnecting) {
       onSend(input);
       setInput('');
       if (textareaRef.current) {
@@ -38,20 +39,33 @@ export const ChatInput = React.forwardRef(({ onSend, isLoading, isConnecting }, 
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            if (isLoading) return;
             handleSend();
           }
         }}
-        placeholder={isConnecting ? 'Connecting...' : 'Type a message...'}
-        disabled={isBlocked}
+        placeholder={isConnecting ? 'Connecting...' : isLoading ? 'Agent is responding...' : 'Type a message...'}
+        disabled={isConnecting}
         rows={1}
       />
-    <button 
-        className="chat-input-button"
-      onClick={handleSend}
-      disabled={isBlocked}
-    >
-      {isLoading ? '...' : 'Send'}
-    </button>
-  </div>
-);
+      {isLoading ? (
+        <button
+          className="chat-stop-button"
+          onClick={onAbort}
+          title="Stop agent"
+          aria-label="Stop agent"
+        >
+          <Square size={14} />
+          Stop
+        </button>
+      ) : (
+        <button
+          className="chat-input-button"
+          onClick={handleSend}
+          disabled={isConnecting || !input.trim()}
+        >
+          Send
+        </button>
+      )}
+    </div>
+  );
 });

@@ -136,6 +136,23 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
           return [...prev, msg];
         }
       });
+    } else if (data.type === 'aborted') {
+      // Agent run was aborted by the user
+      setMessages((prev) => {
+        const lastMessage = prev[prev.length - 1];
+        const updated = lastMessage && lastMessage.sender === 'bot' && !lastMessage.isComplete
+          ? [...prev.slice(0, -1), { ...lastMessage, isComplete: true }]
+          : prev;
+        return [...updated, {
+          id: Date.now(),
+          sender: 'bot',
+          text: '⏹ Agent stopped.',
+          isComplete: true,
+          isStatus: false,
+          isAborted: true
+        }];
+      });
+      setIsLoading(false);
     } else if (data.type === 'done') {
       setMessages((prev) => {
         const lastMessage = prev[prev.length - 1];

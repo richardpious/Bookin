@@ -172,5 +172,12 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     }
   };
 
-  return { messages, isLoading, isConnecting, handleSend, setMessages, messagesEndRef };
+  const handleAbort = () => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'abort' }));
+      setIsLoading(false);
+    }
+  };
+
+  return { messages, isLoading, isConnecting, handleSend, handleAbort, setMessages, messagesEndRef };
 };

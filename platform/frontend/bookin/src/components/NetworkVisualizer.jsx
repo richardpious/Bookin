@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Play, Pause, SkipBack, SkipForward, RotateCcw, Info } from 'lucide-react';
 import './NetworkVisualizer.css';
 
-// Fixed flit type colors
 const FLIT_COLORS = {
-  head: '#818cf8',  // indigo
-  body: '#38bdf8',  // sky blue
-  tail: '#f472b6',  // pink
+  head: '#10b981',  // emerald
+  body: '#94a3b8',  // slate
+  tail: '#f59e0b',  // amber
 };
 
 const getFlitColor = (flit) => {
@@ -218,6 +217,7 @@ export const NetworkVisualizer = ({ filePath }) => {
   // Calculate layout dimension bounds
   const k = meta?.topology?.k || 4;
   const routerCount = meta?.topology?.routers || k * k;
+  const maxRouterOcc = (meta?.topology?.ports || 5) * (meta?.topology?.vcs || 4) * 8;
 
   const canvasWidth = 800;
   const canvasHeight = 500;
@@ -358,11 +358,19 @@ export const NetworkVisualizer = ({ filePath }) => {
       const chunk = activity.slice(i, i + chunkSize);
       const avg = chunk.reduce((a, b) => a + b, 0) / chunk.length;
       const heightPct = Math.min(100, Math.max(8, (avg / maxVal) * 100));
+      
+      const ratio = maxVal > 0 ? avg / maxVal : 0;
+      // Exponential curve to keep it green/yellow longer
+      const modifiedRatio = Math.pow(ratio, 3);
+      const hue = (1 - modifiedRatio) * 120; // 120 is green, 0 is red
+      const color = `hsl(${hue}, 80%, 50%)`;
+
       bars.push({
         startCycle: meta.timeline.startCycle + i,
         endCycle: meta.timeline.startCycle + i + chunk.length - 1,
         heightPct,
-        val: avg
+        val: avg,
+        color
       });
     }
     return bars;
@@ -464,9 +472,11 @@ export const NetworkVisualizer = ({ filePath }) => {
             // Compute VC occupancy sum for this router
             const occEvents = currentEvents.vc_occ?.filter(v => v.router === r.id) || [];
             const totalOcc = occEvents.reduce((acc, curr) => acc + curr.occ, 0);
+            const busyVCs = occEvents.length;
+            const totalVCs = (meta?.topology?.ports || 5) * (meta?.topology?.vcs || 4);
 
-            let rectFill = isSelected ? '#1e1b4b' : isHovered ? '#1e293b' : '#0f172a';
-            let rectStroke = isSelected ? '#818cf8' : totalOcc > 0 ? '#6366f1' : 'rgba(255, 255, 255, 0.15)';
+            let rectFill = isSelected ? '#262626' : isHovered ? '#171717' : '#0a0a0a';
+            let rectStroke = isSelected ? '#d4d4d4' : totalOcc > 0 ? '#737373' : 'rgba(255, 255, 255, 0.15)';
 
             if (isPathSrc) {
               rectFill = 'rgba(34, 197, 94, 0.25)';
@@ -478,6 +488,10 @@ export const NetworkVisualizer = ({ filePath }) => {
               rectFill = 'rgba(245, 158, 11, 0.15)';
               rectStroke = '#f59e0b';
             }
+
+            const fillRatio = Math.min(1, busyVCs / totalVCs);
+            const barHue = (1 - fillRatio) * 120;
+            const barColor = `hsl(${barHue}, 80%, 50%)`;
 
             return (
               <g
@@ -520,14 +534,14 @@ export const NetworkVisualizer = ({ filePath }) => {
                 )}
 
                 {/* Micro VC Occupancy Indicator Bar inside router */}
-                {totalOcc > 0 && (
+                {busyVCs > 0 && (
                   <g transform={`translate(${-routerSize / 2 + 8}, 8)`}>
                     <rect className="vc-bar-bg" width={routerSize - 16} height={5} />
                     <rect
                       className="vc-bar-fill"
-                      width={Math.min(routerSize - 16, totalOcc * 4)}
+                      width={Math.max(2, Math.min(routerSize - 16, fillRatio * (routerSize - 16)))}
                       height={5}
-                      fill={isPathSrc ? '#4ade80' : isPathDest ? '#c084fc' : isInPath ? '#f59e0b' : '#818cf8'}
+                      fill={barColor}
                     />
                   </g>
                 )}
@@ -589,16 +603,39 @@ export const NetworkVisualizer = ({ filePath }) => {
         )}
 
         {hoveredRouter !== null && !hoveredFlit && (
-          <div
-            className="net-viz-tooltip"
-            style={{ left: tooltipPos.x, top: tooltipPos.y }}
-          >
-            <div className="tooltip-label">Router R{hoveredRouter}</div>
-            <div className="tooltip-value">Occupancy: {
-              (currentEvents.vc_occ?.filter(v => v.router === hoveredRouter) || [])
-                .reduce((acc, curr) => acc + curr.occ, 0)
-            } flits in buffers</div>
-          </div>
+          (() => {
+            const routerOccs = currentEvents.vc_occ?.filter(v => v.router === hoveredRouter) || [];
+            const totalOcc = routerOccs.reduce((acc, curr) => acc + curr.occ, 0);
+            
+            // Group by port
+            const portOccs = {};
+            routerOccs.forEach(v => {
+              if (!portOccs[v.port]) portOccs[v.port] = 0;
+              portOccs[v.port] += v.occ;
+            });
+
+            return (
+              <div
+                className="net-viz-tooltip"
+                style={{ left: tooltipPos.x, top: tooltipPos.y }}
+              >
+                <div className="tooltip-label">Router R{hoveredRouter}</div>
+                <div className="tooltip-value" style={{ marginBottom: '4px' }}>
+                  Total: {totalOcc} / {maxRouterOcc} flits
+                </div>
+                {Object.entries(portOccs).map(([port, occ]) => (
+                  <div key={port} className="tooltip-value" style={{ fontSize: '11px', color: '#cbd5e1' }}>
+                    Port {port}: {occ} flits
+                  </div>
+                ))}
+                {totalOcc === 0 && (
+                  <div className="tooltip-value" style={{ fontSize: '11px', color: '#94a3b8' }}>
+                    All buffers empty
+                  </div>
+                )}
+              </div>
+            );
+          })()
         )}
 
         {/* Floating Legend */}
@@ -625,7 +662,7 @@ export const NetworkVisualizer = ({ filePath }) => {
               <div
                 key={`bar-${idx}`}
                 className={`activity-bar ${isCurrent ? 'current' : ''}`}
-                style={{ height: `${bar.heightPct}%` }}
+                style={{ height: `${bar.heightPct}%`, '--bar-color': bar.color }}
                 onClick={() => setCurrentCycle(bar.startCycle)}
               />
             );

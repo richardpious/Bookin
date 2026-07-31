@@ -53,20 +53,26 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
         <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>Loading...</div>}>
-        {activeFile && activeFile.endsWith('.vcd') ? (
-          <NetworkVisualizer filePath={activeFile} />
-        ) : activeFile && activeFile.startsWith('logs-viewer:') ? (
-          <LogsViewer session={activeFile.split(':')[1]} onFileClick={onFileClick} />
-        ) : activeFile ? (
-          <CodeEditor
-            filePath={activeFile}
-            activeLine={activeLine}
-            content={fileContents[activeFile]}
-            onFileClick={onFileClick}
-            onToast={onToast}
-            onEditContent={onEditContent}
-            onUpdateFile={onUpdateFile}
-          />
+        {openFiles.filter(p => p.endsWith('.vcd')).map(vcdPath => (
+          <div key={vcdPath} style={{ display: activeFile === vcdPath ? 'block' : 'none', height: '100%' }}>
+            <NetworkVisualizer filePath={vcdPath} />
+          </div>
+        ))}
+
+        {activeFile && !activeFile.endsWith('.vcd') ? (
+          activeFile.startsWith('logs-viewer:') ? (
+            <LogsViewer session={activeFile.split(':')[1]} onFileClick={onFileClick} />
+          ) : (
+            <CodeEditor
+              filePath={activeFile}
+              activeLine={activeLine}
+              content={fileContents[activeFile]}
+              onFileClick={onFileClick}
+              onToast={onToast}
+              onEditContent={onEditContent}
+              onUpdateFile={onUpdateFile}
+            />
+          )
         ) : null}
         </Suspense>
         {activeFile && !activeFile.toLowerCase().endsWith('.md') && activeFile.endsWith('.cfg') && (

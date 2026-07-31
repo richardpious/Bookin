@@ -47,7 +47,28 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
             message = message_text
             try:
                 data = json.loads(message_text)
-                if isinstance(data, dict) and data.get("type") == "internal-command":
+                if isinstance(data, dict) and data.get("type") == "abort":
+                    # User requested abort — forward to OpenClaw gateway
+                    session_key = build_session_key(username, client_id)
+                    abort_req_id = str(uuid.uuid4())
+                    abort_payload = {
+                        "type": "req",
+                        "id": abort_req_id,
+                        "method": "chat.abort",
+                        "params": {
+                            "sessionKey": session_key,
+                        }
+                    }
+                    try:
+                        await gateway_client.websocket.send(json.dumps(abort_payload))
+                        logger.info(f"Sent chat.abort for session {compound_key}")
+                    except Exception as abort_err:
+                        logger.error(f"Failed to send chat.abort: {abort_err}")
+                    # Clear busy state so the user can send new messages immediately
+                    websocket.app.state.busy_sessions.discard(compound_key)
+                    await manager.send_personal_message({"type": "aborted"}, compound_key)
+                    continue
+                elif isinstance(data, dict) and data.get("type") == "internal-command":
                     is_silent = True
                     message = data.get("text", "")
             except json.JSONDecodeError:
