@@ -68,7 +68,7 @@ private:
   int _router_outputs;
   int _vcs;
   std::ofstream _out;
-  std::map<std::string, std::string> _ids;
+  std::string _cycle_id;
   std::map<int, int> _packet_src;
   std::map<int, int> _packet_dest;
   int _next_id;
@@ -82,12 +82,12 @@ private:
   std::vector<std::vector<std::vector<int> > > _router_vc_occupancy_last;
 
   std::string _AllocId();
-  void _Register(std::string const & name, int width);
-  void _RegisterInteger(std::string const & name, int width);
+  std::string _Register(std::string const & name, int width);
+  std::string _RegisterInteger(std::string const & name, int width);
   void _WriteHeader();
   void _Time(long long time);
-  void _Set(std::string const & name, unsigned long long value);
-  void _SetBit(std::string const & name, bool value);
+  void _Set(std::string const & id, unsigned long long value);
+  void _SetBit(std::string const & id, bool value);
   void _Clear(PacketGenSignals const & sigs);
   void _Clear(LinkSignals const & sigs);
   void _Trace(PacketGenSignals const & sigs, int packet_id, int src, int dest,

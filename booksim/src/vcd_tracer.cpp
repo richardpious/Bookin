@@ -86,7 +86,7 @@ void VCDTracer::Cycle(int cycle) {
     return;
   }
   _Time(cycle);
-  _Set("cycle", cycle);
+  _Set(_cycle_id, cycle);
   for(int node = 0; node < _nodes; ++node) {
     _Clear(_node_gen[node]);
     _Clear(_node_link[node]);
@@ -171,18 +171,16 @@ std::string VCDTracer::_AllocId() {
   return id;
 }
 
-void VCDTracer::_Register(std::string const & name, int width) {
-  assert(_ids.count(name) == 0);
+std::string VCDTracer::_Register(std::string const & name, int width) {
   std::string id = _AllocId();
-  _ids[name] = id;
   _out << "$var wire " << width << " " << id << " " << name << " $end\n";
+  return id;
 }
 
-void VCDTracer::_RegisterInteger(std::string const & name, int width) {
-  assert(_ids.count(name) == 0);
+std::string VCDTracer::_RegisterInteger(std::string const & name, int width) {
   std::string id = _AllocId();
-  _ids[name] = id;
   _out << "$var integer " << width << " " << id << " " << name << " $end\n";
+  return id;
 }
 
 void VCDTracer::_WriteHeader() {
@@ -192,48 +190,32 @@ void VCDTracer::_WriteHeader() {
   _out << "$timescale 1ns $end\n";
   _out << "$scope module booksim $end\n";
 
-  _RegisterInteger("cycle", 32);
+  _cycle_id = _RegisterInteger("cycle", 32);
 
   _node_gen.resize(_nodes);
   for(int node = 0; node < _nodes; ++node) {
     std::ostringstream prefix;
     prefix << "node_" << node << ".gen";
-    _node_gen[node].valid = prefix.str() + ".valid";
-    _node_gen[node].packet = prefix.str() + ".packet_id";
-    _node_gen[node].src = prefix.str() + ".src";
-    _node_gen[node].dest = prefix.str() + ".dest";
-    _node_gen[node].flit_id_start = prefix.str() + ".flit_id_start";
-    _node_gen[node].flit_id_end = prefix.str() + ".flit_id_end";
-
-    _Register(_node_gen[node].valid, 1);
-    _RegisterInteger(_node_gen[node].packet, 32);
-    _RegisterInteger(_node_gen[node].src, 32);
-    _RegisterInteger(_node_gen[node].dest, 32);
-    _RegisterInteger(_node_gen[node].flit_id_start, 32);
-    _RegisterInteger(_node_gen[node].flit_id_end, 32);
+    _node_gen[node].valid = _Register(prefix.str() + ".valid", 1);
+    _node_gen[node].packet = _RegisterInteger(prefix.str() + ".packet_id", 32);
+    _node_gen[node].src = _RegisterInteger(prefix.str() + ".src", 32);
+    _node_gen[node].dest = _RegisterInteger(prefix.str() + ".dest", 32);
+    _node_gen[node].flit_id_start = _RegisterInteger(prefix.str() + ".flit_id_start", 32);
+    _node_gen[node].flit_id_end = _RegisterInteger(prefix.str() + ".flit_id_end", 32);
   }
 
   _node_link.resize(_nodes);
   for(int node = 0; node < _nodes; ++node) {
     std::ostringstream prefix;
     prefix << "node_" << node << ".link";
-    _node_link[node].valid = prefix.str() + ".valid";
-    _node_link[node].flit = prefix.str() + ".flit_id";
-    _node_link[node].packet = prefix.str() + ".packet_id";
-    _node_link[node].vc = prefix.str() + ".vc";
-    _node_link[node].src = prefix.str() + ".src";
-    _node_link[node].dest = prefix.str() + ".dest";
-    _node_link[node].head = prefix.str() + ".head";
-    _node_link[node].tail = prefix.str() + ".tail";
-
-    _Register(_node_link[node].valid, 1);
-    _RegisterInteger(_node_link[node].flit, 32);
-    _RegisterInteger(_node_link[node].packet, 32);
-    _RegisterInteger(_node_link[node].vc, 32);
-    _RegisterInteger(_node_link[node].src, 32);
-    _RegisterInteger(_node_link[node].dest, 32);
-    _Register(_node_link[node].head, 1);
-    _Register(_node_link[node].tail, 1);
+    _node_link[node].valid = _Register(prefix.str() + ".valid", 1);
+    _node_link[node].flit = _RegisterInteger(prefix.str() + ".flit_id", 32);
+    _node_link[node].packet = _RegisterInteger(prefix.str() + ".packet_id", 32);
+    _node_link[node].vc = _RegisterInteger(prefix.str() + ".vc", 32);
+    _node_link[node].src = _RegisterInteger(prefix.str() + ".src", 32);
+    _node_link[node].dest = _RegisterInteger(prefix.str() + ".dest", 32);
+    _node_link[node].head = _Register(prefix.str() + ".head", 1);
+    _node_link[node].tail = _Register(prefix.str() + ".tail", 1);
   }
 
   _router_in.resize(_routers);
@@ -251,49 +233,30 @@ void VCDTracer::_WriteHeader() {
       for(int vc = 0; vc < _vcs; ++vc) {
         std::ostringstream vc_prefix;
         vc_prefix << "router_" << router << ".in_" << output << ".vc_" << vc;
-        _router_vc_occupancy[router][output][vc] = vc_prefix.str() + ".occupancy";
-        _RegisterInteger(_router_vc_occupancy[router][output][vc], 32);
+        _router_vc_occupancy[router][output][vc] = _RegisterInteger(vc_prefix.str() + ".occupancy", 32);
       }
 
       std::ostringstream in_prefix;
       in_prefix << "router_" << router << ".in_" << output;
-      _router_in[router][output].valid = in_prefix.str() + ".valid";
-      _router_in[router][output].flit = in_prefix.str() + ".flit_id";
-      _router_in[router][output].packet = in_prefix.str() + ".packet_id";
-      _router_in[router][output].vc = in_prefix.str() + ".vc";
-      _router_in[router][output].src = in_prefix.str() + ".src";
-      _router_in[router][output].dest = in_prefix.str() + ".dest";
-      _router_in[router][output].head = in_prefix.str() + ".head";
-      _router_in[router][output].tail = in_prefix.str() + ".tail";
-
-      _Register(_router_in[router][output].valid, 1);
-      _RegisterInteger(_router_in[router][output].flit, 32);
-      _RegisterInteger(_router_in[router][output].packet, 32);
-      _RegisterInteger(_router_in[router][output].vc, 32);
-      _RegisterInteger(_router_in[router][output].src, 32);
-      _RegisterInteger(_router_in[router][output].dest, 32);
-      _Register(_router_in[router][output].head, 1);
-      _Register(_router_in[router][output].tail, 1);
+      _router_in[router][output].valid = _Register(in_prefix.str() + ".valid", 1);
+      _router_in[router][output].flit = _RegisterInteger(in_prefix.str() + ".flit_id", 32);
+      _router_in[router][output].packet = _RegisterInteger(in_prefix.str() + ".packet_id", 32);
+      _router_in[router][output].vc = _RegisterInteger(in_prefix.str() + ".vc", 32);
+      _router_in[router][output].src = _RegisterInteger(in_prefix.str() + ".src", 32);
+      _router_in[router][output].dest = _RegisterInteger(in_prefix.str() + ".dest", 32);
+      _router_in[router][output].head = _Register(in_prefix.str() + ".head", 1);
+      _router_in[router][output].tail = _Register(in_prefix.str() + ".tail", 1);
 
       std::ostringstream prefix;
       prefix << "router_" << router << ".link_" << output;
-      _router_link[router][output].valid = prefix.str() + ".valid";
-      _router_link[router][output].flit = prefix.str() + ".flit_id";
-      _router_link[router][output].packet = prefix.str() + ".packet_id";
-      _router_link[router][output].vc = prefix.str() + ".vc";
-      _router_link[router][output].src = prefix.str() + ".src";
-      _router_link[router][output].dest = prefix.str() + ".dest";
-      _router_link[router][output].head = prefix.str() + ".head";
-      _router_link[router][output].tail = prefix.str() + ".tail";
-
-      _Register(_router_link[router][output].valid, 1);
-      _RegisterInteger(_router_link[router][output].flit, 32);
-      _RegisterInteger(_router_link[router][output].packet, 32);
-      _RegisterInteger(_router_link[router][output].vc, 32);
-      _RegisterInteger(_router_link[router][output].src, 32);
-      _RegisterInteger(_router_link[router][output].dest, 32);
-      _Register(_router_link[router][output].head, 1);
-      _Register(_router_link[router][output].tail, 1);
+      _router_link[router][output].valid = _Register(prefix.str() + ".valid", 1);
+      _router_link[router][output].flit = _RegisterInteger(prefix.str() + ".flit_id", 32);
+      _router_link[router][output].packet = _RegisterInteger(prefix.str() + ".packet_id", 32);
+      _router_link[router][output].vc = _RegisterInteger(prefix.str() + ".vc", 32);
+      _router_link[router][output].src = _RegisterInteger(prefix.str() + ".src", 32);
+      _router_link[router][output].dest = _RegisterInteger(prefix.str() + ".dest", 32);
+      _router_link[router][output].head = _Register(prefix.str() + ".head", 1);
+      _router_link[router][output].tail = _Register(prefix.str() + ".tail", 1);
     }
   }
 
@@ -308,26 +271,26 @@ void VCDTracer::_Time(long long time) {
   }
 }
 
-void VCDTracer::_Set(std::string const & name, unsigned long long value) {
-  std::map<std::string, std::string>::const_iterator iter = _ids.find(name);
-  assert(iter != _ids.end());
+void VCDTracer::_Set(std::string const & id, unsigned long long value) {
   if(value == 0) {
-    _out << "b0 " << iter->second << "\n";
+    _out << "b0 " << id << "\n";
     return;
   }
-  std::string bits;
+  char bits[65];
+  int idx = 0;
   while(value > 0) {
-    bits += (value & 1) ? '1' : '0';
+    bits[idx++] = (value & 1) ? '1' : '0';
     value >>= 1;
   }
-  std::reverse(bits.begin(), bits.end());
-  _out << "b" << bits << " " << iter->second << "\n";
+  _out << "b";
+  for(int i = idx - 1; i >= 0; --i) {
+    _out << bits[i];
+  }
+  _out << " " << id << "\n";
 }
 
-void VCDTracer::_SetBit(std::string const & name, bool value) {
-  std::map<std::string, std::string>::const_iterator iter = _ids.find(name);
-  assert(iter != _ids.end());
-  _out << (value ? '1' : '0') << iter->second << "\n";
+void VCDTracer::_SetBit(std::string const & id, bool value) {
+  _out << (value ? '1' : '0') << id << "\n";
 }
 
 void VCDTracer::_Clear(PacketGenSignals const & sigs) {
