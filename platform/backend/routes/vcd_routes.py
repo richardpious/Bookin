@@ -46,6 +46,7 @@ class VCDIndex:
         self.start_cycle = 0
         self.end_cycle = 0
         self.total_cycles = 0
+        self.snapshots: List[Tuple[int, Dict[str, int]]] = [] # (cycle, signal_states)
         self._parse()
 
     def _parse(self):
@@ -75,27 +76,53 @@ class VCDIndex:
             # Derive topology info from signal names
             self._derive_topology()
 
-            # Phase 2: Scan for all timestamp markers and count activity
+            # Phase 2: Scan for all timestamp markers, count activity, and snapshot states
             cycle_changes = 0
+            current_states = {}
+            snapshot_interval = 500
+            last_snapshot_idx = -1
+
             while True:
                 line_offset = offset
                 raw_line = f.readline()
                 if not raw_line:
                     break
                 offset += len(raw_line)
-                line = raw_line.strip()
-                if line.startswith(b'#'):
+                line = raw_line.strip().decode('ascii', errors='ignore')
+                if line.startswith('#'):
                     # Save activity count for previous cycle
                     if self.byte_offsets:
                         self.activity.append(cycle_changes)
                     try:
                         cycle_num = int(line[1:])
                         self.byte_offsets.append((cycle_num, line_offset))
+                        
+                        # Snapshot logic
+                        if len(self.byte_offsets) - 1 >= last_snapshot_idx + snapshot_interval:
+                            self.snapshots.append((cycle_num, dict(current_states)))
+                            last_snapshot_idx = len(self.byte_offsets) - 1
                     except ValueError:
                         pass
                     cycle_changes = 0
-                elif line and not line.startswith(b'$'):
+                elif line and not line.startswith('$'):
                     cycle_changes += 1
+                    # Track state for snapshots
+                    if line.startswith('b'):
+                        parts = line.split(' ', 1)
+                        if len(parts) == 2:
+                            bits = parts[0][1:]
+                            sid = parts[1]
+                            try:
+                                current_states[sid] = int(bits, 2) if bits != '0' else 0
+                            except ValueError:
+                                current_states[sid] = 0
+                    elif line[0] in ('0', '1'):
+                        try:
+                            val = int(line[0])
+                            sid = line[1:]
+                            current_states[sid] = val
+                        except ValueError:
+                            pass
 
             # Save activity for last cycle
             if self.byte_offsets:
@@ -174,12 +201,23 @@ class VCDIndex:
         if start_idx is None or end_idx is None:
             return {}
 
-        # Determine file range to read
-        file_start = self.byte_offsets[start_idx][1]
-        if end_idx + 1 < len(self.byte_offsets):
-            file_end = self.byte_offsets[end_idx + 1][1]
+        # Find closest snapshot <= start
+        snapshot_state = {}
+        snapshot_cycle = -1
+        # self.snapshots is sorted by cycle
+        for cyc, state in reversed(self.snapshots):
+            if cyc <= start:
+                snapshot_state = dict(state)
+                snapshot_cycle = cyc
+                break
+
+        if snapshot_cycle == -1:
+            file_start = self.header_end_offset
+            file_end = self.byte_offsets[end_idx + 1][1] if end_idx + 1 < len(self.byte_offsets) else None
         else:
-            file_end = None  # read to EOF
+            snapshot_idx = self.get_cycle_index(snapshot_cycle)
+            file_start = self.byte_offsets[snapshot_idx][1] if snapshot_idx is not None else self.header_end_offset
+            file_end = self.byte_offsets[end_idx + 1][1] if end_idx + 1 < len(self.byte_offsets) else None
 
         with open(self.filepath, 'r', encoding='utf-8', errors='ignore') as f:
             f.seek(file_start)
@@ -188,14 +226,14 @@ class VCDIndex:
             else:
                 raw = f.read()
 
-        return self._parse_raw_cycles(raw)
+        return self._parse_raw_cycles(raw, start, end, snapshot_state)
 
-    def _parse_raw_cycles(self, raw: str) -> Dict:
+    def _parse_raw_cycles(self, raw: str, target_start: int, target_end: int, initial_state: Dict[str, int]) -> Dict:
         """Parse raw VCD text into structured cycle data."""
         cycles = {}
         current_cycle = None
         # Track current signal states for this block
-        signal_states: Dict[str, int] = {}
+        signal_states: Dict[str, int] = initial_state
 
         for line in raw.split('\n'):
             line = line.strip()
@@ -204,11 +242,10 @@ class VCDIndex:
 
             if line.startswith('#'):
                 # Flush previous cycle
-                if current_cycle is not None:
+                if current_cycle is not None and target_start <= current_cycle <= target_end:
                     cycles[current_cycle] = self._build_cycle_events(signal_states)
 
                 current_cycle = int(line[1:])
-                signal_states = {}
                 continue
 
             # Parse value change
@@ -229,7 +266,7 @@ class VCDIndex:
                 signal_states[sid] = val
 
         # Flush last cycle
-        if current_cycle is not None:
+        if current_cycle is not None and target_start <= current_cycle <= target_end:
             cycles[current_cycle] = self._build_cycle_events(signal_states)
 
         return cycles
