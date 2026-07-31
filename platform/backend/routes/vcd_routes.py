@@ -5,8 +5,8 @@ Provides two endpoints:
   GET /api/vcd/meta   — lightweight header parse + cycle index
   GET /api/vcd/cycles — paginated cycle-range event data
 """
-
-from fastapi import APIRouter, Query
+import json
+from fastapi import APIRouter, Query, Response
 import os
 import re
 import time
@@ -133,6 +133,9 @@ class VCDIndex:
                 self.end_cycle = self.byte_offsets[-1][0]
                 self.total_cycles = len(self.byte_offsets)
 
+            # Optimization: pre-resolve signal short IDs to bypass string formats and lookups
+            self._pre_resolve_signals()
+
     def _derive_topology(self):
         """Derive router/node counts from signal names."""
         max_node = -1
@@ -168,6 +171,79 @@ class VCDIndex:
             self.k = int(math.sqrt(self.routers))
             if self.k * self.k != self.routers:
                 self.k = int(math.ceil(math.sqrt(self.routers)))
+
+    def _pre_resolve_signals(self):
+        """Pre-resolve all short IDs for fast O(1) lookups during parsing."""
+        # 1. Node gen signals
+        self.node_gen_ids = []
+        for node in range(self.nodes):
+            prefix = f"node_{node}.gen"
+            self.node_gen_ids.append({
+                "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                "packet_id": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                "src": self.signal_name_to_id.get(f"{prefix}.src"),
+                "dest": self.signal_name_to_id.get(f"{prefix}.dest"),
+                "flit_id_start": self.signal_name_to_id.get(f"{prefix}.flit_id_start"),
+                "flit_id_end": self.signal_name_to_id.get(f"{prefix}.flit_id_end"),
+            })
+
+        # 2. Node injection links
+        self.node_link_ids = []
+        for node in range(self.nodes):
+            prefix = f"node_{node}.link"
+            self.node_link_ids.append({
+                "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                "flit_id": self.signal_name_to_id.get(f"{prefix}.flit_id"),
+                "packet_id": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                "vc": self.signal_name_to_id.get(f"{prefix}.vc"),
+                "src": self.signal_name_to_id.get(f"{prefix}.src"),
+                "dest": self.signal_name_to_id.get(f"{prefix}.dest"),
+                "head": self.signal_name_to_id.get(f"{prefix}.head"),
+                "tail": self.signal_name_to_id.get(f"{prefix}.tail"),
+            })
+
+        # 3. Router inputs and links and occ
+        self.router_ids = []
+        for router in range(self.routers):
+            ports_in = []
+            ports_link = []
+            ports_occ = []
+            for port in range(self.ports):
+                # in
+                prefix_in = f"router_{router}.in_{port}"
+                ports_in.append({
+                    "valid": self.signal_name_to_id.get(f"{prefix_in}.valid"),
+                    "flit_id": self.signal_name_to_id.get(f"{prefix_in}.flit_id"),
+                    "packet_id": self.signal_name_to_id.get(f"{prefix_in}.packet_id"),
+                    "vc": self.signal_name_to_id.get(f"{prefix_in}.vc"),
+                    "src": self.signal_name_to_id.get(f"{prefix_in}.src"),
+                    "dest": self.signal_name_to_id.get(f"{prefix_in}.dest"),
+                    "head": self.signal_name_to_id.get(f"{prefix_in}.head"),
+                    "tail": self.signal_name_to_id.get(f"{prefix_in}.tail"),
+                })
+                # link
+                prefix_link = f"router_{router}.link_{port}"
+                ports_link.append({
+                    "valid": self.signal_name_to_id.get(f"{prefix_link}.valid"),
+                    "flit_id": self.signal_name_to_id.get(f"{prefix_link}.flit_id"),
+                    "packet_id": self.signal_name_to_id.get(f"{prefix_link}.packet_id"),
+                    "vc": self.signal_name_to_id.get(f"{prefix_link}.vc"),
+                    "src": self.signal_name_to_id.get(f"{prefix_link}.src"),
+                    "dest": self.signal_name_to_id.get(f"{prefix_link}.dest"),
+                    "head": self.signal_name_to_id.get(f"{prefix_link}.head"),
+                    "tail": self.signal_name_to_id.get(f"{prefix_link}.tail"),
+                })
+                # occ
+                vcs_occ = []
+                for vc in range(self.vcs):
+                    vcs_occ.append(self.signal_name_to_id.get(f"router_{router}.in_{port}.vc_{vc}.occupancy"))
+                ports_occ.append(vcs_occ)
+
+            self.router_ids.append({
+                "in": ports_in,
+                "link": ports_link,
+                "occ": ports_occ
+            })
 
     def get_cycle_index(self, cycle: int) -> Optional[int]:
         """Binary search for the index of a cycle in byte_offsets."""
@@ -226,7 +302,8 @@ class VCDIndex:
             else:
                 raw = f.read()
 
-        return self._parse_raw_cycles(raw, start, end, snapshot_state)
+        res = self._parse_raw_cycles(raw, start, end, snapshot_state)
+        return res
 
     def _parse_raw_cycles(self, raw: str, target_start: int, target_end: int, initial_state: Dict[str, int]) -> Dict:
         """Parse raw VCD text into structured cycle data."""
@@ -235,40 +312,30 @@ class VCDIndex:
         # Track current signal states for this block
         signal_states: Dict[str, int] = initial_state
 
-        for line in raw.split('\n'):
-            line = line.strip()
-            if not line or line.startswith('$'):
+        for line in raw.splitlines():
+            if not line:
                 continue
-
-            if line.startswith('#'):
-                # Flush previous cycle
-                if current_cycle is not None and target_start <= current_cycle <= target_end:
-                    cycles[current_cycle] = self._build_cycle_events(signal_states)
-
-                current_cycle = int(line[1:])
-                continue
-
-            # Parse value change
-            if line.startswith('b'):
-                # Binary value: b<bits> <id>
-                parts = line.split(' ', 1)
-                if len(parts) == 2:
-                    bits = parts[0][1:]  # strip 'b'
-                    sid = parts[1]
+            c = line[0]
+            if c in ('0', '1'):
+                signal_states[line[1:]] = int(c)
+            elif c == 'b':
+                space_idx = line.find(' ')
+                if space_idx != -1:
+                    bits = line[1:space_idx]
+                    sid = line[space_idx+1:]
                     try:
                         signal_states[sid] = int(bits, 2) if bits != '0' else 0
                     except ValueError:
-                        signal_states[sid] = 0
-            elif line[0] in ('0', '1'):
-                # Single-bit: 0<id> or 1<id>
-                val = int(line[0])
-                sid = line[1:]
-                signal_states[sid] = val
+                        pass
+            elif c == '#':
+                # Flush previous cycle
+                if current_cycle is not None and target_start <= current_cycle <= target_end:
+                    cycles[current_cycle] = self._build_cycle_events(signal_states)
+                current_cycle = int(line[1:])
 
         # Flush last cycle
         if current_cycle is not None and target_start <= current_cycle <= target_end:
             cycles[current_cycle] = self._build_cycle_events(signal_states)
-
         return cycles
 
     def _build_cycle_events(self, signal_states: Dict[str, int]) -> Dict:
@@ -280,82 +347,81 @@ class VCDIndex:
             "gen": []
         }
 
-        # Helper to resolve signal value
-        def val(sig_name: str) -> Optional[int]:
-            sid = self.signal_name_to_id.get(sig_name)
-            if sid is None:
-                return None
+        # Helper to get signal value directly by short_id
+        def val(sid: str) -> Optional[int]:
+            if sid is None: return None
             return signal_states.get(sid)
 
         # Node generation events
         for node in range(self.nodes):
-            prefix = f"node_{node}.gen"
-            if val(f"{prefix}.valid") == 1:
+            ids = self.node_gen_ids[node]
+            if val(ids["valid"]) == 1:
                 events["gen"].append({
                     "node": node,
-                    "pkt": val(f"{prefix}.packet_id") or 0,
-                    "src": val(f"{prefix}.src") or 0,
-                    "dest": val(f"{prefix}.dest") or 0,
-                    "flit_start": val(f"{prefix}.flit_id_start") or 0,
-                    "flit_end": val(f"{prefix}.flit_id_end") or 0,
+                    "pkt": val(ids["packet_id"]) or 0,
+                    "src": val(ids["src"]) or 0,
+                    "dest": val(ids["dest"]) or 0,
+                    "flit_start": val(ids["flit_id_start"]) or 0,
+                    "flit_end": val(ids["flit_id_end"]) or 0,
                 })
 
         # Node link events (injection links)
         for node in range(self.nodes):
-            prefix = f"node_{node}.link"
-            if val(f"{prefix}.valid") == 1:
+            ids = self.node_link_ids[node]
+            if val(ids["valid"]) == 1:
                 events["links"].append({
                     "type": "inject",
                     "node": node,
-                    "flit": val(f"{prefix}.flit_id") or 0,
-                    "pkt": val(f"{prefix}.packet_id") or 0,
-                    "vc": val(f"{prefix}.vc") or 0,
-                    "src": val(f"{prefix}.src") or 0,
-                    "dest": val(f"{prefix}.dest") or 0,
-                    "head": val(f"{prefix}.head") == 1,
-                    "tail": val(f"{prefix}.tail") == 1,
+                    "flit": val(ids["flit_id"]) or 0,
+                    "pkt": val(ids["packet_id"]) or 0,
+                    "vc": val(ids["vc"]) or 0,
+                    "src": val(ids["src"]) or 0,
+                    "dest": val(ids["dest"]) or 0,
+                    "head": val(ids["head"]) == 1,
+                    "tail": val(ids["tail"]) == 1,
                 })
 
-        # Router input events
+        # Router events
         for router in range(self.routers):
+            r_ids = self.router_ids[router]
             for port in range(self.ports):
-                prefix = f"router_{router}.in_{port}"
-                if val(f"{prefix}.valid") == 1:
+                # Router input events
+                in_ids = r_ids["in"][port]
+                if val(in_ids["valid"]) == 1:
                     events["router_in"].append({
                         "router": router,
                         "port": port,
-                        "flit": val(f"{prefix}.flit_id") or 0,
-                        "pkt": val(f"{prefix}.packet_id") or 0,
-                        "vc": val(f"{prefix}.vc") or 0,
-                        "src": val(f"{prefix}.src") or 0,
-                        "dest": val(f"{prefix}.dest") or 0,
-                        "head": val(f"{prefix}.head") == 1,
-                        "tail": val(f"{prefix}.tail") == 1,
+                        "flit": val(in_ids["flit_id"]) or 0,
+                        "pkt": val(in_ids["packet_id"]) or 0,
+                        "vc": val(in_ids["vc"]) or 0,
+                        "src": val(in_ids["src"]) or 0,
+                        "dest": val(in_ids["dest"]) or 0,
+                        "head": val(in_ids["head"]) == 1,
+                        "tail": val(in_ids["tail"]) == 1,
                     })
 
                 # Router link events (router-to-router)
-                link_prefix = f"router_{router}.link_{port}"
-                if val(f"{link_prefix}.valid") == 1:
-                    # Determine destination router based on mesh topology
+                link_ids = r_ids["link"][port]
+                if val(link_ids["valid"]) == 1:
                     dest_router = self._mesh_neighbor(router, port)
                     events["links"].append({
                         "type": "router",
                         "from": router,
                         "to": dest_router,
                         "port": port,
-                        "flit": val(f"{link_prefix}.flit_id") or 0,
-                        "pkt": val(f"{link_prefix}.packet_id") or 0,
-                        "vc": val(f"{link_prefix}.vc") or 0,
-                        "src": val(f"{link_prefix}.src") or 0,
-                        "dest": val(f"{link_prefix}.dest") or 0,
-                        "head": val(f"{link_prefix}.head") == 1,
-                        "tail": val(f"{link_prefix}.tail") == 1,
+                        "flit": val(link_ids["flit_id"]) or 0,
+                        "pkt": val(link_ids["packet_id"]) or 0,
+                        "vc": val(link_ids["vc"]) or 0,
+                        "src": val(link_ids["src"]) or 0,
+                        "dest": val(link_ids["dest"]) or 0,
+                        "head": val(link_ids["head"]) == 1,
+                        "tail": val(link_ids["tail"]) == 1,
                     })
 
                 # VC occupancy
+                occ_ids = r_ids["occ"][port]
                 for vc in range(self.vcs):
-                    occ_name = f"router_{router}.in_{port}.vc_{vc}.occupancy"
-                    occ_val = val(occ_name)
+                    occ_val = val(occ_ids[vc])
                     if occ_val is not None and occ_val > 0:
                         events["vc_occ"].append({
                             "router": router,
@@ -488,7 +554,7 @@ def vcd_meta(path: str = Query(..., description="Relative path to .vcd file")):
 
 
 @router.get("/cycles")
-def vcd_cycles(
+async def vcd_cycles(
     path: str = Query(..., description="Relative path to .vcd file"),
     start: int = Query(0, description="Start cycle (inclusive)"),
     end: int = Query(100, description="End cycle (inclusive)"),
@@ -512,11 +578,12 @@ def vcd_cycles(
         cycles = index.read_cycles(start, end)
         read_time = time.time() - t0
 
-        return {
+        res_data = {
             "range": [start, end],
             "cycles": cycles,
             "cycleCount": len(cycles),
             "readTimeMs": round(read_time * 1000, 1),
         }
+        return Response(content=json.dumps(res_data), media_type="application/json")
     except Exception as e:
         return {"error": str(e)}

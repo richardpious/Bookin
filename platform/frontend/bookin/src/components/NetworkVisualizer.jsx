@@ -127,21 +127,19 @@ export const NetworkVisualizer = ({ filePath }) => {
 
     setFetchingRange(true);
     try {
-      let newlyLoaded = false;
-      for (const p of missingPages) {
+      const fetchPromises = missingPages.map(async (p) => {
         const start = p * PAGE_SIZE;
         const end = start + PAGE_SIZE - 1;
         const res = await fetch(`/api/vcd/cycles?path=${encodeURIComponent(filePath)}&start=${start}&end=${end}`);
         const data = await res.json();
         if (data.cycles) {
           cycleCacheRef.current.set(p, data.cycles);
-          newlyLoaded = true;
+          // Trigger a re-render immediately as soon as ANY page finishes loading
+          setDataVersion(v => v + 1);
         }
-      }
+      });
 
-      if (newlyLoaded) {
-        setDataVersion(v => v + 1);
-      }
+      await Promise.all(fetchPromises);
     } catch (err) {
       console.error('Failed to fetch cycle range:', err);
     } finally {
@@ -399,6 +397,12 @@ export const NetworkVisualizer = ({ filePath }) => {
       {/* Topology Canvas */}
       <div className="net-viz-canvas" ref={canvasRef}>
         {/* Info overlay badge */}
+        {fetchingRange && (
+          <div className="net-viz-fetching-indicator">
+            <div className="net-viz-fetching-spinner" />
+            <span>Fetching Data...</span>
+          </div>
+        )}
         <div className="net-viz-info-badge">
           <span>
             Topology: <strong className="badge-accent">{k}×{k} Mesh</strong> ({routerCount} Routers)
