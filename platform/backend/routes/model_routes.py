@@ -61,10 +61,10 @@ async def get_models(request: Request):
             payload = resp.get('payload') or {}
             models_data = payload.get('models', [])
 
-            # Filter to strictly display only gemini-3.1-flash-lite (excludes 2.5 or other versions)
+            # Filter to strictly display gemini-3.1-flash-lite and nemotron models
             filtered_models = [
                 m for m in models_data
-                if "gemini-3.1-flash-lite" in m.get('id', '').lower()
+                if "gemini-3.1-flash-lite" in m.get('id', '').lower() or "nemotron" in m.get('id', '').lower()
             ]
 
             # Group models by provider
