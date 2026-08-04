@@ -44,6 +44,11 @@ if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
     npm install -g --prefix "$OPENCLAW_PREFIX" openclaw
 fi
 
+if [ ! -d "$OPENCLAW_PREFIX/lib/node_modules/@openclaw/openshell-sandbox" ]; then
+    echo "OpenShell sandbox plugin not found. Installing..."
+    npm install -g --prefix "$OPENCLAW_PREFIX" @openclaw/openshell-sandbox
+fi
+
 # Initialize OpenClaw configuration if not already onboarded
 if [ ! -f "$OPENCLAW_PREFIX/.onboarded" ]; then
     echo "First startup: onboarding OpenClaw..."
@@ -72,11 +77,25 @@ jq --arg ws "$PROJECT_ROOT/agent" '
     "google": {"enabled": true},
     "tool-approval": {"enabled": true},
     "file-preview": {"enabled": true},
-    "simulation-runner": {"enabled": true} }|
-  .plugins.allow = ["tool-approval", "file-preview", "simulation-runner"] |
+    "simulation-runner": {"enabled": true},
+    "openshell": {
+      "enabled": true,
+      "config": {
+        "from": "/home/dell/Documents/Bookin/Dockerfile.sandbox",
+        "mode": "remote"
+      }
+    }
+  }|
+  .plugins.allow = ["tool-approval", "file-preview", "simulation-runner", "openshell"] |
+  .agents.defaults.sandbox = {
+    "mode": "non-main",
+    "backend": "openshell",
+    "scope": "session",
+    "workspaceAccess": "rw"
+  } |
   .tools.alsoAllow = ["file-open", "run_simulation"] |
   .tools.profile = "coding" |
-  .tools.exec = {"host": "gateway", "security": "full", "ask": "off"} |
+  .tools.exec = {"host": "sandbox", "security": "full", "ask": "off"} |
   .gateway.auth.token = env.OPENCLAW_GATEWAY_TOKEN |
   .gateway.mode = "local" |
   .gateway.bind = "loopback" |
