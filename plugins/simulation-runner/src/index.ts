@@ -161,28 +161,10 @@ export default defineToolPlugin({
           await fs.copyFile(absoluteConfigPath, targetConfigPath);
           console.log(`[run_simulation] Staged config.cfg from '${absoluteConfigPath}' to '${targetConfigPath}'`);
 
-          // Step 2: Determine Sandbox Container
-          let containerName = "openclaw-sbx-main";
-          try {
-            const { stdout } = await execAsync(`docker ps --filter "label=openclaw.sandbox" --format "{{.Names}}"`);
-            const containers = stdout.trim().split("\\n").filter(Boolean);
-            const sessionKey = context?.toolContext?.sessionKey || "main";
-            // Look for a container that matches the session key, or fallback to main
-            const match = containers.find(c => c.includes(sessionKey));
-            if (match) {
-              containerName = match;
-            } else if (containers.length > 0) {
-              containerName = containers[0]; // fallback to whatever is running
-            }
-          } catch (e) {
-            console.warn(`[run_simulation] Could not query docker containers, falling back to ${containerName}`);
-          }
-          console.log(`[run_simulation] Using docker container: '${containerName}'`);
-
           const logFilePath = path.join(runDir, "simulation_output.log");
-          const dockerRunDir = `/mnt/logs/${sessionPath}/${runFolderName}`;
-          const execCommand = `docker exec -w ${dockerRunDir} ${containerName} sh -c '/home/sandbox/booksim/src/booksim config.cfg > simulation_output.log 2>&1'`;
-          console.log(`[run_simulation] Executing docker command: '${execCommand}'...`);
+          const booksimBinaryPath = "/home/dell/Documents/Bookin/booksim/src/booksim";
+          const execCommand = `sh -c '${booksimBinaryPath} config.cfg > simulation_output.log 2>&1'`;
+          console.log(`[run_simulation] Executing unsandboxed command: '${execCommand}' in cwd: '${runDir}'...`);
 
           // Step 3: Sequential binary execution
           try {
@@ -194,7 +176,11 @@ export default defineToolPlugin({
             let logErrorSnippet = "";
             try {
               const logContent = await fs.readFile(logFilePath, "utf-8");
-              logErrorSnippet = logContent.slice(-1500);
+              if (logContent.length > 3000) {
+                logErrorSnippet = `--- START OF LOG (Head) ---\n${logContent.slice(0, 1500)}\n\n... [TRUNCATED ${logContent.length - 3000} chars] ...\n\n--- END OF LOG (Tail) ---\n${logContent.slice(-1500)}`;
+              } else {
+                logErrorSnippet = logContent;
+              }
               console.error(`[run_simulation] Captured error log snippet:\n--- SNIPPET START ---\n${logErrorSnippet}\n--- SNIPPET END ---`);
             } catch (rErr) {
               console.error(`[run_simulation] Could not read log file '${logFilePath}':`, rErr);
@@ -209,7 +195,7 @@ export default defineToolPlugin({
               log_file: logFilePath,
               error: `BookSim simulation execution failed. ${execErr.message || String(execErr)}`,
               log_snippet: logErrorSnippet,
-              instruction: "BookSim execution failed. Review the log_snippet or log_file for details. You may report the exact error to the user for clarification, or attempt a fix if the error is clear."
+              instruction: "BookSim execution failed. Review the log_snippet to find config parsing errors at the top or runtime crashes at the bottom. Do NOT guess blindly if the snippet contains the parser error."
             };
           }
 

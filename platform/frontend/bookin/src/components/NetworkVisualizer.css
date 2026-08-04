@@ -92,8 +92,6 @@
 
 /* Flit dots */
 .flit-dot {
-  transition: cx 0.15s ease-out, cy 0.15s ease-out;
-  filter: drop-shadow(0 0 4px currentColor);
   pointer-events: all;
   cursor: pointer;
 }

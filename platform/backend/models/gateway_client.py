@@ -15,6 +15,7 @@ class OpenClawGatewayClient:
         self.token = token or os.environ.get("OPENCLAW_GATEWAY_TOKEN", "34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece")
         self.websocket = None
         self.pending_chat_requests = {}  # req_id -> compound_key
+        self.active_runs = {}  # compound_key -> req_info for retries
 
     async def connect(self):
         """Connects to the Gateway and performs the mandatory handshake."""
@@ -57,6 +58,13 @@ class OpenClawGatewayClient:
         except Exception as e:
             logger.error(f"Failed to connect to gateway: {e}")
             raise
+
+    async def delayed_unlock(self, manager, client_id, delay=1.0):
+        """Safely unlocks the session after a small delay to allow OpenClaw to commit disk writes."""
+        await asyncio.sleep(delay)
+        manager.app.state.busy_sessions.discard(client_id)
+        if hasattr(self, 'active_runs') and client_id in self.active_runs:
+            del self.active_runs[client_id]
 
     async def send_agent_message(self, message: str, session_id: str, username: str = None):
         """Sends a message or command to the OpenClaw Gateway."""
@@ -121,21 +129,25 @@ class OpenClawGatewayClient:
                             err_info = data.get("error", {})
                             err_msg = err_info.get("message", "Failed to start agent run")
 
-                            if "initialization conflicted" in err_msg.lower() and payload and retry_count < 3:
-                                delay = 0.4 * (retry_count + 1)
-                                logger.info(f"Session initialization conflicted for {compound_key}. Retrying in {delay:.1f}s (attempt {retry_count + 1}/3)...")
-                                await asyncio.sleep(delay)
-                                new_req_id = str(uuid.uuid4())
-                                payload["id"] = new_req_id
-                                payload["params"]["idempotencyKey"] = str(uuid.uuid4())
-                                self.pending_chat_requests[new_req_id] = {
-                                    "compound_key": compound_key,
-                                    "payload": payload,
-                                    "retry_count": retry_count + 1
-                                }
-                                await self.websocket.send(json.dumps(payload))
-                                continue
-
+                            if "initialization conflicted" in err_msg.lower():
+                                logger.info(f"Session initialization conflicted for {compound_key}. Session is locked by a background process. Triggering abort.")
+                                abort_req_id = str(uuid.uuid4())
+                                session_key = payload.get("params", {}).get("sessionKey") if payload else None
+                                if session_key:
+                                    abort_payload = {
+                                        "type": "req",
+                                        "id": abort_req_id,
+                                        "method": "chat.abort",
+                                        "params": {
+                                            "sessionKey": session_key,
+                                        }
+                                    }
+                                    try:
+                                        await self.websocket.send(json.dumps(abort_payload))
+                                    except Exception as e:
+                                        logger.error(f"Failed to send abort for locked session: {e}")
+                                err_msg = "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
+                                # Fall through to the error handler below
                             logger.warning(f"chat.send rejected for {compound_key}: {err_msg}")
                             if manager and hasattr(manager, 'app'):
                                 manager.app.state.busy_sessions.discard(compound_key)
@@ -146,6 +158,13 @@ class OpenClawGatewayClient:
                                     {"type": "error", "message": err_msg},
                                     compound_key
                                 )
+                        else:
+                            if hasattr(self, 'active_runs'):
+                                self.active_runs[compound_key] = {
+                                    "compound_key": compound_key,
+                                    "payload": payload,
+                                    "retry_count": retry_count
+                                }
 
                     if manager and hasattr(manager, 'app'):
                         if not hasattr(manager.app.state, 'pending_responses'):
@@ -239,8 +258,8 @@ class OpenClawGatewayClient:
                                         if full_text:
                                             chat_db = manager.app.state.chat_db
                                             chat_db.add_message(db_session_id, "agent", full_text)
-                                        # Clear busy flag — agent run finished
-                                        manager.app.state.busy_sessions.discard(client_id)
+                                        # Clear busy flag safely after agent run finished
+                                        asyncio.create_task(self.delayed_unlock(manager, client_id))
                                         await manager.send_personal_message({"type": "done"}, client_id)
 
                                     elif state == "error":
@@ -249,10 +268,35 @@ class OpenClawGatewayClient:
                                         if "Exec failed:" in error_message or "⚠️ 🛠️" in error_message:
                                             logger.info(f"Filtered out internal tool error for {client_id}")
                                             continue
+
+                                        if "initialization conflicted" in error_message.lower():
+                                            logger.info(f"Session initialization conflicted for {client_id} (async). Session is locked by a background process. Triggering abort.")
+                                            req_info = getattr(self, 'active_runs', {}).get(client_id)
+                                            if req_info:
+                                                payload = req_info.get("payload")
+                                                if payload:
+                                                    session_key = payload.get("params", {}).get("sessionKey")
+                                                    if session_key:
+                                                        abort_req_id = str(uuid.uuid4())
+                                                        abort_payload = {
+                                                            "type": "req",
+                                                            "id": abort_req_id,
+                                                            "method": "chat.abort",
+                                                            "params": {
+                                                                "sessionKey": session_key,
+                                                            }
+                                                        }
+                                                        try:
+                                                            await self.websocket.send(json.dumps(abort_payload))
+                                                        except Exception as e:
+                                                            logger.error(f"Failed to send abort for locked session: {e}")
                                             
+                                            error_message = "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
+                                            # Fall through to the error handler below
+
                                         logger.warning(f"Agent run error for session {client_id}: {error_message}")
-                                        # Clear busy flag — agent run errored out
-                                        manager.app.state.busy_sessions.discard(client_id)
+                                        # Clear busy flag safely after agent run errored out
+                                        asyncio.create_task(self.delayed_unlock(manager, client_id))
                                         # Persist the error to chat history with a clear prefix
                                         chat_db = manager.app.state.chat_db
                                         chat_db.add_message(db_session_id, "agent", f"[Error] {error_message}")

@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "xr": { "dependsOn": "c", "showValue": "gt1" },
+    "yr": { "dependsOn": "c", "showValue": "gt1" },
+    "output_buffer_size": { "dependsOn": "internal_speedup", "showValue": "gt1" },
+    "private_buf_size": { "dependsOn": "buffer_policy", "showValue": "private" },
+    "private_buf_start_vc": { "dependsOn": "buffer_policy", "showValue": "private" },
+    "private_buf_end_vc": { "dependsOn": "buffer_policy", "showValue": "private" },
+    "burst_alpha": { "dependsOn": "injection_process", "showValue": "bursty" },
+    "burst_beta": { "dependsOn": "injection_process", "showValue": "bursty" },
+    "burst_r1": { "dependsOn": "injection_process", "showValue": "bursty" },
+    "write_fraction": { "dependsOn": "use_read_write", "showValue": "1" },
+    "sent_packets_out": { "dependsOn": "sim_type", "showValue": "batch" },
+    "power_output_file": { "dependsOn": "sim_power", "showValue": "1" },
+    "tech_file": { "dependsOn": "sim_power", "showValue": "1" },
+    "channel_width": { "dependsOn": "sim_power", "showValue": "1" },
+    "channel_sweep": { "dependsOn": "sim_power", "showValue": "1" }
+  }
+}
+

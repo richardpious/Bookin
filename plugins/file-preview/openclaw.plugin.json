@@ -3,6 +3,9 @@
   "name": "File Preview",
   "description": "Shows the user files in the UI.",
   "version": "0.1.0",
+  "execution": {
+    "host": "gateway"
+  },
   "configSchema": {
     "type": "object",
     "properties": {},

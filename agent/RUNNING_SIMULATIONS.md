@@ -23,13 +23,20 @@ This document is the single source of truth for performing preparation, build, e
 5a. **Error Recovery & Handling**:
     *   If `run_simulation` returns `success: false`, inspect the returned `log_snippet` or log file.
     *   If the issue is a simple syntax error, you may edit the `.cfg` file and try once more.
-    *   If the error is ambiguous or fails a second time, report the error log snippet directly to the user and request guidance rather than attempting repeated trial-and-error edits.
+    *   If the error is ambiguous or fails several times in a row, report the error log snippet directly to the user and request guidance rather than attempting repeated trial-and-error edits.
+    *   **IMPORTANT**: If you receive a system error such as "The session was locked by a background process" or an infrastructure failure, DO NOT summarize it as a generic "technical glitch". You MUST explicitly quote the raw error message to the user so they know exactly what failed on the platform side.
 6.  **Reporting**: Present the extracted metrics summary returned by `run_simulation` to the user in chat.
 7.  **Documentation**: Return results to the user; update persistent records/memory files.
 
 ## Post-simulation
 
 ## Core Knowledge & Parameters
+
+**CRITICAL**: When constructing simulation configuration files, ALWAYS use the parameter definitions found in the local `data/` folder as your primary reference for valid parameter values and dependencies:
+- `data/paramOptions.json`: Allowed values/enums for parameters.
+- `data/paramDependencies.json`: Rules for when certain parameters are valid based on other parameters.
+- `data/paramDescriptions.json`: Detailed definitions of each parameter.
+
 My operational knowledge includes:
 *   **Builds**: Managing `make`, `make clean`, and custom `DEFINE` flags.
 *   **Execution**: Handling CLI overrides and multi-config workflows.

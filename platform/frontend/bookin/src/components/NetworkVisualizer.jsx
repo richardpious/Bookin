@@ -57,6 +57,8 @@ export const NetworkVisualizer = ({ filePath }) => {
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const canvasRef = useRef(null);
+  const flitTrackerRef = useRef(new Map());
+  const lastCycleRef = useRef(null);
   const playTimerRef = useRef(null);
 
   const updateTooltipPos = useCallback((e) => {
@@ -157,7 +159,7 @@ export const NetworkVisualizer = ({ filePath }) => {
   // Playback timer
   useEffect(() => {
     if (isPlaying) {
-      const intervalMs = Math.max(50, 200 / speed); // speed scaling
+      const intervalMs = Math.max(100, 1000 / speed); // 1x = 1s, 2x = 0.5s, 5x = 0.2s, 10x = 0.1s
       playTimerRef.current = setInterval(() => {
         setCurrentCycle(prev => {
           if (!meta) return prev;
@@ -261,11 +263,13 @@ export const NetworkVisualizer = ({ filePath }) => {
 
   // Calculate current flits position on SVG canvas
   const flitsOnCanvas = useMemo(() => {
-    const list = [];
-    if (!currentEvents.links) return list;
+    if (!currentEvents.links) return [];
 
-    currentEvents.links.forEach((linkEvt, i) => {
-      let x, y;
+    const currentLinksMap = new Map();
+
+    currentEvents.links.forEach((linkEvt) => {
+      let x = 0;
+      let y = 0;
       if (linkEvt.type === 'inject') {
         // From node to router
         const routerCoords = getRouterCoords(linkEvt.node, k, canvasWidth, canvasHeight);
@@ -282,16 +286,50 @@ export const NetworkVisualizer = ({ filePath }) => {
         return;
       }
 
-      list.push({
-        key: `flit-${linkEvt.flit}-${i}`,
+      const flitKey = `flit-${linkEvt.pkt}-${linkEvt.flit}`;
+      currentLinksMap.set(flitKey, {
+        key: flitKey,
         ...linkEvt,
         cx: x,
         cy: y,
+        opacity: 1,
+        destNode: linkEvt.type === 'router' ? linkEvt.to : linkEvt.node,
+        bufferedCycles: 0
       });
     });
 
-    return list;
-  }, [currentEvents.links, k]);
+    // If timeline is playing/scrubbing sequentially, retain old flits so they glide into routers
+    const isSequential = lastCycleRef.current !== null && Math.abs(currentCycle - lastCycleRef.current) === 1;
+    
+    if (isSequential) {
+      for (const [key, oldFlit] of flitTrackerRef.current.entries()) {
+        if (!currentLinksMap.has(key)) {
+          // If the flit reached its final destination router, it has ejected from the network. Do not buffer its ghost!
+          if (oldFlit.destNode === oldFlit.dest) {
+            continue;
+          }
+
+          const bufferedCycles = (oldFlit.bufferedCycles || 0) + 1;
+          // Keep it in the router buffer for up to 30 cycles before garbage collecting
+          if (oldFlit.destNode !== null && bufferedCycles < 30) {
+            const destCoords = getRouterCoords(oldFlit.destNode, k, canvasWidth, canvasHeight);
+            currentLinksMap.set(key, {
+              ...oldFlit,
+              cx: destCoords.x,
+              cy: destCoords.y,
+              opacity: 0.3, // Dim it to show it's buffered
+              bufferedCycles
+            });
+          }
+        }
+      }
+    }
+
+    flitTrackerRef.current = currentLinksMap;
+    lastCycleRef.current = currentCycle;
+
+    return Array.from(currentLinksMap.values());
+  }, [currentEvents.links, k, currentCycle]);
 
   // Calculate full route path for selected flit (from generator router to destination router)
   const highlightedPath = useMemo(() => {
@@ -562,18 +600,26 @@ export const NetworkVisualizer = ({ filePath }) => {
               <g key={flit.key}>
                 {isFlitSelected && (
                   <circle
-                    cx={flit.cx}
-                    cy={flit.cy}
+                    cx={0}
+                    cy={0}
                     r={14}
                     className="flit-selected-ring"
+                    style={{ 
+                      opacity: flit.opacity, 
+                      transform: `translate(${flit.cx}px, ${flit.cy}px)`
+                    }}
                   />
                 )}
                 <circle
-                  cx={flit.cx}
-                  cy={flit.cy}
+                  cx={0}
+                  cy={0}
                   r={flit.head ? 6 : 4}
                   fill={isFlitSelected ? '#f59e0b' : flitColor}
                   className={`flit-dot ${flit.head ? 'flit-dot-head' : ''} ${flit.tail ? 'flit-dot-tail' : ''} ${isFlitSelected ? 'flit-dot-selected' : ''}`}
+                  style={{ 
+                    opacity: flit.opacity, 
+                    transform: `translate(${flit.cx}px, ${flit.cy}px)`
+                  }}
                   onMouseEnter={(e) => {
                     setHoveredFlit(flit);
                     updateTooltipPos(e);

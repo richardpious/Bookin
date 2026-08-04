@@ -64,8 +64,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                         logger.info(f"Sent chat.abort for session {compound_key}")
                     except Exception as abort_err:
                         logger.error(f"Failed to send chat.abort: {abort_err}")
-                    # Clear busy state so the user can send new messages immediately
-                    websocket.app.state.busy_sessions.discard(compound_key)
                     await manager.send_personal_message({"type": "aborted"}, compound_key)
                     continue
                 elif isinstance(data, dict) and data.get("type") == "internal-command":
@@ -129,10 +127,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                 await manager.send_personal_message({"type": "error", "message": error_msg}, compound_key)
     except WebSocketDisconnect:
         manager.disconnect(compound_key, websocket)
-        # Clear busy flag if no more connections remain for this session
-        if compound_key not in manager.active_connections:
-            websocket.app.state.busy_sessions.discard(compound_key)
+        # We MUST NOT clear the busy flag here. 
+        # The agent run in OpenClaw is still active. 
+        # Clearing it here allows a new chat.send to be fired upon reconnect, causing initialization conflicts.
     except Exception as e:
         manager.disconnect(compound_key, websocket)
-        if compound_key not in manager.active_connections:
-            websocket.app.state.busy_sessions.discard(compound_key)
