@@ -130,6 +130,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                     )
                     continue
                 
+                # Ensure the user has an agent registered in OpenClaw config
+                await gateway_client.ensure_user_agent(username)
+                
                 # Send the message through the persistent Gateway WebSocket connection
                 busy_sessions.add(compound_key)
                 req_id = str(uuid.uuid4())

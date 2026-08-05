@@ -58,6 +58,10 @@ async def register(request: Request, data: AuthRequest):
     # Generate token
     token = create_access_token(data={"sub": str(user_id), "username": data.username})
     
+    # Ensure agent is registered in OpenClaw Config
+    if hasattr(request.app.state, 'gateway_client'):
+        await request.app.state.gateway_client.ensure_user_agent(data.username)
+    
     return {"access_token": token, "token_type": "bearer", "user_id": user_id, "username": data.username}
 
 @router.post("/login")
@@ -76,5 +80,9 @@ async def login(request: Request, data: AuthRequest):
         
     # Generate token
     token = create_access_token(data={"sub": str(user["id"]), "username": user["username"]})
+    
+    # Ensure agent is registered in OpenClaw Config as a fallback for existing users
+    if hasattr(request.app.state, 'gateway_client'):
+        await request.app.state.gateway_client.ensure_user_agent(user["username"])
     
     return {"access_token": token, "token_type": "bearer", "user_id": user["id"], "username": user["username"]}

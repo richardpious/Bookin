@@ -4,6 +4,8 @@ import uuid
 import websockets
 import logging
 import os
+import glob
+import shutil
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GatewayClient")
@@ -93,6 +95,12 @@ class OpenClawGatewayClient:
             # Register new user agent
             log_dir = f"/home/dell/Documents/Bookin/logs/{username}"
             os.makedirs(log_dir, exist_ok=True)
+            
+            # Copy all markdown files from default agent workspace to the user's workspace
+            agent_dir = "/home/dell/Documents/Bookin/agent"
+            if os.path.exists(agent_dir):
+                for md_file in glob.glob(os.path.join(agent_dir, "*.md")):
+                    shutil.copy(md_file, log_dir)
             
             new_agent = {
                 "id": agent_id,
