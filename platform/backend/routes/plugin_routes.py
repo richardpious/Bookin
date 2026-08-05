@@ -18,7 +18,7 @@ async def file_preview(body: FilePreviewRequest, request: Request):
     for compound_key, ws in manager.active_connections.items():
         # Check if this connection belongs to the requested session (extracting the original client_id)
         original_client_id = compound_key.split(":", 1)[1] if ":" in compound_key else compound_key
-        if not session_key or f"subagent:main:{original_client_id}" in session_key:
+        if not session_key or session_key.endswith(f":{original_client_id}"):
             username, session_id = compound_key.split(":", 1) if ":" in compound_key else ("default", compound_key)
             # Remove leading slashes to prevent absolute path issues
             safe_filepath = body.filepath.lstrip('/')

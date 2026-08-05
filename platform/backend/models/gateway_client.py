@@ -66,6 +66,52 @@ class OpenClawGatewayClient:
         if hasattr(self, 'active_runs') and client_id in self.active_runs:
             del self.active_runs[client_id]
 
+    # Global lock to prevent concurrent config file modifications
+    config_lock = asyncio.Lock()
+
+    async def ensure_user_agent(self, username: str):
+        """Ensures an agent exists for this user in openclaw.json."""
+        config_path = os.path.expanduser("~/.openclaw/openclaw.json")
+        
+        async with OpenClawGatewayClient.config_lock:
+            if not os.path.exists(config_path):
+                config = {"agents": {"list": []}}
+            else:
+                with open(config_path, "r") as f:
+                    config = json.load(f)
+                
+            if "agents" not in config: config["agents"] = {}
+            if "list" not in config["agents"]: config["agents"]["list"] = []
+            
+            agent_id = username
+            
+            # Check if already registered
+            for agent in config["agents"]["list"]:
+                if agent.get("id") == agent_id:
+                    return agent_id
+                    
+            # Register new user agent
+            log_dir = f"/home/dell/Documents/Bookin/logs/{username}"
+            os.makedirs(log_dir, exist_ok=True)
+            
+            new_agent = {
+                "id": agent_id,
+                "workspace": log_dir,
+                "sandbox": {
+                    "mode": "all",
+                    "backend": "openshell",
+                    "scope": "session",
+                    "workspaceAccess": "rw"
+                }
+            }
+            
+            config["agents"]["list"].append(new_agent)
+            
+            with open(config_path, "w") as f:
+                json.dump(config, f, indent=2)
+                
+            return agent_id
+
     async def send_agent_message(self, message: str, session_id: str, username: str = None):
         """Sends a message or command to the OpenClaw Gateway."""
         if not self.websocket:
@@ -73,10 +119,11 @@ class OpenClawGatewayClient:
         
         # Build session key with username for per-user isolation
         if username:
-            session_key = f"subagent:main:{username}:{session_id}"
+            agent_id = await self.ensure_user_agent(username)
+            session_key = f"agent:{agent_id}:{session_id}"
             openclaw_session_id = f"{username}:{session_id}"
         else:
-            session_key = f"subagent:main:webchat:{session_id}"
+            session_key = f"agent:main:webchat:{session_id}"
             openclaw_session_id = session_id
         
         req_id = str(uuid.uuid4())
@@ -224,7 +271,7 @@ class OpenClawGatewayClient:
 
                         forward_packet = {"type": "gateway_log", "payload": data}
                         for client_id in manager.active_connections:
-                            if not session_key or f"subagent:main:{client_id}" in session_key:
+                            if not session_key or session_key.endswith(f":{client_id}"):
                                 await manager.send_personal_message(forward_packet, client_id)
 
                         # Handle chat events to stream text to the UI
@@ -244,7 +291,7 @@ class OpenClawGatewayClient:
                             state = chat_payload.get("state")
 
                             for client_id, ws in manager.active_connections.items():
-                                if f"subagent:main:{client_id}" in session_key:
+                                if session_key.endswith(f":{client_id}"):
                                     # Extract plain session_id from compound key "username:session_id"
                                     db_session_id = client_id.split(":", 1)[1] if ":" in client_id else client_id
                                     
