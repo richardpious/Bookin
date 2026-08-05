@@ -2,6 +2,9 @@ from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 import json
 import uuid
 import logging
+import os
+import shutil
+import asyncio
 from .auth_routes import get_current_user, get_current_username, build_session_key
 
 logger = logging.getLogger("WebSocketRoutes")
@@ -35,6 +38,58 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
     except Exception:
         # Ignore if session already exists. Ideally we'd verify ownership here.
         pass
+
+    # Dynamic Sandbox Seeding
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        session_dir = os.path.join(project_root, "logs", username, client_id)
+        
+        if not os.path.exists(session_dir):
+            os.makedirs(session_dir, exist_ok=True)
+            
+            # Seed booksim and configs
+            src_booksim = os.path.join(project_root, "booksim")
+            dst_booksim = os.path.join(session_dir, "booksim")
+            if os.path.exists(src_booksim):
+                shutil.copytree(src_booksim, dst_booksim, dirs_exist_ok=True)
+                
+            src_configs = os.path.join(project_root, "configs")
+            dst_configs = os.path.join(session_dir, "configs")
+            if os.path.exists(src_configs):
+                shutil.copytree(src_configs, dst_configs, dirs_exist_ok=True)
+                
+            # Patch the session sandbox workspace
+            session_key = build_session_key(username, client_id)
+            patch_req_id = str(uuid.uuid4())
+            await gateway_client.websocket.send(json.dumps({
+                "type": "req",
+                "id": patch_req_id,
+                "method": "sessions.patch",
+                "params": {
+                    "key": session_key,
+                    "sandbox": {
+                        "workspace": session_dir
+                    }
+                }
+            }))
+            logger.info(f"Seeded session directory and patched sandbox workspace for {compound_key}")
+            
+            # Wait for the Gateway to finish the sessions.patch request
+            timeout = 10.0
+            start_time = asyncio.get_event_loop().time()
+            if not hasattr(manager.app.state, 'pending_responses'):
+                manager.app.state.pending_responses = {}
+                
+            while patch_req_id not in manager.app.state.pending_responses:
+                if asyncio.get_event_loop().time() - start_time > timeout:
+                    logger.error(f"Timeout waiting for sessions.patch response for {compound_key}")
+                    break
+                await asyncio.sleep(0.1)
+                
+            if patch_req_id in manager.app.state.pending_responses:
+                manager.app.state.pending_responses.pop(patch_req_id)
+    except Exception as e:
+        logger.error(f"Failed to setup session sandbox: {e}")
     
     try:
         while True:

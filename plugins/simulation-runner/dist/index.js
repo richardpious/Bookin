@@ -4379,31 +4379,30 @@ __export(typebox_exports, {
 
 // src/index.ts
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
-import fs from "node:fs/promises";
 import path from "node:path";
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
-var execAsync = promisify(exec);
-async function resolveConfigPath(rawPath, projectRoot) {
+async function resolveConfigPathRemote(rawPath, projectRoot, context) {
   const candidates = [];
   if (path.isAbsolute(rawPath)) {
     candidates.push(rawPath);
   } else {
-    candidates.push(path.resolve(projectRoot, "configs", path.basename(rawPath)));
-    candidates.push(path.resolve(projectRoot, rawPath));
+    candidates.push(path.posix.join(projectRoot, "configs", path.basename(rawPath)));
+    candidates.push(path.posix.join(projectRoot, rawPath));
     const stripped = rawPath.replace(/^(?:\.\.\/)+/, "");
-    candidates.push(path.resolve(projectRoot, stripped));
-    candidates.push(path.resolve(process.cwd(), rawPath));
-    candidates.push(path.resolve(process.cwd(), stripped));
+    candidates.push(path.posix.join(projectRoot, stripped));
+    candidates.push(rawPath);
   }
   console.log(`[run_simulation] Resolving config path for '${rawPath}'. Candidate paths to check:`, candidates);
   for (const candidate of candidates) {
     try {
-      await fs.access(candidate);
-      console.log(`[run_simulation] -> SUCCESS: Found valid config file at '${candidate}'`);
-      return candidate;
-    } catch {
-      console.log(`[run_simulation] -> Checked '${candidate}' (not found)`);
+      const { code } = await context.agent.exec(`test -f "${candidate}"`);
+      if (code === 0) {
+        console.log(`[run_simulation] -> SUCCESS: Found valid config file at '${candidate}'`);
+        return candidate;
+      } else {
+        console.log(`[run_simulation] -> Checked '${candidate}' (not found)`);
+      }
+    } catch (e) {
+      console.log(`[run_simulation] -> Error checking '${candidate}':`, e);
     }
   }
   console.error(`[run_simulation] -> ERROR: Could not find config file '${rawPath}' in any candidate path.`);
@@ -4427,7 +4426,7 @@ var index_default = defineToolPlugin({
         const startTime = Date.now();
         console.log(`
 ==================================================`);
-        console.log(`[run_simulation] INVOCATION STARTED`);
+        console.log(`[run_simulation] INVOCATION STARTED (REMOTE MODE)`);
         console.log(`[run_simulation] Raw parameters received:`, JSON.stringify(params, null, 2));
         const rawConfigPath = String(
           params?.config_filepath || params?.configFilepath || params?.config_path || params?.config || ""
@@ -4438,20 +4437,16 @@ var index_default = defineToolPlugin({
         let sessionPath = String(
           params?.session_path || params?.sessionPath || params?.session || ""
         ).trim();
-        console.log(`[run_simulation] Parameter extraction: rawConfigPath='${rawConfigPath}', runDescriptor='${runDescriptor}', sessionPath='${sessionPath}'`);
         if (!rawConfigPath) {
-          console.error(`[run_simulation] FAILED: Missing required argument 'config_filepath'`);
           return {
             success: false,
             error: "Missing required argument: config_filepath (or config_path) must be provided."
           };
         }
         try {
-          const projectRoot = process.env.OPENCLAW_HOME || "/home/dell/Documents/Bookin";
-          console.log(`[run_simulation] Environment info: process.cwd()='${process.cwd()}', projectRoot='${projectRoot}'`);
+          const projectRoot = "/sandbox";
           if (!sessionPath && context?.toolContext?.sessionKey) {
             sessionPath = context.toolContext.sessionKey;
-            console.log(`[run_simulation] Using sessionKey from context: '${sessionPath}'`);
           }
           if (!sessionPath) {
             sessionPath = "default/session";
@@ -4461,94 +4456,74 @@ var index_default = defineToolPlugin({
               sessionPath = `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
             }
           }
-          console.log(`[run_simulation] Final resolved sessionPath: '${sessionPath}'`);
-          const absoluteConfigPath = await resolveConfigPath(rawConfigPath, projectRoot);
+          const absoluteConfigPath = await resolveConfigPathRemote(rawConfigPath, projectRoot, context);
           if (!absoluteConfigPath) {
-            const errString = `Config file not found. Checked candidate locations for: '${rawConfigPath}' in project root '${projectRoot}' and workspace '${process.cwd()}'.`;
-            console.error(`[run_simulation] FAILED: ${errString}`);
             return {
               success: false,
-              error: errString
+              error: `Config file not found. Checked candidate locations for: '${rawConfigPath}'`
             };
           }
-          const baseSessionDir = path.resolve(projectRoot, "logs", sessionPath);
-          await fs.mkdir(baseSessionDir, { recursive: true });
-          console.log(`[run_simulation] Base session log directory: '${baseSessionDir}'`);
-          const existingEntries = await fs.readdir(baseSessionDir, { withFileTypes: true });
+          const baseSessionDir = path.posix.join(projectRoot, "runs");
+          await context.agent.exec(`mkdir -p "${baseSessionDir}"`);
+          const lsRes = await context.agent.exec(`ls -1 "${baseSessionDir}"`);
+          const existingEntries = (lsRes.stdout || "").split("\n").filter((v) => v.trim() !== "");
           let maxRunNum = 0;
           let existingDescriptorFolder = null;
           for (const entry of existingEntries) {
-            if (entry.isDirectory()) {
-              const match = entry.name.match(/^run_(\d+)_(.+)$/);
-              if (match) {
-                const num = parseInt(match[1], 10);
-                if (!isNaN(num) && num > maxRunNum) {
-                  maxRunNum = num;
-                }
-                if (match[2] === runDescriptor) {
-                  existingDescriptorFolder = entry.name;
-                }
+            const match = entry.match(/^run_(\d+)_(.+)$/);
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (!isNaN(num) && num > maxRunNum) {
+                maxRunNum = num;
+              }
+              if (match[2] === runDescriptor) {
+                existingDescriptorFolder = entry;
               }
             }
           }
           let runFolderName;
           if (existingDescriptorFolder) {
             runFolderName = existingDescriptorFolder;
-            console.log(`[run_simulation] Reusing existing run folder for descriptor '${runDescriptor}': '${runFolderName}'`);
           } else {
             const nextRunNum = (maxRunNum + 1).toString().padStart(2, "0");
             runFolderName = `run_${nextRunNum}_${runDescriptor}`;
-            console.log(`[run_simulation] Creating new run folder: '${runFolderName}'`);
           }
-          const runDir = path.join(baseSessionDir, runFolderName);
-          await fs.mkdir(runDir, { recursive: true });
-          const targetConfigPath = path.join(runDir, "config.cfg");
-          await fs.copyFile(absoluteConfigPath, targetConfigPath);
-          console.log(`[run_simulation] Staged config.cfg from '${absoluteConfigPath}' to '${targetConfigPath}'`);
-          const logFilePath = path.join(runDir, "simulation_output.log");
-          const booksimBinaryPath = "/home/dell/Documents/Bookin/booksim/src/booksim";
+          const runDir = path.posix.join(baseSessionDir, runFolderName);
+          await context.agent.exec(`mkdir -p "${runDir}"`);
+          const targetConfigPath = path.posix.join(runDir, "config.cfg");
+          await context.agent.exec(`cp "${absoluteConfigPath}" "${targetConfigPath}"`);
+          const logFilePath = path.posix.join(runDir, "simulation_output.log");
+          const booksimBinaryPath = "/sandbox/booksim/src/booksim";
           const execCommand = `sh -c '${booksimBinaryPath} config.cfg > simulation_output.log 2>&1'`;
-          console.log(`[run_simulation] Executing unsandboxed command: '${execCommand}' in cwd: '${runDir}'...`);
-          try {
-            const execStart = Date.now();
-            await execAsync(execCommand, { cwd: runDir, maxBuffer: 50 * 1024 * 1024 });
-            console.log(`[run_simulation] Binary execution finished successfully in ${Date.now() - execStart} ms.`);
-          } catch (execErr) {
-            console.error(`[run_simulation] EXECUTION FAILED with error:`, execErr.message || execErr);
-            let logErrorSnippet = "";
-            try {
-              const logContent2 = await fs.readFile(logFilePath, "utf-8");
-              if (logContent2.length > 3e3) {
-                logErrorSnippet = `--- START OF LOG (Head) ---
+          console.log(`[run_simulation] Executing remote command: '${execCommand}' in cwd: '${runDir}'...`);
+          const { code, stdout, stderr } = await context.agent.exec(execCommand, { cwd: runDir });
+          if (code !== 0) {
+            console.error(`[run_simulation] EXECUTION FAILED.`);
+            const catRes2 = await context.agent.exec(`cat "${logFilePath}"`);
+            const logContent2 = catRes2.stdout || "";
+            let logErrorSnippet = logContent2;
+            if (logContent2.length > 3e3) {
+              logErrorSnippet = `--- START OF LOG (Head) ---
 ${logContent2.slice(0, 1500)}
 
-... [TRUNCATED ${logContent2.length - 3e3} chars] ...
+... [TRUNCATED] ...
 
 --- END OF LOG (Tail) ---
 ${logContent2.slice(-1500)}`;
-              } else {
-                logErrorSnippet = logContent2;
-              }
-              console.error(`[run_simulation] Captured error log snippet:
---- SNIPPET START ---
-${logErrorSnippet}
---- SNIPPET END ---`);
-            } catch (rErr) {
-              console.error(`[run_simulation] Could not read log file '${logFilePath}':`, rErr);
             }
-            console.log(`[run_simulation] Preserving failed run directory for inspection: '${runDir}'`);
             return {
               success: false,
               run_folder_cleaned: false,
               run_directory: runDir,
               log_file: logFilePath,
-              error: `BookSim simulation execution failed. ${execErr.message || String(execErr)}`,
+              error: `BookSim simulation execution failed. Exit code ${code}.`,
               log_snippet: logErrorSnippet,
-              instruction: "BookSim execution failed. Review the log_snippet to find config parsing errors at the top or runtime crashes at the bottom. Do NOT guess blindly if the snippet contains the parser error."
+              instruction: "BookSim execution failed. Review the log_snippet to find config parsing errors at the top or runtime crashes at the bottom."
             };
           }
           console.log(`[run_simulation] Reading log file '${logFilePath}' for metric extraction...`);
-          const logContent = await fs.readFile(logFilePath, "utf-8");
+          const catRes = await context.agent.exec(`cat "${logFilePath}"`);
+          const logContent = catRes.stdout || "";
           const metrics = {};
           const packetLatencyAvg = logContent.match(/Packet latency average\s*=\s*([\d\.]+)/);
           if (packetLatencyAvg) metrics.packet_latency_avg = parseFloat(packetLatencyAvg[1]);
@@ -4574,8 +4549,7 @@ ${logErrorSnippet}
           if (totalRunTime) metrics.total_run_time_sec = parseFloat(totalRunTime[1]);
           const timeCycles = logContent.match(/Time taken is\s*(\d+)\s*cycles/);
           if (timeCycles) metrics.total_cycles = parseInt(timeCycles[1], 10);
-          console.log(`[run_simulation] Extracted metrics:`, JSON.stringify(metrics, null, 2));
-          const responsePayload = {
+          return {
             success: true,
             run_directory: runDir,
             config_file: targetConfigPath,
@@ -4583,12 +4557,7 @@ ${logErrorSnippet}
             run_folder: runFolderName,
             metrics
           };
-          console.log(`[run_simulation] INVOCATION COMPLETED SUCCESSFULLY in ${Date.now() - startTime} ms.`);
-          console.log(`==================================================
-`);
-          return responsePayload;
         } catch (err) {
-          console.error(`[run_simulation] UNHANDLED EXCEPTION:`, err);
           return {
             success: false,
             error: err.message || String(err)

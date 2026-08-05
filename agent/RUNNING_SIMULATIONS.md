@@ -3,9 +3,9 @@
 This document is the single source of truth for performing preparation, build, execution, log parsing, and reporting for BookSim experiments. It is designed to be idempotent and safe to re-run.
 
 ## Execution Workflow
-1.  **Preparation**: Verify environment paths (`../booksim` or `/home/sandbox/booksim`) and dependencies as per `../docs/booksim-docs`.
-2.  **Compilation**: Validate/rebuild the `../booksim/src/booksim` (or `/home/sandbox/booksim/src/booksim`) binary using appropriate build flags.
-3.  **Configuration & Generation**: All generated configuration files (`.cfg`) MUST be created inside the configuration directory (`../configs/` for unsandboxed, `/mnt/configs/` for sandboxed). Do NOT create new folders like `simulations/` or place `.cfg` files outside the configuration directory. Do NOT search C++ source files in the `src` directory to write `.cfg` files, and do NOT show raw base templates asking the user "how about we edit this".
+1.  **Preparation**: Verify environment paths (`../booksim` or `/sandbox/booksim`) and dependencies as per `../docs/booksim-docs`.
+2.  **Compilation**: Validate/rebuild the `../booksim/src/booksim` (or `/sandbox/booksim/src/booksim`) binary using appropriate build flags.
+3.  **Configuration & Generation**: All generated configuration files (`.cfg`) MUST be created inside the configuration directory (`../configs/` for unsandboxed, `/sandbox/configs/` for sandboxed). Do NOT create new folders like `simulations/` or place `.cfg` files outside the configuration directory. Do NOT search C++ source files in the `src` directory to write `.cfg` files, and do NOT show raw base templates asking the user "how about we edit this".
 4.  **Simulation Preview & Approval (MANDATORY)**:
     *   Once the complete config file is created/finalized, use the `file-open` tool to display the finalized configuration preview to the user. Do not show raw template configs.
     *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed by the user.
@@ -16,7 +16,7 @@ This document is the single source of truth for performing preparation, build, e
         - `session_path`: user and session folder path (e.g., `richard/topologies`).
     *   The `run_simulation` tool automatically:
         - Computes the next incremental run index (`run_01_<run_descriptor>`, `run_02_...`).
-        - Creates the run directory in the appropriate logs directory (`../logs/<session_path>/run_<n>_<run_descriptor>/` or `/mnt/logs/<session_path>/run_<n>_<run_descriptor>/`).
+        - Creates the run directory in the appropriate logs directory (`../logs/<session_path>/run_<n>_<run_descriptor>/` or `/sandbox/runs/run_<n>_<run_descriptor>/`).
         - Stages the configuration file specifically as `config.cfg`.
         - Executes `./booksim config.cfg > simulation_output.log 2>&1` sequentially.
         - Parses `simulation_output.log` and returns extracted performance metrics (latency, throughput, packet rates).

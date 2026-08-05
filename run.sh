@@ -82,7 +82,7 @@ jq --arg ws "$PROJECT_ROOT/agent" '
       "enabled": true,
       "config": {
         "from": "/home/dell/Documents/Bookin/Dockerfile.sandbox",
-        "mode": "remote"
+        "mode": "mirror"
       }
     }
   }|

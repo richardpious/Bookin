@@ -1,43 +1,40 @@
 import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
-import fs from "node:fs/promises";
 import path from "node:path";
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
-
-const execAsync = promisify(exec);
 
 /**
  * Searches candidate paths for the target config file to handle all workspace & relative path variations.
  */
-async function resolveConfigPath(rawPath: string, projectRoot: string): Promise<string | null> {
+async function resolveConfigPathRemote(rawPath: string, projectRoot: string, context: any): Promise<string | null> {
   const candidates: string[] = [];
 
   if (path.isAbsolute(rawPath)) {
     candidates.push(rawPath);
   } else {
-    // 1. Primary canonical location: inside configs/ directory (e.g. /home/dell/Documents/Bookin/configs/filename.cfg)
-    candidates.push(path.resolve(projectRoot, "configs", path.basename(rawPath)));
-    // 2. Relative to project root (/home/dell/Documents/Bookin)
-    candidates.push(path.resolve(projectRoot, rawPath));
-    // 3. Stripped leading ../ relative to project root (e.g. ../configs/file.cfg -> configs/file.cfg)
+    // 1. Primary canonical location: inside configs/ directory
+    candidates.push(path.posix.join(projectRoot, "configs", path.basename(rawPath)));
+    // 2. Relative to project root
+    candidates.push(path.posix.join(projectRoot, rawPath));
+    // 3. Stripped leading ../ relative to project root
     const stripped = rawPath.replace(/^(?:\.\.\/)+/, "");
-    candidates.push(path.resolve(projectRoot, stripped));
+    candidates.push(path.posix.join(projectRoot, stripped));
     // 4. Relative to current working directory (agent workspace)
-    candidates.push(path.resolve(process.cwd(), rawPath));
-    // 5. Stripped leading ../ relative to process.cwd()
-    candidates.push(path.resolve(process.cwd(), stripped));
+    candidates.push(rawPath);
   }
 
   console.log(`[run_simulation] Resolving config path for '${rawPath}'. Candidate paths to check:`, candidates);
 
   for (const candidate of candidates) {
     try {
-      await fs.access(candidate);
-      console.log(`[run_simulation] -> SUCCESS: Found valid config file at '${candidate}'`);
-      return candidate;
-    } catch {
-      console.log(`[run_simulation] -> Checked '${candidate}' (not found)`);
+      const { code } = await context.agent.exec(`test -f "${candidate}"`);
+      if (code === 0) {
+        console.log(`[run_simulation] -> SUCCESS: Found valid config file at '${candidate}'`);
+        return candidate;
+      } else {
+        console.log(`[run_simulation] -> Checked '${candidate}' (not found)`);
+      }
+    } catch (e) {
+      console.log(`[run_simulation] -> Error checking '${candidate}':`, e);
     }
   }
 
@@ -62,10 +59,9 @@ export default defineToolPlugin({
       async execute(params: Record<string, any>, _config: any, context: any) {
         const startTime = Date.now();
         console.log(`\n==================================================`);
-        console.log(`[run_simulation] INVOCATION STARTED`);
+        console.log(`[run_simulation] INVOCATION STARTED (REMOTE MODE)`);
         console.log(`[run_simulation] Raw parameters received:`, JSON.stringify(params, null, 2));
 
-        // Parameter extraction supporting common alias naming conventions
         const rawConfigPath = String(
           params?.config_filepath || params?.configFilepath || params?.config_path || params?.config || ""
         ).trim();
@@ -78,10 +74,7 @@ export default defineToolPlugin({
           params?.session_path || params?.sessionPath || params?.session || ""
         ).trim();
 
-        console.log(`[run_simulation] Parameter extraction: rawConfigPath='${rawConfigPath}', runDescriptor='${runDescriptor}', sessionPath='${sessionPath}'`);
-
         if (!rawConfigPath) {
-          console.error(`[run_simulation] FAILED: Missing required argument 'config_filepath'`);
           return {
             success: false,
             error: "Missing required argument: config_filepath (or config_path) must be provided."
@@ -89,13 +82,11 @@ export default defineToolPlugin({
         }
 
         try {
-          const projectRoot = process.env.OPENCLAW_HOME || "/home/dell/Documents/Bookin";
-          console.log(`[run_simulation] Environment info: process.cwd()='${process.cwd()}', projectRoot='${projectRoot}'`);
-
-          // Handle session key formatting
+          // OpenShell default primary writable workspace
+          const projectRoot = "/sandbox"; 
+          
           if (!sessionPath && context?.toolContext?.sessionKey) {
             sessionPath = context.toolContext.sessionKey;
-            console.log(`[run_simulation] Using sessionKey from context: '${sessionPath}'`);
           }
           if (!sessionPath) {
             sessionPath = "default/session";
@@ -105,40 +96,33 @@ export default defineToolPlugin({
               sessionPath = `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
             }
           }
-          console.log(`[run_simulation] Final resolved sessionPath: '${sessionPath}'`);
 
-          // Resilient configuration file path resolution
-          const absoluteConfigPath = await resolveConfigPath(rawConfigPath, projectRoot);
+          const absoluteConfigPath = await resolveConfigPathRemote(rawConfigPath, projectRoot, context);
           if (!absoluteConfigPath) {
-            const errString = `Config file not found. Checked candidate locations for: '${rawConfigPath}' in project root '${projectRoot}' and workspace '${process.cwd()}'.`;
-            console.error(`[run_simulation] FAILED: ${errString}`);
             return {
               success: false,
-              error: errString
+              error: `Config file not found. Checked candidate locations for: '${rawConfigPath}'`
             };
           }
 
-          // Target session directory under logs/
-          const baseSessionDir = path.resolve(projectRoot, "logs", sessionPath);
-          await fs.mkdir(baseSessionDir, { recursive: true });
-          console.log(`[run_simulation] Base session log directory: '${baseSessionDir}'`);
+          const baseSessionDir = path.posix.join(projectRoot, "runs");
+          await context.agent.exec(`mkdir -p "${baseSessionDir}"`);
 
-          // Check if an existing run directory already exists for this descriptor (e.g. on retries)
-          const existingEntries = await fs.readdir(baseSessionDir, { withFileTypes: true });
+          const lsRes = await context.agent.exec(`ls -1 "${baseSessionDir}"`);
+          const existingEntries = (lsRes.stdout || "").split("\n").filter((v: string) => v.trim() !== "");
+          
           let maxRunNum = 0;
           let existingDescriptorFolder: string | null = null;
 
           for (const entry of existingEntries) {
-            if (entry.isDirectory()) {
-              const match = entry.name.match(/^run_(\d+)_(.+)$/);
-              if (match) {
-                const num = parseInt(match[1], 10);
-                if (!isNaN(num) && num > maxRunNum) {
-                  maxRunNum = num;
-                }
-                if (match[2] === runDescriptor) {
-                  existingDescriptorFolder = entry.name;
-                }
+            const match = entry.match(/^run_(\d+)_(.+)$/);
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (!isNaN(num) && num > maxRunNum) {
+                maxRunNum = num;
+              }
+              if (match[2] === runDescriptor) {
+                existingDescriptorFolder = entry;
               }
             }
           }
@@ -146,62 +130,51 @@ export default defineToolPlugin({
           let runFolderName: string;
           if (existingDescriptorFolder) {
             runFolderName = existingDescriptorFolder;
-            console.log(`[run_simulation] Reusing existing run folder for descriptor '${runDescriptor}': '${runFolderName}'`);
           } else {
             const nextRunNum = (maxRunNum + 1).toString().padStart(2, "0");
             runFolderName = `run_${nextRunNum}_${runDescriptor}`;
-            console.log(`[run_simulation] Creating new run folder: '${runFolderName}'`);
           }
 
-          const runDir = path.join(baseSessionDir, runFolderName);
+          const runDir = path.posix.join(baseSessionDir, runFolderName);
 
-          // Step 1: Create run folder and stage configuration specifically as config.cfg
-          await fs.mkdir(runDir, { recursive: true });
-          const targetConfigPath = path.join(runDir, "config.cfg");
-          await fs.copyFile(absoluteConfigPath, targetConfigPath);
-          console.log(`[run_simulation] Staged config.cfg from '${absoluteConfigPath}' to '${targetConfigPath}'`);
+          await context.agent.exec(`mkdir -p "${runDir}"`);
+          const targetConfigPath = path.posix.join(runDir, "config.cfg");
+          await context.agent.exec(`cp "${absoluteConfigPath}" "${targetConfigPath}"`);
 
-          const logFilePath = path.join(runDir, "simulation_output.log");
-          const booksimBinaryPath = "/home/dell/Documents/Bookin/booksim/src/booksim";
+          const logFilePath = path.posix.join(runDir, "simulation_output.log");
+          const booksimBinaryPath = "/sandbox/booksim/src/booksim";
           const execCommand = `sh -c '${booksimBinaryPath} config.cfg > simulation_output.log 2>&1'`;
-          console.log(`[run_simulation] Executing unsandboxed command: '${execCommand}' in cwd: '${runDir}'...`);
+          
+          console.log(`[run_simulation] Executing remote command: '${execCommand}' in cwd: '${runDir}'...`);
 
-          // Step 3: Sequential binary execution
-          try {
-            const execStart = Date.now();
-            await execAsync(execCommand, { cwd: runDir, maxBuffer: 50 * 1024 * 1024 });
-            console.log(`[run_simulation] Binary execution finished successfully in ${Date.now() - execStart} ms.`);
-          } catch (execErr: any) {
-            console.error(`[run_simulation] EXECUTION FAILED with error:`, execErr.message || execErr);
-            let logErrorSnippet = "";
-            try {
-              const logContent = await fs.readFile(logFilePath, "utf-8");
-              if (logContent.length > 3000) {
-                logErrorSnippet = `--- START OF LOG (Head) ---\n${logContent.slice(0, 1500)}\n\n... [TRUNCATED ${logContent.length - 3000} chars] ...\n\n--- END OF LOG (Tail) ---\n${logContent.slice(-1500)}`;
-              } else {
-                logErrorSnippet = logContent;
-              }
-              console.error(`[run_simulation] Captured error log snippet:\n--- SNIPPET START ---\n${logErrorSnippet}\n--- SNIPPET END ---`);
-            } catch (rErr) {
-              console.error(`[run_simulation] Could not read log file '${logFilePath}':`, rErr);
+          const { code, stdout, stderr } = await context.agent.exec(execCommand, { cwd: runDir });
+          
+          if (code !== 0) {
+            console.error(`[run_simulation] EXECUTION FAILED.`);
+            
+            const catRes = await context.agent.exec(`cat "${logFilePath}"`);
+            const logContent = catRes.stdout || "";
+            
+            let logErrorSnippet = logContent;
+            if (logContent.length > 3000) {
+              logErrorSnippet = `--- START OF LOG (Head) ---\n${logContent.slice(0, 1500)}\n\n... [TRUNCATED] ...\n\n--- END OF LOG (Tail) ---\n${logContent.slice(-1500)}`;
             }
-
-            console.log(`[run_simulation] Preserving failed run directory for inspection: '${runDir}'`);
-
+            
             return {
               success: false,
               run_folder_cleaned: false,
               run_directory: runDir,
               log_file: logFilePath,
-              error: `BookSim simulation execution failed. ${execErr.message || String(execErr)}`,
+              error: `BookSim simulation execution failed. Exit code ${code}.`,
               log_snippet: logErrorSnippet,
-              instruction: "BookSim execution failed. Review the log_snippet to find config parsing errors at the top or runtime crashes at the bottom. Do NOT guess blindly if the snippet contains the parser error."
+              instruction: "BookSim execution failed. Review the log_snippet to find config parsing errors at the top or runtime crashes at the bottom."
             };
           }
 
-          // Step 4: Metric extraction (after execution completes)
           console.log(`[run_simulation] Reading log file '${logFilePath}' for metric extraction...`);
-          const logContent = await fs.readFile(logFilePath, "utf-8");
+          const catRes = await context.agent.exec(`cat "${logFilePath}"`);
+          const logContent = catRes.stdout || "";
+          
           const metrics: Record<string, any> = {};
 
           const packetLatencyAvg = logContent.match(/Packet latency average\s*=\s*([\d\.]+)/);
@@ -240,9 +213,7 @@ export default defineToolPlugin({
           const timeCycles = logContent.match(/Time taken is\s*(\d+)\s*cycles/);
           if (timeCycles) metrics.total_cycles = parseInt(timeCycles[1], 10);
 
-          console.log(`[run_simulation] Extracted metrics:`, JSON.stringify(metrics, null, 2));
-
-          const responsePayload = {
+          return {
             success: true,
             run_directory: runDir,
             config_file: targetConfigPath,
@@ -250,13 +221,7 @@ export default defineToolPlugin({
             run_folder: runFolderName,
             metrics
           };
-
-          console.log(`[run_simulation] INVOCATION COMPLETED SUCCESSFULLY in ${Date.now() - startTime} ms.`);
-          console.log(`==================================================\n`);
-
-          return responsePayload;
         } catch (err: any) {
-          console.error(`[run_simulation] UNHANDLED EXCEPTION:`, err);
           return {
             success: false,
             error: err.message || String(err)
