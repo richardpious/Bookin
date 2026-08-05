@@ -24,7 +24,7 @@ async def agent_event(request: Request, payload: AgentEventPayload):
 
     target_session = None
     for sess in registered_sessions:
-        if sess == session or f"agent:main:{sess}" == session:
+        if sess == session or f"subagent:main:{sess}" == session:
             target_session = sess
             break
 

@@ -44,8 +44,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         session_dir = os.path.join(project_root, "logs", username, client_id)
         
+        session_key = build_session_key(username, client_id)
+        sandbox_state_dir = os.path.abspath(os.path.join(project_root, "..", ".openclaw", "sandbox-state", session_key))
+        
         if not os.path.exists(session_dir):
-            os.makedirs(session_dir, exist_ok=True)
+            os.makedirs(sandbox_state_dir, exist_ok=True)
+            if not os.path.islink(session_dir):
+                if os.path.isdir(session_dir):
+                    shutil.rmtree(session_dir)
+                os.symlink(sandbox_state_dir, session_dir)
             
             # Seed booksim and configs
             src_booksim = os.path.join(project_root, "booksim")
@@ -58,36 +65,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
             if os.path.exists(src_configs):
                 shutil.copytree(src_configs, dst_configs, dirs_exist_ok=True)
                 
-            # Patch the session sandbox workspace
-            session_key = build_session_key(username, client_id)
-            patch_req_id = str(uuid.uuid4())
-            await gateway_client.websocket.send(json.dumps({
-                "type": "req",
-                "id": patch_req_id,
-                "method": "sessions.patch",
-                "params": {
-                    "key": session_key,
-                    "sandbox": {
-                        "workspace": session_dir
-                    }
-                }
-            }))
-            logger.info(f"Seeded session directory and patched sandbox workspace for {compound_key}")
-            
-            # Wait for the Gateway to finish the sessions.patch request
-            timeout = 10.0
-            start_time = asyncio.get_event_loop().time()
-            if not hasattr(manager.app.state, 'pending_responses'):
-                manager.app.state.pending_responses = {}
-                
-            while patch_req_id not in manager.app.state.pending_responses:
-                if asyncio.get_event_loop().time() - start_time > timeout:
-                    logger.error(f"Timeout waiting for sessions.patch response for {compound_key}")
-                    break
-                await asyncio.sleep(0.1)
-                
-            if patch_req_id in manager.app.state.pending_responses:
-                manager.app.state.pending_responses.pop(patch_req_id)
+            logger.info(f"Seeded native sandbox workspace and symlinked for {compound_key}")
     except Exception as e:
         logger.error(f"Failed to setup session sandbox: {e}")
     

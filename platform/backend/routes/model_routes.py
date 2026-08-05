@@ -106,7 +106,7 @@ async def set_model(request: Request, authorization: Optional[str] = FastAPIHead
     if authorization and authorization.startswith("Bearer "):
         username = get_current_username(authorization.split(" ", 1)[1])
 
-    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
+    session_key = build_session_key(username, session_id) if username else f"subagent:main:webchat:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({
@@ -172,7 +172,7 @@ async def set_thinking_level(request: Request):
 async def get_session_model(session_id: str, request: Request, username: str = None):
     gateway_client = request.app.state.gateway_client
 
-    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
+    session_key = build_session_key(username, session_id) if username else f"subagent:main:webchat:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({
@@ -208,7 +208,7 @@ async def get_session_model(session_id: str, request: Request, username: str = N
 async def get_session_data(session_id: str, request: Request, username: str = None):
     gateway_client = request.app.state.gateway_client
 
-    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
+    session_key = build_session_key(username, session_id) if username else f"subagent:main:webchat:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({

@@ -82,7 +82,8 @@ jq --arg ws "$PROJECT_ROOT/agent" '
       "enabled": true,
       "config": {
         "from": "/home/dell/Documents/Bookin/Dockerfile.sandbox",
-        "mode": "mirror"
+        "mode": "mirror",
+        "remoteWorkspaceDir": "/sandbox/workspace"
       }
     }
   }|
@@ -91,7 +92,7 @@ jq --arg ws "$PROJECT_ROOT/agent" '
     "mode": "non-main",
     "backend": "openshell",
     "scope": "session",
-    "workspaceAccess": "rw"
+    "workspaceAccess": "none"
   } |
   .tools.alsoAllow = ["file-open", "run_simulation"] |
   .tools.profile = "coding" |

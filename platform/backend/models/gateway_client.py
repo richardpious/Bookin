@@ -73,10 +73,10 @@ class OpenClawGatewayClient:
         
         # Build session key with username for per-user isolation
         if username:
-            session_key = f"agent:main:{username}:{session_id}"
+            session_key = f"subagent:main:{username}:{session_id}"
             openclaw_session_id = f"{username}:{session_id}"
         else:
-            session_key = f"agent:main:webchat:{session_id}"
+            session_key = f"subagent:main:webchat:{session_id}"
             openclaw_session_id = session_id
         
         req_id = str(uuid.uuid4())
@@ -112,6 +112,11 @@ class OpenClawGatewayClient:
                 if data.get("type") == "res":
                     logger.info(f"Received response: {data}")
                     request_id = data.get("id")
+
+                    if manager and hasattr(manager, 'app'):
+                        if not hasattr(manager.app.state, 'pending_responses'):
+                            manager.app.state.pending_responses = {}
+                        manager.app.state.pending_responses[request_id] = data
 
                     # If this is a response to a chat.send request
                     if request_id in self.pending_chat_requests:
@@ -219,7 +224,7 @@ class OpenClawGatewayClient:
 
                         forward_packet = {"type": "gateway_log", "payload": data}
                         for client_id in manager.active_connections:
-                            if not session_key or f"agent:main:{client_id}" in session_key:
+                            if not session_key or f"subagent:main:{client_id}" in session_key:
                                 await manager.send_personal_message(forward_packet, client_id)
 
                         # Handle chat events to stream text to the UI
@@ -239,7 +244,7 @@ class OpenClawGatewayClient:
                             state = chat_payload.get("state")
 
                             for client_id, ws in manager.active_connections.items():
-                                if f"agent:main:{client_id}" in session_key:
+                                if f"subagent:main:{client_id}" in session_key:
                                     # Extract plain session_id from compound key "username:session_id"
                                     db_session_id = client_id.split(":", 1)[1] if ":" in client_id else client_id
                                     

@@ -33,7 +33,7 @@ def get_current_username(token: str):
 
 def build_session_key(username: str, session_id: str) -> str:
     """Build the OpenClaw session key for a given user and session."""
-    return f"agent:main:{username}:{session_id}"
+    return f"subagent:main:{username}:{session_id}"
 
 def create_access_token(data: dict):
     to_encode = data.copy()
