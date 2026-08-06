@@ -24,9 +24,22 @@ class SessionCreate(BaseModel):
 async def list_sessions(request: Request, user_id: int = Depends(verify_token)):
     return {"sessions": request.app.state.chat_db.get_user_sessions(user_id)}
 
+import os
+
 @router.post("/sessions")
 async def create_session(request: Request, data: SessionCreate, user_id: int = Depends(verify_token)):
     session_id = str(uuid.uuid4())
+    
+    auth_header = request.headers.get("authorization", "")
+    username = None
+    if auth_header.startswith("Bearer "):
+        username = get_current_username(auth_header.split(" ", 1)[1])
+        
+    if username:
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        session_log_dir = os.path.join(root_dir, "logs", username, data.title)
+        os.makedirs(session_log_dir, exist_ok=True)
+        
     request.app.state.chat_db.create_session(session_id, user_id, data.title)
     return {"id": session_id, "title": data.title}
 
