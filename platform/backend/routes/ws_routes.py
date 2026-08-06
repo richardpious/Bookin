@@ -31,13 +31,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
     
     await manager.connect(compound_key, websocket)
 
-    # Ensure the session exists for this user before allowing messages
-    # This fixes the IntegrityError bug
-    try:
-        chat_db.create_session(client_id, user_id)
-    except Exception:
-        # Ignore if session already exists. Ideally we'd verify ownership here.
-        pass
+    # Session creation is now handled explicitly by POST /sessions
+    # so we don't accidentally create ghost sessions or swallow integrity errors here.
 
     # Ensure user log directory exists (bind-mounted into Docker containers)
     try:

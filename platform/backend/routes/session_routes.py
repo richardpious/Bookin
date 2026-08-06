@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, status
+from pydantic import BaseModel
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import uuid
 from .auth_routes import get_current_user, get_current_username, build_session_key
 
 router = APIRouter()
@@ -15,9 +17,18 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         )
     return user_id
 
+class SessionCreate(BaseModel):
+    title: str
+
 @router.get("/sessions")
 async def list_sessions(request: Request, user_id: int = Depends(verify_token)):
-    return {"sessions": [s["id"] for s in request.app.state.chat_db.get_user_sessions(user_id)]}
+    return {"sessions": request.app.state.chat_db.get_user_sessions(user_id)}
+
+@router.post("/sessions")
+async def create_session(request: Request, data: SessionCreate, user_id: int = Depends(verify_token)):
+    session_id = str(uuid.uuid4())
+    request.app.state.chat_db.create_session(session_id, user_id, data.title)
+    return {"id": session_id, "title": data.title}
 
 @router.post("/delete_session/{session_id}")
 async def delete_session(request: Request, session_id: str, user_id: int = Depends(verify_token)):

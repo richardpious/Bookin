@@ -33,7 +33,7 @@ function App() {
     setUsername(null);
   };
 
-  const { sessions, sessionsLoaded, setSessions, sessionId, setSessionId, deleteSession } = useSessionManagement(token);
+  const { sessions, sessionsLoaded, setSessions, sessionId, setSessionId, deleteSession, createSession } = useSessionManagement(token);
 
   const [approvalRequest, setApprovalRequest] = useState(null)
   const [searchResults, setSearchResults] = useState(null)
@@ -157,6 +157,7 @@ function App() {
             username={username}
             hasUnreadLogs={hasUnreadLogs}
             onClearUnreadLogs={clearUnreadLogs}
+            createSession={createSession}
         />
         <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
         

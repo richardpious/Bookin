@@ -52,6 +52,10 @@ class ChatHistoryDB:
                 FOREIGN KEY(session_id) REFERENCES sessions(id) ON DELETE CASCADE
             )
         ''')
+        
+        # Migrate old sessions to ensure they have a title
+        cursor.execute("UPDATE sessions SET title = id WHERE title IS NULL")
+        
         conn.commit()
         conn.close()
 

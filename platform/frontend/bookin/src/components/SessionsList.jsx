@@ -41,12 +41,12 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
   return (
     <div
       ref={menuRef}
-      onClick={() => onSelect(session)}
+      onClick={() => onSelect(session.id)}
       className={`session-item ${isSelected ? 'active' : ''}`}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <MessageSquare size={16} />
-        <span>{session}</span>
+        <span>{session.title || session.id}</span>
       </div>
       <span
         onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
@@ -77,10 +77,10 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
           className={`confirm-overlay ${isClosing ? 'fade-out' : ''}`}
         >
           <div className="confirm-modal">
-            <p>Are you sure you want to reset session "{session}"?</p>
+            <p>Are you sure you want to reset session "{session.title || session.id}"?</p>
             <div className="confirm-actions">
               <button onClick={() => handleCloseConfirm(setShowResetConfirm)}>Cancel</button>
-              <button onClick={() => { handleCloseConfirm(setShowResetConfirm); onReset(session, true); }} className="confirm-btn-delete">Reset</button>
+              <button onClick={() => { handleCloseConfirm(setShowResetConfirm); onReset(session.id, true); }} className="confirm-btn-delete">Reset</button>
             </div>
           </div>
       </div>
@@ -91,10 +91,10 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
           className={`confirm-overlay ${isClosing ? 'fade-out' : ''}`}
         >
           <div className="confirm-modal">
-            <p>Are you sure you want to delete session "{session}"?</p>
+            <p>Are you sure you want to delete session "{session.title || session.id}"?</p>
             <div className="confirm-actions">
               <button onClick={() => handleCloseConfirm(setShowConfirm)}>Cancel</button>
-              <button onClick={() => { handleCloseConfirm(setShowConfirm); onReset(session, false); }} className="confirm-btn-delete">Delete</button>
+              <button onClick={() => { handleCloseConfirm(setShowConfirm); onReset(session.id, false); }} className="confirm-btn-delete">Delete</button>
             </div>
           </div>
       </div>
@@ -114,7 +114,7 @@ const SessionHeader = React.memo(({ onAddClick }) => (
   </div>
 ))
 
-export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, sidebarRef }) => {
+export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, sidebarRef, createSession }) => {
   const isEmpty = !sessions || sessions.length === 0
   const [isCreating, setIsCreating] = useState(false)
   const [newSessionName, setNewSessionName] = useState('')
@@ -135,15 +135,11 @@ export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions,
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [sidebarRef, isEmpty])
 
-  const handleCreateSession = (e) => {
+  const handleCreateSession = async (e) => {
     e.preventDefault()
     if (newSessionName.trim()) {
       const name = newSessionName.trim()
-      onSelectSession(name)
-      // Add to list immediately if not already there
-      if (!sessions.includes(name)) {
-        setSessions(prev => [name, ...prev])
-      }
+      await createSession(name)
       setNewSessionName('')
       setIsCreating(false)
     }
@@ -180,9 +176,9 @@ export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions,
       <>
         {sessions.map((session) => (
           <SessionItem
-            key={session}
+            key={session.id}
             session={session}
-            isSelected={currentSession === session}
+            isSelected={currentSession === session.id}
             onSelect={onSelectSession}
             onReset={onResetSession}
           />
