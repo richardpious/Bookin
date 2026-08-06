@@ -44,10 +44,7 @@ if [ ! -x "$OPENCLAW_PREFIX/bin/openclaw" ]; then
     npm install -g --prefix "$OPENCLAW_PREFIX" openclaw
 fi
 
-if [ ! -d "$OPENCLAW_PREFIX/lib/node_modules/@openclaw/openshell-sandbox" ]; then
-    echo "OpenShell sandbox plugin not found. Installing..."
-    npm install -g --prefix "$OPENCLAW_PREFIX" @openclaw/openshell-sandbox
-fi
+
 
 # Initialize OpenClaw configuration if not already onboarded
 if [ ! -f "$OPENCLAW_PREFIX/.onboarded" ]; then
@@ -77,22 +74,17 @@ jq --arg ws "$PROJECT_ROOT/agent" '
     "google": {"enabled": true},
     "tool-approval": {"enabled": true},
     "file-preview": {"enabled": true},
-    "simulation-runner": {"enabled": true},
-    "openshell": {
-      "enabled": true,
-      "config": {
-        "from": "/home/dell/Documents/Bookin/Dockerfile.sandbox",
-        "mode": "mirror",
-        "remoteWorkspaceDir": "/sandbox/workspace"
-      }
-    }
+    "simulation-runner": {"enabled": true}
   }|
-  .plugins.allow = ["tool-approval", "file-preview", "simulation-runner", "openshell"] |
+  .plugins.allow = ["tool-approval", "file-preview", "simulation-runner"] |
   .agents.defaults.sandbox = {
     "mode": "non-main",
-    "backend": "openshell",
+    "backend": "docker",
     "scope": "session",
-    "workspaceAccess": "none"
+    "workspaceAccess": "none",
+    "docker": {
+      "image": "bookin-sandbox:latest"
+    }
   } |
   .tools.alsoAllow = ["file-open", "run_simulation"] |
   .tools.profile = "coding" |
@@ -127,6 +119,9 @@ sudo lsof -t -i:18789 | xargs sudo kill -9 2>/dev/null || true
 sudo lsof -t -i:$BACKEND_PORT | xargs sudo kill -9 2>/dev/null || true
 sudo openclaw gateway stop 2>/dev/null || openclaw gateway stop 2>/dev/null || true
 sleep 1
+
+echo "Building Docker sandbox image..."
+docker build -t bookin-sandbox:latest -f "$PROJECT_ROOT/Dockerfile.sandbox" "$PROJECT_ROOT"
 
 echo "Starting OpenClaw Gateway..."
 openclaw gateway run &

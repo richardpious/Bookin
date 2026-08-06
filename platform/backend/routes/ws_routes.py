@@ -39,35 +39,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
         # Ignore if session already exists. Ideally we'd verify ownership here.
         pass
 
-    # Dynamic Sandbox Seeding
+    # Ensure user log directory exists (bind-mounted into Docker containers)
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        session_dir = os.path.join(project_root, "logs", username, client_id)
-        
-        session_key = build_session_key(username, client_id)
-        sandbox_state_dir = os.path.abspath(os.path.join(project_root, "..", ".openclaw", "sandbox-state", session_key))
-        
-        if not os.path.exists(session_dir):
-            os.makedirs(sandbox_state_dir, exist_ok=True)
-            if not os.path.islink(session_dir):
-                if os.path.isdir(session_dir):
-                    shutil.rmtree(session_dir)
-                os.symlink(sandbox_state_dir, session_dir)
-            
-            # Seed booksim and configs
-            src_booksim = os.path.join(project_root, "booksim")
-            dst_booksim = os.path.join(session_dir, "booksim")
-            if os.path.exists(src_booksim):
-                shutil.copytree(src_booksim, dst_booksim, dirs_exist_ok=True)
-                
-            src_configs = os.path.join(project_root, "configs")
-            dst_configs = os.path.join(session_dir, "configs")
-            if os.path.exists(src_configs):
-                shutil.copytree(src_configs, dst_configs, dirs_exist_ok=True)
-                
-            logger.info(f"Seeded native sandbox workspace and symlinked for {compound_key}")
+        user_log_dir = os.path.join(project_root, "logs", username)
+        os.makedirs(user_log_dir, exist_ok=True)
+        logger.info(f"Ensured log directory exists for {username}")
     except Exception as e:
-        logger.error(f"Failed to setup session sandbox: {e}")
+        logger.error(f"Failed to setup log directory: {e}")
     
     try:
         while True:

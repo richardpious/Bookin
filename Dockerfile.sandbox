@@ -16,5 +16,9 @@ COPY --chown=sandbox:sandbox booksim /sandbox/booksim
 WORKDIR /sandbox/booksim/src
 RUN make
 
+# Copy default configuration files
 WORKDIR /sandbox
-CMD ["sleep", "infinity"]
+COPY --chown=sandbox:sandbox configs /sandbox/configs
+
+# Create the runs mount point (host logs dir gets bind-mounted here)
+RUN mkdir -p /sandbox/runs

@@ -107,9 +107,15 @@ class OpenClawGatewayClient:
                 "workspace": log_dir,
                 "sandbox": {
                     "mode": "all",
-                    "backend": "openshell",
+                    "backend": "docker",
                     "scope": "session",
-                    "workspaceAccess": "rw"
+                    "workspaceAccess": "rw",
+                    "docker": {
+                        "image": "bookin-sandbox:latest",
+                        "binds": [
+                            f"{log_dir}:/sandbox/runs:rw"
+                        ]
+                    }
                 }
             }
             
