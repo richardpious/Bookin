@@ -45,7 +45,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
               }}
             >
               {isDirty && <span style={{ color: '#ffcc00', fontSize: '10px' }}>●</span>}
-              {path.startsWith('logs-viewer:') ? 'Logs' : path.split('/').pop()}
+              {path.startsWith('logs-viewer:') ? 'Logs' : (path.startsWith('docs/') ? 'Docs' : path.split('/').pop())}
               <X size={14} onClick={(e) => onCloseTab(e, path)} style={{ cursor: 'pointer', opacity: 0.6 }} />
             </div>
           )
