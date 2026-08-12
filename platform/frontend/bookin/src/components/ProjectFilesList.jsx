@@ -75,24 +75,33 @@ const FileNode = React.memo(({ name, path, isDir, onFileClick, activeFile, depth
   )
 })
 
-export const ProjectFilesList = React.memo(({ onFileClick, activeFile }) => {
+export const ProjectFilesList = React.memo(({ onFileClick, activeFile, currentSession, username }) => {
   const [files, setFiles] = useState([])
 
   useEffect(() => {
-    // Only fetch from the allowed project folders
-    // We fetch them individually to avoid showing the root folder contents
     const fetchAllowedFolders = async () => {
       try {
-        const rootFiles = await fetchFiles(".");
-        // Filter out 'docs' and 'configs' folders
-        const allowed = rootFiles.filter(f => ['booksim'].includes(f.name));
-        setFiles(allowed);
+        if (currentSession && username) {
+          setFiles([{
+            name: 'booksim',
+            path: `logs/${username}/${currentSession}/booksim`,
+            isDir: true,
+            modifiedAt: null
+          }]);
+        } else {
+          setFiles([{
+            name: 'booksim',
+            path: 'booksim',
+            isDir: true,
+            modifiedAt: null
+          }]);
+        }
       } catch (err) {
         console.error(err);
       }
     };
     fetchAllowedFolders();
-  }, [])
+  }, [currentSession, username])
   return (
     <>
       <div className="project-section" style={{

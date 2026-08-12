@@ -22,6 +22,8 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
         <ProjectFilesList
           onFileClick={onFileClick}
           activeFile={activeFile}
+          currentSession={currentSession}
+          username={username}
         />
       </div>
       <div style={{ display: 'flex', borderTop: '1px solid var(--border-light)' }}>

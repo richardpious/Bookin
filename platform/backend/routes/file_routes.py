@@ -61,7 +61,7 @@ async def list_files(path: str = "."):
                 continue
 
             # Exclude the sandboxed booksim copy in logs directories
-            if name == "booksim" or name == "configs" and rel_target_path.split(os.sep)[0] == "logs":
+            if (name == "booksim" or name == "configs") and rel_target_path.split(os.sep)[0] == "logs":
                 continue
 
             # Filter compiled files and build artifacts
