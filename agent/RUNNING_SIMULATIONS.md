@@ -7,7 +7,7 @@ This document is the single source of truth for performing preparation, build, e
 2.  **Compilation**: Validate/rebuild the `../booksim/src/booksim` (or `/sandbox/booksim/src/booksim`) binary using appropriate build flags.
 3.  **Configuration & Generation**: All generated configuration files (`.cfg`) MUST be created inside the configuration directory (`../configs/` for unsandboxed, `/sandbox/configs/` for sandboxed). Do NOT create new folders like `simulations/` or place `.cfg` files outside the configuration directory. Do NOT search C++ source files in the `src` directory to write `.cfg` files, and do NOT show raw base templates asking the user "how about we edit this".
 4.  **Simulation Preview & Approval (MANDATORY)**:
-    *   Once the complete config file is created/finalized, use the `file-open` tool to display the finalized configuration preview to the user. Do not show raw template configs.
+    *   Once the complete config file is created/finalized, use the `file_open` tool to display the finalized configuration preview to the user. Do not show raw template configs.
     *   **STOP AND AWAIT USER APPROVAL.** Do not execute until confirmed by the user.
 5.  **Execution & Logging (Single Tool Call via `run_simulation`)**:
     *   Once approved, invoke the `run_simulation` tool with:

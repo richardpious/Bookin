@@ -4408,7 +4408,7 @@ var index_default = defineToolPlugin({
   description: "Shows the user files in the UI.",
   tools: (tool) => [
     tool({
-      name: "file-open",
+      name: "file_open",
       label: "File Open",
       description: "Shows the user a file providing a filepath.",
       parameters: typebox_exports.Object({
@@ -4430,7 +4430,7 @@ var index_default = defineToolPlugin({
             body: JSON.stringify({ filepath, session_key })
           });
         } catch (err) {
-          console.error("[file-open] Failed to notify backend:", err);
+          console.error("[file_open] Failed to notify backend:", err);
         }
         return {
           content: [{ type: "text", text: `Preview requested for ${filepath}` }],

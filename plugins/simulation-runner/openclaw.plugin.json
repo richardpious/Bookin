@@ -4,7 +4,7 @@
   "description": "Executes BookSim simulations sequentially, creating run directories, staging config.cfg, logging output, and returning parsed metrics.",
   "version": "0.1.0",
   "execution": {
-    "host": "gateway"
+    "host": "any"
   },
   "configSchema": {
     "type": "object",

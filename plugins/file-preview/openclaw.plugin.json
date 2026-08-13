@@ -4,7 +4,7 @@
   "description": "Shows the user files in the UI.",
   "version": "0.1.0",
   "execution": {
-    "host": "gateway"
+    "host": "any"
   },
   "configSchema": {
     "type": "object",
@@ -16,7 +16,7 @@
   },
   "contracts": {
     "tools": [
-      "file-open"
+      "file_open"
     ]
   }
 }
