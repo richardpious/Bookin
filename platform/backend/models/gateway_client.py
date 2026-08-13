@@ -114,7 +114,9 @@ class OpenClawGatewayClient:
                         "image": "bookin-sandbox:latest",
                         "binds": [
                             f"{log_dir}:/sandbox/runs:rw"
-                        ]
+                        ],
+                        "readOnlyRoot": False,
+                        "setupCommand": "ln -sfn /sandbox/runs/$(cat /sandbox/runs/.current_session)/booksim /sandbox/booksim"
                     }
                 }
             }
@@ -126,7 +128,7 @@ class OpenClawGatewayClient:
                 
             return agent_id
 
-    async def send_agent_message(self, message: str, session_id: str, username: str = None):
+    async def send_agent_message(self, message: str, session_id: str, username: str = None, chat_db=None):
         """Sends a message or command to the OpenClaw Gateway."""
         if not self.websocket:
             raise Exception("Gateway WebSocket is not connected.")
@@ -136,6 +138,17 @@ class OpenClawGatewayClient:
             agent_id = await self.ensure_user_agent(username)
             session_key = f"agent:{agent_id}:{session_id}"
             openclaw_session_id = f"{username}:{session_id}"
+            
+            # Write .current_session marker so setupCommand can create the symlink
+            if chat_db:
+                session_title = chat_db.get_session_title(session_id)
+                if session_title:
+                    marker_path = f"/home/dell/Documents/Bookin/logs/{username}/.current_session"
+                    try:
+                        with open(marker_path, "w") as f:
+                            f.write(session_title)
+                    except Exception as e:
+                        logger.warning(f"Failed to write .current_session marker: {e}")
         else:
             session_key = f"agent:main:webchat:{session_id}"
             openclaw_session_id = session_id

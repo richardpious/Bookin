@@ -133,6 +133,17 @@ class ChatHistoryDB:
         finally:
             conn.close()
 
+    def get_session_title(self, session_id):
+        """Returns the title for a given session_id, or None if not found."""
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('SELECT title FROM sessions WHERE id = ?', (session_id,))
+            row = cursor.fetchone()
+            return row[0] if row else None
+        finally:
+            conn.close()
+
     def add_message(self, session_id, sender, message):
         if not message:
             message = ""

@@ -25,6 +25,7 @@ async def list_sessions(request: Request, user_id: int = Depends(verify_token)):
     return {"sessions": request.app.state.chat_db.get_user_sessions(user_id)}
 
 import os
+import shutil
 
 @router.post("/sessions")
 async def create_session(request: Request, data: SessionCreate, user_id: int = Depends(verify_token)):
@@ -39,6 +40,12 @@ async def create_session(request: Request, data: SessionCreate, user_id: int = D
         root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
         session_log_dir = os.path.join(root_dir, "logs", username, data.title)
         os.makedirs(session_log_dir, exist_ok=True)
+        
+        # Copy master booksim into this session's directory
+        master_booksim = os.path.join(root_dir, "booksim")
+        session_booksim = os.path.join(session_log_dir, "booksim")
+        if os.path.isdir(master_booksim) and not os.path.exists(session_booksim):
+            shutil.copytree(master_booksim, session_booksim)
         
     request.app.state.chat_db.create_session(session_id, user_id, data.title)
     return {"id": session_id, "title": data.title}

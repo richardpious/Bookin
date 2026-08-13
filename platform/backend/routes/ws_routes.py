@@ -107,6 +107,17 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                 # Ensure the user has an agent registered in OpenClaw config
                 await gateway_client.ensure_user_agent(username)
                 
+                # Write .current_session marker so setupCommand can create the symlink
+                session_title = chat_db.get_session_title(client_id)
+                if session_title:
+                    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                    marker_path = os.path.join(project_root, "logs", username, ".current_session")
+                    try:
+                        with open(marker_path, "w") as f:
+                            f.write(session_title)
+                    except Exception as e:
+                        logger.warning(f"Failed to write .current_session marker: {e}")
+                
                 # Send the message through the persistent Gateway WebSocket connection
                 busy_sessions.add(compound_key)
                 req_id = str(uuid.uuid4())

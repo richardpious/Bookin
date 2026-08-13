@@ -11,13 +11,7 @@ RUN useradd --create-home --shell /bin/bash sandbox
 USER sandbox
 WORKDIR /sandbox
 
-# Copy booksim source and build it inside the image
-COPY --chown=sandbox:sandbox booksim /sandbox/booksim
-WORKDIR /sandbox/booksim/src
-RUN make
-
 # Copy default configuration files
-WORKDIR /sandbox
 COPY --chown=sandbox:sandbox configs /sandbox/configs
 
 # Create the runs mount point (host logs dir gets bind-mounted here)

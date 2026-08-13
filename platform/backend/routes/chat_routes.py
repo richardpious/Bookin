@@ -27,7 +27,7 @@ async def chat_endpoint(request: Request, user_id: int = Depends(verify_token)):
         
     try:
         chat_db.add_message(session_id, "user", message)
-        await gateway_client.send_agent_message(message, session_id, username)
+        await gateway_client.send_agent_message(message, session_id, username, chat_db=chat_db)
         return {"message": "Message sent"}
     except Exception as e:
         error_msg = str(e)
