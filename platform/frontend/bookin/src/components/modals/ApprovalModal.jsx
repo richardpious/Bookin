@@ -1,4 +1,5 @@
 import React from 'react';
+import './ApprovalModal.css';
 
 const ApprovalModal = ({ isOpen, approvalRequest, setApprovalRequest }) => {
   if (!isOpen || !approvalRequest) return null;

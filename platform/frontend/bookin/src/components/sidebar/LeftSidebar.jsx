@@ -1,10 +1,25 @@
 import React, { useRef } from 'react'
-import { BookOpen, Activity } from 'lucide-react'
+import { BookOpen, Activity, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { SessionsList } from './SessionsList'
 import { ProjectFilesList } from './ProjectFilesList'
+import './LeftSidebar.css'
 
-export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username, hasUnreadLogs, onClearUnreadLogs, createSession }) => {
+export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username, hasUnreadLogs, onClearUnreadLogs, createSession, collapsed, onToggleCollapse }) => {
   const sidebarRef = useRef(null)
+
+  if (collapsed) {
+    return (
+      <aside className="sidebar files-sidebar sidebar-collapsed" style={{ width: 44 }}>
+        <button
+          className="sidebar-collapse-btn sidebar-expand-btn-left"
+          onClick={onToggleCollapse}
+          title="Expand sidebar"
+        >
+          <PanelLeftOpen size={16} />
+        </button>
+      </aside>
+    )
+  }
 
   return (
     <aside ref={sidebarRef} className="sidebar files-sidebar" style={{ width }}>
@@ -18,6 +33,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
           onResetSession={onResetSession}
           sidebarRef={sidebarRef}
           createSession={createSession}
+          onToggleCollapse={onToggleCollapse}
         />
         <ProjectFilesList
           onFileClick={onFileClick}
@@ -53,4 +69,3 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
     </aside>
   )
 })
-

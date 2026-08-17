@@ -1,0 +1,79 @@
+/* Updated for ConfigModal custom dropdown */
+.config-modal-body .model-dropdown {
+  right: auto;
+  left: 0;
+  width: 100%;
+  background: #252525;
+  border-color: #444;
+  margin-top: 2px;
+  box-sizing: border-box;
+}
+
+.model-header-item {
+  padding: 4px 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--code-bg);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.model-item {
+  padding: 4px 12px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.model-item:hover {
+  background-color: var(--border);
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.nav-item:hover {
+  color: white;
+}
+
+/* Config Parameters Modal */
+.config-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999999;
+  animation: fadeIn 0.05s ease-out;
+}
+
+.config-modal-overlay.fade-out {
+  animation: fadeOut 0.1s ease-out forwards;
+}
+
+.config-modal-container {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 800px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  animation: slideIn 0.2s ease-out;
+}
+
+.config-modal-container.slide-out {
+  animation: slideOut 0.2s ease-out forwards;
+}

@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react'
-import { Header } from './components/Header'
-import { Resizer } from './components/Resizer'
-import { ChatSidebar } from './components/ChatSidebar'
-import { LeftSidebar } from './components/LeftSidebar'
-import { MainContentWindow } from './components/MainContentWindow'
-import { AuthScreen } from './components/AuthScreen'
-import ApprovalModal from './components/ApprovalModal'
-const SearchResultsPanel = lazy(() => import('./components/SearchResultsPanel'))
+import { Header } from './components/header/Header'
+import { Resizer } from './components/shared/Resizer'
+import { ChatSidebar } from './components/chat/ChatSidebar'
+import { LeftSidebar } from './components/sidebar/LeftSidebar'
+import { MainContentWindow } from './components/editor/MainContentWindow'
+import { AuthScreen } from './components/auth/AuthScreen'
+import ApprovalModal from './components/modals/ApprovalModal'
+const SearchResultsPanel = lazy(() => import('./components/search/SearchResultsPanel'))
 import { useResizer } from './hooks/useResizer'
 import { useFileManagement } from './hooks/useFileManagement'
 import { useChatManagement } from './hooks/useChatManagement'
@@ -48,7 +48,7 @@ function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing } = useResizer();
+  const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing, leftCollapsed, rightCollapsed, toggleLeftCollapsed, toggleRightCollapsed } = useResizer();
   const { openFiles, activeFile, fileContents, dirtyFiles, hasUnreadLogs, clearUnreadLogs, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
 
   // Ref to the chat input textarea, used for global auto-focus
@@ -158,8 +158,10 @@ function App() {
             hasUnreadLogs={hasUnreadLogs}
             onClearUnreadLogs={clearUnreadLogs}
             createSession={createSession}
+            collapsed={leftCollapsed}
+            onToggleCollapse={toggleLeftCollapsed}
         />
-        <Resizer onMouseDown={() => startResizing(isResizingLeft)} />
+        {!leftCollapsed && <Resizer onMouseDown={() => startResizing(isResizingLeft)} />}
         
         <div className="main-content-window-wrapper">
         <MainContentWindow
@@ -192,7 +194,7 @@ function App() {
         />
     </div>
 
-        <Resizer onMouseDown={() => startResizing(isResizingRight)} />
+        {!rightCollapsed && <Resizer onMouseDown={() => startResizing(isResizingRight)} />}
 
         <ChatSidebar
           width={rightWidth}
@@ -204,6 +206,8 @@ function App() {
           messagesEndRef={messagesEndRef}
           sessionId={sessionId}
           chatInputRef={chatInputRef}
+          collapsed={rightCollapsed}
+          onToggleCollapse={toggleRightCollapsed}
         />
         {toast && (
           <div className="toast-container">

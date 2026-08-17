@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './AuthScreen.css';
 
 export const AuthScreen = ({ onLogin }) => {
     const [isLogin, setIsLogin] = useState(true);

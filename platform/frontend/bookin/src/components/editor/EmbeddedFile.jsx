@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { readFileContent } from '../utils/fileUtils';
+import { readFileContent } from '../../utils/fileUtils';
 import { FileText, Maximize2 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 

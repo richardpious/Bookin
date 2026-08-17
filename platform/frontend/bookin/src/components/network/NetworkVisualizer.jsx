@@ -380,37 +380,106 @@ export const NetworkVisualizer = ({ filePath }) => {
     };
   }, [selectedFlit, k, canvasWidth, canvasHeight]);
 
-  // Activity Map minimap buckets (downsample to ~100 bars)
-  const minimapBars = useMemo(() => {
-    if (!meta?.activityMap || meta.activityMap.length === 0) return [];
+  // Activity curve data points for smooth seekbar
+  const activityCurveData = useMemo(() => {
+    if (!meta?.activityMap || meta.activityMap.length === 0) return { points: [], maxVal: 1 };
 
     const activity = meta.activityMap;
-    const barCount = 100;
-    const chunkSize = Math.max(1, Math.ceil(activity.length / barCount));
+    const pointCount = 200; // number of sample points for the curve
+    const chunkSize = Math.max(1, Math.ceil(activity.length / pointCount));
     const maxVal = Math.max(...activity, 1);
 
-    const bars = [];
+    const points = [];
     for (let i = 0; i < activity.length; i += chunkSize) {
       const chunk = activity.slice(i, i + chunkSize);
       const avg = chunk.reduce((a, b) => a + b, 0) / chunk.length;
-      const heightPct = Math.min(100, Math.max(8, (avg / maxVal) * 100));
-      
-      const ratio = maxVal > 0 ? avg / maxVal : 0;
-      // Exponential curve to keep it green/yellow longer
-      const modifiedRatio = Math.pow(ratio, 3);
-      const hue = (1 - modifiedRatio) * 120; // 120 is green, 0 is red
-      const color = `hsl(${hue}, 80%, 50%)`;
-
-      bars.push({
-        startCycle: meta.timeline.startCycle + i,
-        endCycle: meta.timeline.startCycle + i + chunk.length - 1,
-        heightPct,
-        val: avg,
-        color
-      });
+      const normalizedVal = avg / maxVal;
+      const cycle = meta.timeline.startCycle + i + Math.floor(chunk.length / 2);
+      points.push({ cycle, val: normalizedVal, rawVal: avg });
     }
-    return bars;
+    return { points, maxVal };
   }, [meta]);
+
+  // Seekbar hover/drag state
+  const seekbarRef = useRef(null);
+  const [seekbarWidth, setSeekbarWidth] = useState(800);
+  const [seekHoverX, setSeekHoverX] = useState(null);
+  const [seekHoverCycle, setSeekHoverCycle] = useState(null);
+  const [isSeeking, setIsSeeking] = useState(false);
+
+  // Track seekbar container width with ResizeObserver
+  useEffect(() => {
+    if (!seekbarRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setSeekbarWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(seekbarRef.current);
+    return () => observer.disconnect();
+  }, [loading]);
+
+  const getCycleFromSeekbarX = useCallback((clientX) => {
+    if (!seekbarRef.current || !meta) return null;
+    const rect = seekbarRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return Math.round(meta.timeline.startCycle + pct * (meta.timeline.endCycle - meta.timeline.startCycle));
+  }, [meta]);
+
+  const handleSeekbarMouseMove = useCallback((e) => {
+    if (!seekbarRef.current) return;
+    const rect = seekbarRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    setSeekHoverX(x);
+    setSeekHoverCycle(getCycleFromSeekbarX(e.clientX));
+    if (isSeeking) {
+      const cycle = getCycleFromSeekbarX(e.clientX);
+      if (cycle !== null) setCurrentCycle(cycle);
+    }
+  }, [getCycleFromSeekbarX, isSeeking]);
+
+  const handleSeekbarMouseDown = useCallback((e) => {
+    e.preventDefault();
+    setIsSeeking(true);
+    const cycle = getCycleFromSeekbarX(e.clientX);
+    if (cycle !== null) setCurrentCycle(cycle);
+  }, [getCycleFromSeekbarX]);
+
+  const handleSeekbarMouseUp = useCallback(() => {
+    setIsSeeking(false);
+  }, []);
+
+  const handleSeekbarMouseLeave = useCallback(() => {
+    if (!isSeeking) {
+      setSeekHoverX(null);
+      setSeekHoverCycle(null);
+    }
+  }, [isSeeking]);
+
+  // Global mouseup/mousemove for drag-seeking outside the seekbar
+  useEffect(() => {
+    if (!isSeeking) return;
+    const onMouseMove = (e) => {
+      const cycle = getCycleFromSeekbarX(e.clientX);
+      if (cycle !== null) setCurrentCycle(cycle);
+      if (seekbarRef.current) {
+        const rect = seekbarRef.current.getBoundingClientRect();
+        setSeekHoverX(e.clientX - rect.left);
+        setSeekHoverCycle(cycle);
+      }
+    };
+    const onMouseUp = () => {
+      setIsSeeking(false);
+      setSeekHoverX(null);
+      setSeekHoverCycle(null);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [isSeeking, getCycleFromSeekbarX]);
 
   if (loading) {
     return (
@@ -704,47 +773,177 @@ export const NetworkVisualizer = ({ filePath }) => {
 
       {/* Timeline & Controls Panel */}
       <div className="net-viz-timeline">
-        {/* Activity Minimap */}
-        <div className="activity-minimap" title="Cycle activity heatmap — click to jump">
-          {minimapBars.map((bar, idx) => {
-            const isCurrent = currentCycle >= bar.startCycle && currentCycle <= bar.endCycle;
-            return (
-              <div
-                key={`bar-${idx}`}
-                className={`activity-bar ${isCurrent ? 'current' : ''}`}
-                style={{ height: `${bar.heightPct}%`, '--bar-color': bar.color }}
-                onClick={() => setCurrentCycle(bar.startCycle)}
-              />
-            );
-          })}
-        </div>
+        {/* Smooth Seekbar with Activity Curve */}
+        <div
+          className={`seekbar-container ${isSeeking ? 'seeking' : ''} ${seekHoverX !== null ? 'hovered' : ''}`}
+          ref={seekbarRef}
+          onMouseMove={handleSeekbarMouseMove}
+          onMouseDown={handleSeekbarMouseDown}
+          onMouseUp={handleSeekbarMouseUp}
+          onMouseLeave={handleSeekbarMouseLeave}
+        >
+          {(() => {
+            const svgW = seekbarWidth;
+            const svgH = 52;
+            const curveH = 40; // area for the curve
+            const curveY0 = 6; // top padding
+            const pts = activityCurveData.points;
+            const progressPct = meta ? (currentCycle - meta.timeline.startCycle) / Math.max(1, meta.timeline.endCycle - meta.timeline.startCycle) : 0;
+            const progressX = progressPct * svgW;
 
-        {/* Timeline Bar Scrubber */}
-        <div className="timeline-bar-container">
-          <div
-            className="timeline-bar"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const pct = (e.clientX - rect.left) / rect.width;
-              if (meta) {
-                const cycle = Math.round(meta.timeline.startCycle + pct * (meta.timeline.endCycle - meta.timeline.startCycle));
-                setCurrentCycle(cycle);
+            // Build smooth spline path using monotone cubic interpolation
+            let curvePath = '';
+            let areaPath = '';
+            if (pts.length > 1) {
+              const xCoords = pts.map((_, i) => (i / (pts.length - 1)) * svgW);
+              const yCoords = pts.map(p => curveY0 + curveH - p.val * (curveH - 4));
+
+              // Monotone cubic Hermite spline (Fritsch-Carlson)
+              const n = xCoords.length;
+              const dx = [], dy = [], m = [];
+              for (let i = 0; i < n - 1; i++) {
+                dx.push(xCoords[i+1] - xCoords[i]);
+                dy.push(yCoords[i+1] - yCoords[i]);
+                m.push(dy[i] / dx[i]);
               }
-            }}
-          >
+              const tangents = [m[0]];
+              for (let i = 1; i < n - 1; i++) {
+                if (m[i-1] * m[i] <= 0) {
+                  tangents.push(0);
+                } else {
+                  tangents.push((m[i-1] + m[i]) / 2);
+                }
+              }
+              tangents.push(m[n - 2]);
+
+              // Build cubic bezier segments
+              let pathD = `M ${xCoords[0]},${yCoords[0]}`;
+              for (let i = 0; i < n - 1; i++) {
+                const seg = dx[i] / 3;
+                const cp1x = xCoords[i] + seg;
+                const cp1y = yCoords[i] + tangents[i] * seg;
+                const cp2x = xCoords[i+1] - seg;
+                const cp2y = yCoords[i+1] - tangents[i+1] * seg;
+                pathD += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${xCoords[i+1]},${yCoords[i+1]}`;
+              }
+
+              curvePath = pathD;
+              areaPath = `${pathD} L ${xCoords[n-1]},${curveY0 + curveH} L ${xCoords[0]},${curveY0 + curveH} Z`;
+            } else if (pts.length === 1) {
+              curvePath = `M 0,${curveY0 + curveH - pts[0].val * (curveH - 4)} L ${svgW},${curveY0 + curveH - pts[0].val * (curveH - 4)}`;
+              areaPath = `${curvePath} L ${svgW},${curveY0 + curveH} L 0,${curveY0 + curveH} Z`;
+            }
+
+            return (
+              <svg
+                className="seekbar-svg"
+                viewBox={`0 0 ${svgW} ${svgH}`}
+                preserveAspectRatio="none"
+                width="100%"
+                height={svgH}
+              >
+                <defs>
+                  {/* Gradient for the filled area */}
+                  <linearGradient id="seekbar-area-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#a3a3a3" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#a3a3a3" stopOpacity="0.04" />
+                  </linearGradient>
+                  {/* Gradient for the played portion */}
+                  <linearGradient id="seekbar-played-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#818cf8" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#818cf8" stopOpacity="0.08" />
+                  </linearGradient>
+                  {/* Clip for played portion */}
+                  <clipPath id="seekbar-played-clip">
+                    <rect x="0" y="0" width={progressX} height={svgH} />
+                  </clipPath>
+                </defs>
+
+                {/* Full area fill (unplayed / background) */}
+                {areaPath && <path d={areaPath} fill="url(#seekbar-area-grad)" />}
+
+                {/* Played area fill */}
+                {areaPath && (
+                  <path
+                    d={areaPath}
+                    fill="url(#seekbar-played-grad)"
+                    clipPath="url(#seekbar-played-clip)"
+                  />
+                )}
+
+                {/* Curve line (unplayed portion, dimmer) */}
+                {curvePath && (
+                  <path
+                    d={curvePath}
+                    fill="none"
+                    stroke="rgba(163,163,163,0.35)"
+                    strokeWidth="1.5"
+                  />
+                )}
+
+                {/* Curve line (played portion, brighter) */}
+                {curvePath && (
+                  <path
+                    d={curvePath}
+                    fill="none"
+                    stroke="#818cf8"
+                    strokeWidth="1.5"
+                    clipPath="url(#seekbar-played-clip)"
+                  />
+                )}
+
+                {/* Bottom baseline */}
+                <line
+                  x1="0" y1={curveY0 + curveH}
+                  x2={svgW} y2={curveY0 + curveH}
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="1"
+                />
+
+                {/* Hover vertical line */}
+                {seekHoverX !== null && (
+                  <line
+                    x1={seekHoverX} y1={0}
+                    x2={seekHoverX} y2={svgH}
+                    stroke="rgba(255,255,255,0.5)"
+                    strokeWidth="1"
+                    strokeDasharray="3 2"
+                    className="seekbar-hover-line"
+                  />
+                )}
+
+                {/* Current position indicator line */}
+                <line
+                  x1={progressX} y1={curveY0}
+                  x2={progressX} y2={curveY0 + curveH}
+                  stroke="#818cf8"
+                  strokeWidth="1.5"
+                  className="seekbar-position-line"
+                />
+
+                {/* Current position dot */}
+                <circle
+                  cx={progressX}
+                  cy={curveY0 + curveH}
+                  r="4"
+                  fill="#818cf8"
+                  stroke="#1e1e2e"
+                  strokeWidth="2"
+                  className="seekbar-position-dot"
+                />
+              </svg>
+            );
+          })()}
+
+          {/* Hover cycle tooltip */}
+          {seekHoverX !== null && seekHoverCycle !== null && (
             <div
-              className="timeline-progress"
-              style={{
-                width: `${meta ? ((currentCycle - meta.timeline.startCycle) / Math.max(1, meta.timeline.endCycle - meta.timeline.startCycle)) * 100 : 0}%`
-              }}
-            />
-            <div
-              className="timeline-thumb"
-              style={{
-                left: `${meta ? ((currentCycle - meta.timeline.startCycle) / Math.max(1, meta.timeline.endCycle - meta.timeline.startCycle)) * 100 : 0}%`
-              }}
-            />
-          </div>
+              className="seekbar-hover-tooltip"
+              style={{ left: `${seekHoverX}px` }}
+            >
+              Cycle {seekHoverCycle}
+            </div>
+          )}
         </div>
 
         {/* Action Controls Row */}

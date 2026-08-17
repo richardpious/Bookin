@@ -1,0 +1,224 @@
+/* Sidebar */
+.sidebar {
+  height: 100vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 10;
+  background-color: var(--bg-sidebar);
+}
+
+.sidebar {
+  height: 100vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 10;
+  background-color: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-sidebar);
+}
+
+.sidebar-docs-link {
+  padding: 12px 24px 24px 24px;
+  /* Added 24px bottom padding */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border-light);
+  background-color: var(--bg-sidebar);
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 0.95rem;
+  z-index: 30;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.sidebar-docs-link div {
+  /* Ensure the text div behaves correctly */
+  display: inline-block;
+}
+
+.sidebar-docs-link:hover {
+  color: #ffffff;
+  background-color: #2a2a2a;
+  /* Changed to a lighter shade */
+}
+
+.project-section h3 {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin: 0.5rem 8px 0.25rem;
+  font-weight: 600;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.file-item:hover {
+  background-color: #2a2a2a;
+}
+
+.file-item.active {
+  background-color: #323232;
+  color: #ffffff;
+}
+
+.session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.session-item:hover {
+  background-color: #2a2a2a;
+}
+
+.session-item.active {
+  background-color: #252525;
+  color: white;
+  position: sticky;
+  top: 48px;
+  z-index: 20;
+}
+
+.session-menu-trigger {
+  cursor: pointer;
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+.session-menu {
+  position: absolute;
+  right: 0;
+  top: 25px;
+  background-color: var(--bg-sidebar);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  z-index: 1000;
+  padding: 4px 0;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.session-menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.session-menu-item:hover {
+  background-color: #252525;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-sidebar);
+  padding: 0.75rem 0 0.5rem 0;
+  height: 48px;
+  box-sizing: border-box;
+  z-index: 25;
+  box-shadow: 0 4px 0 0 var(--bg-sidebar);
+}
+
+.session-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.session-add-icon {
+  cursor: pointer;
+  color: #8e8ea0;
+}
+
+.new-session-form {
+  margin-bottom: 1rem;
+}
+
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.confirm-overlay.fade-out {
+  animation: fadeOut 0.1s ease-out forwards;
+}
+
+.confirm-modal {
+  background-color: var(--bg-sidebar);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  color: white;
+  animation: slideIn 0.1s ease-out;
+}
+
+.fade-out .confirm-modal {
+  animation: slideOut 0.1s ease-out forwards;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.confirm-btn-delete {
+  background-color: #cc0000;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+
+.session-input {
+  width: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: white;
+  font-size: 0.875rem;
+}

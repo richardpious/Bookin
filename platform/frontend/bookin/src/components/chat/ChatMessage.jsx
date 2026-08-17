@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { EmbeddedFile } from './EmbeddedFile';
+import { EmbeddedFile } from '../editor/EmbeddedFile';
 
 const EMBED_REGEX = /\[embed\s+([^\]]+)\s*\/\]/g;
 const ATTR_REGEX = /(\w+)="([^"]*)"/g;

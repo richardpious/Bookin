@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { LogOut } from 'lucide-react';
+import './Header.css';
 import { HeaderSearch } from './HeaderSearch';
 import { ModelSelector } from './ModelSelector';
 import { ThinkingLevelSelector } from './ThinkingLevelSelector';

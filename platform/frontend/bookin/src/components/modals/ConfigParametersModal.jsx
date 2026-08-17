@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
-import '../index.css'; // ensure styles are imported if needed
-import paramDescriptions from '../data/paramDescriptions.json';
-import paramOptions from '../data/paramOptions.json';
-import paramDependencies from '../data/paramDependencies.json';
+import './ConfigParametersModal.css';
+import paramDescriptions from '../../data/paramDescriptions.json';
+import paramOptions from '../../data/paramOptions.json';
+import paramDependencies from '../../data/paramDependencies.json';
 
 export const ConfigParametersModal = ({ isOpen, onClose, onAddParameter }) => {
   const [parameters, setParameters] = useState([]);

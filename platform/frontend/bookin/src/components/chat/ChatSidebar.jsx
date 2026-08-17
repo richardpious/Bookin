@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import ToolAccordion from './ToolAccordion';
-export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnecting, onSend, onAbort, messagesEndRef, sessionId, chatInputRef }) => {
+import './ChatSidebar.css';
+export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnecting, onSend, onAbort, messagesEndRef, sessionId, chatInputRef, collapsed, onToggleCollapse }) => {
   const hasSession = sessionId !== null && sessionId !== undefined;
 
   // Memoize message grouping so it only recomputes when messages change
@@ -23,9 +24,32 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
     }, []);
   }, [messages]);
 
+  if (collapsed) {
+    return (
+      <aside className="sidebar agent-chat-sidebar sidebar-collapsed" style={{ width: 44 }}>
+        <button
+          className="sidebar-collapse-btn sidebar-expand-btn-right"
+          onClick={onToggleCollapse}
+          title="Expand chat"
+        >
+          <PanelRightOpen size={16} />
+        </button>
+      </aside>
+    );
+  }
+
   return (
   <aside className="sidebar agent-chat-sidebar" style={{ width }}>
-    <div className="sidebar-header"><h2>Agent Chat</h2></div>
+    <div className="sidebar-header">
+      <h2>Agent Chat</h2>
+      <button
+        className="sidebar-collapse-btn sidebar-collapse-btn-right"
+        onClick={onToggleCollapse}
+        title="Collapse chat"
+      >
+        <PanelRightClose size={16} />
+      </button>
+    </div>
 
     {!hasSession ? (
       <div style={{
@@ -99,4 +123,3 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
   </aside>
 );
 });
-

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Folder, FileText, ChevronRight, ChevronDown } from 'lucide-react'
-import { fetchFiles } from '../utils/fileUtils'
+import { fetchFiles } from '../../utils/fileUtils'
+import './ProjectFilesList.css'
 
 const FileNode = React.memo(({ name, path, isDir, onFileClick, activeFile, depth = 0 }) => {
   const [isOpen, setIsOpen] = useState(false)

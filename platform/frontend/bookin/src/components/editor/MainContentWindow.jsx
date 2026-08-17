@@ -3,9 +3,9 @@ import { MainContentHome } from './MainContentHome';
 import { X, List, Play } from 'lucide-react';
 
 const CodeEditor = lazy(() => import('./CodeEditor'));
-const LogsViewer = lazy(() => import('./LogsViewer'));
-const ConfigParametersModal = lazy(() => import('./ConfigParametersModal'));
-const NetworkVisualizer = lazy(() => import('./NetworkVisualizer'));
+const LogsViewer = lazy(() => import('../logs/LogsViewer'));
+const ConfigParametersModal = lazy(() => import('../modals/ConfigParametersModal'));
+const NetworkVisualizer = lazy(() => import('../network/NetworkVisualizer'));
 
 export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);

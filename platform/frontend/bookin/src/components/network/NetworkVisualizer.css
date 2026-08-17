@@ -298,80 +298,79 @@
   color: #a3a3a3;
 }
 
-/* ─── Timeline Bar + Activity Minimap ─── */
+/* ─── Smooth Seekbar ─── */
 
-.timeline-bar-container {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.timeline-bar {
+.seekbar-container {
   position: relative;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 4px;
+  height: 52px;
   cursor: pointer;
-  overflow: hidden;
+  border-radius: 6px;
+  overflow: visible;
+  transition: transform 0.15s ease, height 0.15s ease;
+  user-select: none;
 }
 
-.timeline-bar:hover {
-  height: 10px;
+.seekbar-container.hovered,
+.seekbar-container.seeking {
+  transform: scaleY(1.15);
+  transform-origin: bottom;
 }
 
-.timeline-progress {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #525252, #a3a3a3);
-  border-radius: 4px;
-  transition: width 0.05s linear;
-  pointer-events: none;
+.seekbar-svg {
+  display: block;
+  border-radius: 6px;
+  overflow: visible;
 }
 
-.timeline-thumb {
-  position: absolute;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  background: #fff;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 8px rgba(163, 163, 163, 0.5);
-  pointer-events: none;
-  z-index: 2;
-  transition: left 0.05s linear;
-}
-
-/* Activity minimap */
-.activity-minimap {
-  height: 32px;
-  display: flex;
-  align-items: flex-end;
-  gap: 0;
-  border-radius: 4px;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.activity-bar {
-  flex: 1;
-  min-width: 1px;
-  background: var(--bar-color, #a3a3a3);
-  border-radius: 1px 1px 0 0;
-  opacity: 0.6;
+/* Hover line animation */
+.seekbar-hover-line {
+  opacity: 0.7;
   transition: opacity 0.1s ease;
 }
 
-.activity-bar:hover {
-  opacity: 0.8;
+/* Position dot glow on hover */
+.seekbar-container.hovered .seekbar-position-dot,
+.seekbar-container.seeking .seekbar-position-dot {
+  r: 6;
+  filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.8));
 }
 
-.activity-bar.current {
-  opacity: 1;
-  filter: brightness(1.2);
-  border-top: 1px solid white;
+.seekbar-position-dot {
+  transition: r 0.15s ease;
+}
+
+/* Hover tooltip */
+.seekbar-hover-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: rgba(15, 15, 20, 0.92);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+
+.seekbar-hover-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 7px;
+  height: 7px;
+  background: rgba(15, 15, 20, 0.92);
+  border-right: 1px solid rgba(129, 140, 248, 0.35);
+  border-bottom: 1px solid rgba(129, 140, 248, 0.35);
 }
 
 /* ─── Cycle Input ─── */

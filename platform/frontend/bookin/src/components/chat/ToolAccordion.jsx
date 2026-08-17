@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, Wrench, CheckCircle2, AlertCircle, Loader2, Code, Terminal } from 'lucide-react';
+import './ToolAccordion.css';
 
 const ToolAccordion = ({ tools }) => {
   const [isOpen, setIsOpen] = useState(false);

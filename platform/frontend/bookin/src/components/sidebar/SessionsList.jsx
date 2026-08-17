@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { MessageSquare, Plus } from 'lucide-react'
+import { MessageSquare, Plus, PanelLeftClose } from 'lucide-react'
+import './SessionsList.css'
 
 const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
   const [showMenu, setShowMenu] = useState(false)
@@ -103,9 +104,18 @@ const SessionItem = React.memo(({ session, isSelected, onSelect, onReset }) => {
   )
 })
 
-const SessionHeader = React.memo(({ onAddClick }) => (
+const SessionHeader = React.memo(({ onAddClick, onToggleCollapse }) => (
   <div className="session-header">
-    <h2>Sessions</h2>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <button
+        className="sidebar-collapse-btn"
+        onClick={onToggleCollapse}
+        title="Collapse sidebar"
+      >
+        <PanelLeftClose size={16} />
+      </button>
+      <h2>Sessions</h2>
+    </div>
     <Plus
       size={20}
       className="session-add-icon"
@@ -114,7 +124,7 @@ const SessionHeader = React.memo(({ onAddClick }) => (
   </div>
 ))
 
-export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, sidebarRef, createSession }) => {
+export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, sidebarRef, createSession, onToggleCollapse }) => {
   const isEmpty = !sessions || sessions.length === 0
   const [isCreating, setIsCreating] = useState(false)
   const [newSessionName, setNewSessionName] = useState('')
@@ -147,7 +157,7 @@ export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions,
 
   return (
     <>
-      <SessionHeader onAddClick={() => setIsCreating(!isCreating)} />
+      <SessionHeader onAddClick={() => setIsCreating(!isCreating)} onToggleCollapse={onToggleCollapse} />
 
       {isCreating && (
         <form onSubmit={handleCreateSession} className="new-session-form">

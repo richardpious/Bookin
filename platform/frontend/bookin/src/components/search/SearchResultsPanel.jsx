@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { X, FileText } from 'lucide-react';
+import './SearchResultsPanel.css';
 
 // Splits a line of text into [before, match, after] spans using submatch offsets
 const HighlightedLine = ({ text, submatches }) => {
