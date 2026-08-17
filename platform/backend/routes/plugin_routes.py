@@ -22,7 +22,15 @@ async def file_preview(body: FilePreviewRequest, request: Request):
             username, session_id = compound_key.split(":", 1) if ":" in compound_key else ("default", compound_key)
             # Remove leading slashes to prevent absolute path issues
             safe_filepath = body.filepath.lstrip('/')
-            host_filepath = f"logs/{username}/{session_id}/{safe_filepath}"
+            
+            if safe_filepath.startswith("runs/"):
+                host_filepath = f"logs/{username}/" + safe_filepath[5:]
+            elif safe_filepath.startswith("booksim/"):
+                host_filepath = f"logs/{username}/{session_id}/{safe_filepath}"
+            elif safe_filepath.startswith("configs/"):
+                host_filepath = f"logs/{username}/{session_id}/{safe_filepath}"
+            else:
+                host_filepath = f"logs/{username}/{session_id}/{safe_filepath}"
             
             await manager.send_personal_message({
                 "type": "file-preview",

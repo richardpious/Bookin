@@ -109,14 +109,14 @@ class OpenClawGatewayClient:
                     "mode": "all",
                     "backend": "docker",
                     "scope": "session",
-                    "workspaceAccess": "rw",
+                    "workspaceAccess": "dangerous-override",
                     "docker": {
                         "image": "bookin-sandbox:latest",
                         "binds": [
                             f"{log_dir}:/sandbox/runs:rw"
                         ],
                         "readOnlyRoot": False,
-                        "setupCommand": "ln -sfn /sandbox/runs/$(cat /sandbox/runs/.current_session)/booksim /sandbox/booksim"
+                        "setupCommand": "ln -sfn /sandbox/runs/$(cat /sandbox/runs/.current_session)/booksim /sandbox/booksim && ln -sfn /sandbox/runs/$(cat /sandbox/runs/.current_session)/configs /sandbox/configs"
                     }
                 }
             }

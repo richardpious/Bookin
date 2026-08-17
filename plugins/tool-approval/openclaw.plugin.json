@@ -3,7 +3,7 @@
   "name": "Tool Approval",
   "description": "Requires user approval before sensitive tool command execution",
   "execution": {
-    "host": "gateway"
+    "host": "any"
   },
   "activation": {
     "onStartup": true

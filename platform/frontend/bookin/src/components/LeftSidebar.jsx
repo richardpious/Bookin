@@ -22,7 +22,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
         <ProjectFilesList
           onFileClick={onFileClick}
           activeFile={activeFile}
-          currentSession={currentSession}
+          currentSession={sessions?.find(s => s.id === currentSession)?.title || currentSession}
           username={username}
         />
       </div>
@@ -37,7 +37,8 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
         </div>
         <div
           onClick={() => {
-            onFileClick('logs-viewer:' + username + '/' + currentSession);
+            const sessionTitle = sessions?.find(s => s.id === currentSession)?.title || currentSession;
+            onFileClick('logs-viewer:' + username + '/' + sessionTitle);
             if (onClearUnreadLogs) onClearUnreadLogs();
           }}
           className={`sidebar-docs-link ${hasUnreadLogs ? 'logs-button-highlight' : ''}`}

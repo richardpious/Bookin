@@ -46,6 +46,12 @@ async def create_session(request: Request, data: SessionCreate, user_id: int = D
         session_booksim = os.path.join(session_log_dir, "booksim")
         if os.path.isdir(master_booksim) and not os.path.exists(session_booksim):
             shutil.copytree(master_booksim, session_booksim)
+            
+        # Copy master configs into this session's directory
+        master_configs = os.path.join(root_dir, "configs")
+        session_configs = os.path.join(session_log_dir, "configs")
+        if os.path.isdir(master_configs) and not os.path.exists(session_configs):
+            shutil.copytree(master_configs, session_configs)
         
     request.app.state.chat_db.create_session(session_id, user_id, data.title)
     return {"id": session_id, "title": data.title}
@@ -84,6 +90,14 @@ async def delete_session(request: Request, session_id: str, user_id: int = Depen
             await gateway_client.send_agent_message("/reset", session_id, username)
         except Exception as e:
             print(f"Warning: Failed to reset openclaw agent session {session_id}: {e}")
+
+        # Delete session folder from logs
+        session_title = chat_db.get_session_title(session_id)
+        if username and session_title:
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+            session_log_dir = os.path.join(root_dir, "logs", username, session_title)
+            if os.path.exists(session_log_dir):
+                shutil.rmtree(session_log_dir)
 
         chat_db.delete_session(session_id)
         return {"status": "success"}
