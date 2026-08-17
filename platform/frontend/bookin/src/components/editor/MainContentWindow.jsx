@@ -7,7 +7,7 @@ const LogsViewer = lazy(() => import('../logs/LogsViewer'));
 const ConfigParametersModal = lazy(() => import('../modals/ConfigParametersModal'));
 const NetworkVisualizer = lazy(() => import('../network/NetworkVisualizer'));
 
-export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast }) => {
+export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast, leftCollapsed, onToggleLeftSidebar }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (openFiles.length === 0) {
@@ -55,7 +55,11 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
         <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>Loading...</div>}>
         {openFiles.filter(p => p.endsWith('.vcd')).map(vcdPath => (
           <div key={vcdPath} style={{ display: activeFile === vcdPath ? 'block' : 'none', height: '100%' }}>
-            <NetworkVisualizer filePath={vcdPath} />
+            <NetworkVisualizer 
+              filePath={vcdPath} 
+              leftCollapsed={leftCollapsed} 
+              onToggleLeftSidebar={onToggleLeftSidebar} 
+            />
           </div>
         ))}
 

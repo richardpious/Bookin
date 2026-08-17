@@ -19,6 +19,15 @@ export const ChatInput = React.forwardRef(({ onSend, onAbort, isLoading, isConne
     adjustHeight();
   }, [input]);
 
+  useEffect(() => {
+    if (!textareaRef.current) return;
+    const observer = new ResizeObserver(() => {
+      adjustHeight();
+    });
+    observer.observe(textareaRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   const handleSend = () => {
     if (input.trim() && !isLoading && !isConnecting) {
       onSend(input);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, RotateCcw, Info } from 'lucide-react';
+import { RouterDetailsCard } from './RouterDetailsCard';
 import './NetworkVisualizer.css';
 
 const FLIT_COLORS = {
@@ -33,7 +34,7 @@ const getRouterCoords = (routerId, k, width, height, margin = 80) => {
 
 const PAGE_SIZE = 200; // Cycles per API request page
 
-export const NetworkVisualizer = ({ filePath }) => {
+export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar }) => {
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -500,9 +501,10 @@ export const NetworkVisualizer = ({ filePath }) => {
   }
 
   return (
-    <div className="net-viz">
-      {/* Topology Canvas */}
-      <div className="net-viz-canvas" ref={canvasRef}>
+    <div className="net-viz" style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden' }}>
+      <div className="net-viz-left" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+        {/* Topology Canvas */}
+        <div className="net-viz-canvas" ref={canvasRef}>
         {/* Info overlay badge */}
         {fetchingRange && (
           <div className="net-viz-fetching-indicator">
@@ -615,7 +617,14 @@ export const NetworkVisualizer = ({ filePath }) => {
                 }}
                 onMouseMove={updateTooltipPos}
                 onMouseLeave={() => setHoveredRouter(null)}
-                onClick={() => setSelectedRouter(r.id === selectedRouter ? null : r.id)}
+                onClick={() => {
+                  const isSelecting = r.id !== selectedRouter;
+                  const wasCardClosed = selectedRouter === null;
+                  setSelectedRouter(isSelecting ? r.id : null);
+                  if (isSelecting && wasCardClosed && leftCollapsed === false && onToggleLeftSidebar) {
+                    onToggleLeftSidebar();
+                  }
+                }}
               >
                 {/* Outer shadow/highlight rect */}
                 <rect
@@ -1008,6 +1017,29 @@ export const NetworkVisualizer = ({ filePath }) => {
             <span className="cycle-total">/ {meta?.timeline?.endCycle || 0}</span>
             {fetchingRange && <span className="cycle-events">Loading data...</span>}
           </div>
+        </div>
+      </div>
+      </div>
+
+      {/* Router Details Card Sidebar */}
+      <div 
+        style={{ 
+          width: selectedRouter !== null ? '300px' : '0px', 
+          flexShrink: 0, 
+          height: '100%', 
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden'
+        }}
+      >
+        <div style={{ width: '300px', height: '100%' }}>
+          {selectedRouter !== null && (
+            <RouterDetailsCard 
+              routerId={selectedRouter} 
+              events={currentEvents} 
+              meta={meta} 
+              onClose={() => setSelectedRouter(null)} 
+            />
+          )}
         </div>
       </div>
     </div>

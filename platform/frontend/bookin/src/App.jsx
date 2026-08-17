@@ -178,6 +178,8 @@ function App() {
           onFileClick={handleFileClick}
           onSendMessage={handleSend}
           onToast={showToast}
+          leftCollapsed={leftCollapsed}
+          onToggleLeftSidebar={toggleLeftCollapsed}
           onAddMessage={(msg) => {
             // Update sender to 'agent' to match CSS and DB conventions
             setMessages((prev) => [...prev, { id: Date.now(), sender: 'agent', text: msg, isStatus: true, isComplete: true }]);
