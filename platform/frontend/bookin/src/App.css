@@ -12,6 +12,10 @@
   overflow: hidden;
 }
 
+body.is-resizing * {
+  transition: none !important;
+}
+
 /* Toast Animation */
 .toast-container {
   position: fixed;

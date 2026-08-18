@@ -22,7 +22,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
   }
 
   return (
-    <aside ref={sidebarRef} className="sidebar files-sidebar" style={{ width }}>
+    <aside ref={sidebarRef} className="sidebar files-sidebar" style={{ width: 'var(--left-sidebar-width)' }}>
       <div className="sidebar-content">
         <SessionsList
           sessions={sessions}

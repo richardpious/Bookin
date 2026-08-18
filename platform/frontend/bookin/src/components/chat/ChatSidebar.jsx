@@ -39,7 +39,7 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
   }
 
   return (
-  <aside className="sidebar agent-chat-sidebar" style={{ width }}>
+  <aside className="sidebar agent-chat-sidebar" style={{ width: 'var(--right-sidebar-width)' }}>
     <div className="sidebar-header">
       <h2>Agent Chat</h2>
       <button

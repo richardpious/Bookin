@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 export const useResizer = () => {
   const [leftWidth, setLeftWidth] = useState(260);
@@ -12,34 +12,52 @@ export const useResizer = () => {
   const savedLeftWidth = useRef(260);
   const savedRightWidth = useRef(500);
 
+  // Initialize CSS variables
+  useEffect(() => {
+    document.documentElement.style.setProperty('--left-sidebar-width', `${leftWidth}px`);
+    document.documentElement.style.setProperty('--right-sidebar-width', `${rightWidth}px`);
+  }, []);
+
   const handleMouseMove = useCallback((e) => {
     if (isResizingLeft.current) {
       // Adding margin: 10px (left) + width + resizer + gap (approx)
-      const newWidth = Math.max(150, Math.min(e.clientX - 20, window.innerWidth - rightWidth - 150));
-      setLeftWidth(newWidth);
+      const newWidth = Math.max(150, Math.min(e.clientX - 20, window.innerWidth - savedRightWidth.current - 150));
+      document.documentElement.style.setProperty('--left-sidebar-width', `${newWidth}px`);
       savedLeftWidth.current = newWidth;
-      setLeftCollapsed(false);
     } else if (isResizingRight.current) {
       // Adding margin: 10px (right)
       const newRightWidth = window.innerWidth - e.clientX - 10;
-      const clamped = Math.max(100, Math.min(newRightWidth, window.innerWidth - leftWidth - 150));
-      setRightWidth(clamped);
+      const clamped = Math.max(100, Math.min(newRightWidth, window.innerWidth - savedLeftWidth.current - 150));
+      document.documentElement.style.setProperty('--right-sidebar-width', `${clamped}px`);
       savedRightWidth.current = clamped;
-      setRightCollapsed(false);
     }
-  }, [leftWidth, rightWidth]);
+  }, []);
 
   const handleMouseUp = useCallback(() => {
     isResizingLeft.current = false;
     isResizingRight.current = false;
     document.body.style.userSelect = 'auto';
+    document.body.classList.remove('is-resizing');
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+    
+    // Sync React state
+    setLeftWidth(savedLeftWidth.current);
+    setRightWidth(savedRightWidth.current);
   }, [handleMouseMove]);
 
   const startResizing = (ref) => {
     ref.current = true;
+    
+    // Visually expand if collapsed
+    if (ref === isResizingLeft) {
+      setLeftCollapsed(false);
+    } else {
+      setRightCollapsed(false);
+    }
+    
     document.body.style.userSelect = 'none';
+    document.body.classList.add('is-resizing');
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
@@ -47,30 +65,32 @@ export const useResizer = () => {
   const toggleLeftCollapsed = useCallback(() => {
     setLeftCollapsed(prev => {
       if (!prev) {
-        // Collapsing — save current width
-        savedLeftWidth.current = leftWidth;
         setLeftWidth(0);
+        document.documentElement.style.setProperty('--left-sidebar-width', '0px');
         return true;
       } else {
-        // Expanding — restore saved width
-        setLeftWidth(savedLeftWidth.current || 260);
+        const restored = savedLeftWidth.current || 260;
+        setLeftWidth(restored);
+        document.documentElement.style.setProperty('--left-sidebar-width', `${restored}px`);
         return false;
       }
     });
-  }, [leftWidth]);
+  }, []);
 
   const toggleRightCollapsed = useCallback(() => {
     setRightCollapsed(prev => {
       if (!prev) {
-        savedRightWidth.current = rightWidth;
         setRightWidth(0);
+        document.documentElement.style.setProperty('--right-sidebar-width', '0px');
         return true;
       } else {
-        setRightWidth(savedRightWidth.current || 500);
+        const restored = savedRightWidth.current || 500;
+        setRightWidth(restored);
+        document.documentElement.style.setProperty('--right-sidebar-width', `${restored}px`);
         return false;
       }
     });
-  }, [rightWidth]);
+  }, []);
 
   return {
     leftWidth,
