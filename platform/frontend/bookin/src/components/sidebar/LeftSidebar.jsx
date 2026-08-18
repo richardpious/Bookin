@@ -4,7 +4,7 @@ import { SessionsList } from './SessionsList'
 import { ProjectFilesList } from './ProjectFilesList'
 import './LeftSidebar.css'
 
-export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username, hasUnreadLogs, onClearUnreadLogs, createSession, collapsed, onToggleCollapse }) => {
+export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username, hasUnreadLogs, onClearUnreadLogs, createSession, collapsed, onToggleCollapse, onSearch, onError }) => {
   const sidebarRef = useRef(null)
 
   if (collapsed) {
@@ -40,6 +40,8 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
           activeFile={activeFile}
           currentSession={sessions?.find(s => s.id === currentSession)?.title || currentSession}
           username={username}
+          onSearch={onSearch}
+          onError={onError}
         />
       </div>
       <div style={{ display: 'flex', borderTop: '1px solid var(--border-light)' }}>

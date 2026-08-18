@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Folder, FileText, ChevronRight, ChevronDown } from 'lucide-react'
 import { fetchFiles } from '../../utils/fileUtils'
+import { ProjectSearch } from '../search/ProjectSearch'
 import './ProjectFilesList.css'
 
 const FileNode = React.memo(({ name, path, isDir, onFileClick, activeFile, depth = 0 }) => {
@@ -76,7 +77,7 @@ const FileNode = React.memo(({ name, path, isDir, onFileClick, activeFile, depth
   )
 })
 
-export const ProjectFilesList = React.memo(({ onFileClick, activeFile, currentSession, username }) => {
+export const ProjectFilesList = React.memo(({ onFileClick, activeFile, currentSession, username, onSearch, onError }) => {
   const [files, setFiles] = useState([])
 
   useEffect(() => {
@@ -119,6 +120,9 @@ export const ProjectFilesList = React.memo(({ onFileClick, activeFile, currentSe
         boxShadow: '0 2px 0 0 var(--bg-sidebar)'
       }}>
         <h3 style={{ margin: 0 }}>Booksim Files</h3>
+      </div>
+      <div style={{ padding: '0 8px 8px 8px', borderBottom: '1px solid var(--border-light)' }}>
+        <ProjectSearch onSearch={onSearch} onError={onError} />
       </div>
       <div className="files-list">
       {files.map((file) => (

@@ -1,1 +1,75 @@
+.sidebar-search-form {
+  width: 100%;
+  margin-top: 4px;
+}
 
+.sidebar-search-box {
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 8px;
+  height: 32px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.sidebar-search-box:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.sidebar-search-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.sidebar-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  padding: 0 8px;
+  outline: none;
+  min-width: 0;
+}
+
+.sidebar-search-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.sidebar-search-clear {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.sidebar-search-clear:hover {
+  color: var(--text);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-search-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: sidebar-search-spin 0.8s linear infinite;
+}
+
+@keyframes sidebar-search-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 
-export const HeaderSearch = ({ onSearch, onError }) => {
+export const ProjectSearch = ({ onSearch, onError }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef(null);
@@ -39,14 +39,14 @@ export const HeaderSearch = ({ onSearch, onError }) => {
   };
 
   return (
-    <form className="header-search-form" onSubmit={handleSubmit}>
-      <div className="header-search-box">
-        <Search size={14} className="header-search-icon" />
+    <form className="sidebar-search-form" onSubmit={handleSubmit}>
+      <div className="sidebar-search-box">
+        <Search size={14} className="sidebar-search-icon" />
         <input
           ref={searchRef}
           id="global-search-input"
           type="text"
-          className="header-search-input"
+          className="sidebar-search-input"
           placeholder="Search booksim…  (Ctrl+K)"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -56,14 +56,13 @@ export const HeaderSearch = ({ onSearch, onError }) => {
         {searchQuery && (
           <button
             type="button"
-            className="header-search-clear"
+            className="sidebar-search-clear"
             onClick={() => setSearchQuery('')}
             title="Clear"
           >
-            <X size={14} />
+            {isSearching ? <div className="sidebar-search-spinner" /> : <X size={14} />}
           </button>
         )}
-        {isSearching && <span className="header-search-spinner" />}
       </div>
     </form>
   );

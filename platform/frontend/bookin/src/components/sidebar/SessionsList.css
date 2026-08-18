@@ -26,11 +26,11 @@
 }
 
 .sidebar-docs-link {
-  padding: 12px 24px 24px 24px;
-  /* Added 24px bottom padding */
+  padding: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   border-top: 1px solid var(--border-light);
   background-color: var(--bg-sidebar);
@@ -40,11 +40,15 @@
   z-index: 30;
   transition: all 0.2s;
   flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sidebar-docs-link div {
-  /* Ensure the text div behaves correctly */
   display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-docs-link:hover {

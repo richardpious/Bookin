@@ -160,6 +160,8 @@ function App() {
             createSession={createSession}
             collapsed={leftCollapsed}
             onToggleCollapse={toggleLeftCollapsed}
+            onSearch={handleSearch}
+            onError={(msg) => showToast(msg, 'error')}
         />
         {!leftCollapsed && <Resizer onMouseDown={() => startResizing(isResizingLeft)} />}
         

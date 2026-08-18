@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import './Header.css';
-import { HeaderSearch } from './HeaderSearch';
 import { ModelSelector } from './ModelSelector';
 import { ThinkingLevelSelector } from './ThinkingLevelSelector';
 
@@ -54,11 +53,8 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
         <span className="logo">BookIn</span>
       </div>
 
-      {/* Center — Search */}
-      <HeaderSearch
-        onSearch={onSearch}
-        onError={(msg) => showToast(msg, 'error')}
-      />
+      {/* Center empty space to keep layout balanced */}
+      <div style={{ flex: 1 }}></div>
 
       {/* Right — Model selector & User Profile */}
       <div className="header-right">

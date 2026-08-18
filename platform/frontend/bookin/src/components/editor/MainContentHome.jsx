@@ -1,11 +1,11 @@
 export const MainContentHome = () => {
   return (
-    <div style={{ 
-      height: '100%', 
-      width: '100%', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
+    <div style={{
+      height: '100%',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
       justifyContent: 'center',
       userSelect: 'none',
       WebkitUserSelect: 'none',
@@ -21,7 +21,6 @@ export const MainContentHome = () => {
           pointerEvents: 'none'
         }}
       />
-      <div style={{ color: 'var(--text)', opacity: 0.5 }}>Welcome to BookIn</div>
     </div>
   );
 };
