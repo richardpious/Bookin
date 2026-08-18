@@ -3,6 +3,8 @@ import os
 import re
 import shutil
 import asyncio
+import subprocess
+import uuid
 from datetime import datetime, timezone
 
 router = APIRouter()
@@ -161,6 +163,67 @@ async def update_file(payload: dict = Body(...)):
     try:
         await asyncio.to_thread(_write_file_text, target_path, content)
         return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.post("/run-simulation")
+async def run_simulation(payload: dict = Body(...)):
+    config_path = payload.get("config_path")
+    username = payload.get("username")
+    session_name = payload.get("session_name", "manual")
+    
+    if not config_path or not username:
+        return {"error": "Missing config_path or username"}
+        
+    root_dir = get_root_dir()
+    
+    # 1. Resolve source config path safely
+    source_path = os.path.normpath(os.path.join(root_dir, config_path))
+    if not source_path.startswith(root_dir) or not os.path.isfile(source_path):
+        return {"error": f"Invalid config file: {config_path}"}
+        
+    # 2. Determine base log directory
+    base_log_dir = os.path.join(root_dir, "logs", username, session_name)
+    os.makedirs(base_log_dir, exist_ok=True)
+    
+    # 3. Determine next available run folder
+    max_run_num = 0
+    try:
+        entries = os.listdir(base_log_dir)
+        for entry in entries:
+            match = re.match(r'run_(\d+)', entry)
+            if match:
+                num = int(match.group(1))
+                if num > max_run_num:
+                    max_run_num = num
+    except OSError:
+        pass
+        
+    next_run_num = str(max_run_num + 1).zfill(2)
+    run_folder_name = f"run_{next_run_num}"
+    run_dir = os.path.join(base_log_dir, run_folder_name)
+    os.makedirs(run_dir, exist_ok=True)
+    
+    # 4. Copy config file
+    target_config_path = os.path.join(run_dir, "config.cfg")
+    shutil.copy(source_path, target_config_path)
+    
+    # 5. Spawn subprocess
+    booksim_binary = os.path.join(root_dir, "booksim", "src", "booksim")
+    log_file_path = os.path.join(run_dir, "simulation_output.log")
+    
+    try:
+        # Run process asynchronously and redirect output
+        with open(log_file_path, "w") as log_file:
+            subprocess.Popen(
+                [booksim_binary, "config.cfg"],
+                cwd=run_dir,
+                stdout=log_file,
+                stderr=subprocess.STDOUT
+            )
+        
+        rel_run_dir = os.path.relpath(run_dir, root_dir)
+        return {"success": True, "run_directory": rel_run_dir}
     except Exception as e:
         return {"error": str(e)}
 

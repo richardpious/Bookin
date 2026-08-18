@@ -56,6 +56,27 @@ export const updateFileContent = async (path, content) => {
   }
 };
 
+export const runSimulationAPI = async (configPath, username, sessionName) => {
+  try {
+    const response = await fetch(`/run-simulation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ config_path: configPath, username, session_name: sessionName })
+    });
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+  } catch (error) {
+    console.error("Failed to run simulation natively:", error);
+    throw error;
+  }
+};
+
 export const fetchRunStats = async (path) => {
   try {
     const response = await fetch(`/run-stats?path=${encodeURIComponent(path)}`);

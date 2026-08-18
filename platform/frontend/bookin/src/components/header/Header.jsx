@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Play } from 'lucide-react';
 import './Header.css';
 import { ModelSelector } from './ModelSelector';
 import { ThinkingLevelSelector } from './ThinkingLevelSelector';
 
-export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch, username, onLogout, token }) => {
+export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch, username, onLogout, token, onOpenSimulationRunner }) => {
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState('success');
   const [sessionData, setSessionData] = useState(null);
@@ -58,6 +58,25 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
 
       {/* Right — Model selector & User Profile */}
       <div className="header-right">
+        <button
+          onClick={onOpenSimulationRunner}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'var(--bg-main)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+            padding: '6px 12px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '0.85rem',
+            marginRight: '24px'
+          }}
+        >
+          <Play size={14} />
+          Run Simulation
+        </button>
         <ModelSelector
           sessionId={sessionId}
           initialModel={sessionData?.model}

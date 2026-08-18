@@ -6,8 +6,9 @@ const CodeEditor = lazy(() => import('./CodeEditor'));
 const LogsViewer = lazy(() => import('../logs/LogsViewer'));
 const ConfigParametersModal = lazy(() => import('../modals/ConfigParametersModal'));
 const NetworkVisualizer = lazy(() => import('../network/NetworkVisualizer'));
+const SimulationRunner = lazy(() => import('../simulation/SimulationRunner').then(m => ({ default: m.SimulationRunner })));
 
-export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast, leftCollapsed, onToggleLeftSidebar }) => {
+export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast, leftCollapsed, onToggleLeftSidebar, sessions, sessionId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (openFiles.length === 0) {
@@ -45,7 +46,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
               }}
             >
               {isDirty && <span style={{ color: '#ffcc00', fontSize: '10px' }}>●</span>}
-              {path.startsWith('logs-viewer:') ? 'Logs' : (path.startsWith('docs/') ? 'Docs' : path.split('/').pop())}
+              {path.startsWith('simulation-runner:') ? 'Simulation Runner' : path.startsWith('logs-viewer:') ? 'Logs' : (path.startsWith('docs/') ? 'Docs' : path.split('/').pop())}
               <X size={14} onClick={(e) => onCloseTab(e, path)} style={{ cursor: 'pointer', opacity: 0.6 }} />
             </div>
           )
@@ -64,7 +65,9 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
         ))}
 
         {activeFile && !activeFile.endsWith('.vcd') ? (
-          activeFile.startsWith('logs-viewer:') ? (
+          activeFile.startsWith('simulation-runner:') ? (
+            <SimulationRunner sessions={sessions} sessionId={sessionId} onToast={onToast} />
+          ) : activeFile.startsWith('logs-viewer:') ? (
             <LogsViewer session={activeFile.split(':')[1]} onFileClick={onFileClick} />
           ) : (
             <CodeEditor

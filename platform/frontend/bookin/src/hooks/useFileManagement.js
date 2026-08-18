@@ -49,7 +49,7 @@ export const useFileManagement = () => {
   useEffect(() => {
     const restoreFileContents = async () => {
       const filesToRestore = openFiles.filter(
-        path => !path.startsWith('logs-viewer:') && !path.endsWith('.vcd')
+        path => !path.startsWith('logs-viewer:') && !path.startsWith('simulation-runner:') && !path.endsWith('.vcd')
       );
       if (filesToRestore.length === 0) return;
 
@@ -95,8 +95,8 @@ export const useFileManagement = () => {
       setOpenFiles(newOpenFiles);
     }
 
-    // Intercept logs-viewer virtual tabs and .vcd visualization tabs (do not load full VCD text into state)
-    if (path.startsWith('logs-viewer:') || path.endsWith('.vcd')) {
+    // Intercept logs-viewer virtual tabs, simulation-runner tabs and .vcd visualization tabs (do not load full VCD text into state)
+    if (path.startsWith('logs-viewer:') || path.startsWith('simulation-runner:') || path.endsWith('.vcd')) {
       if (path.startsWith('logs-viewer:')) {
         setHasUnreadLogs(false);
       }

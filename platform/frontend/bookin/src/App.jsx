@@ -127,6 +127,7 @@ function App() {
         username={username}
         onLogout={handleLogout}
         token={token}
+        onOpenSimulationRunner={() => handleFileClick('simulation-runner:')}
       />
       <ApprovalModal
         isOpen={!!approvalRequest}
@@ -182,6 +183,8 @@ function App() {
           onToast={showToast}
           leftCollapsed={leftCollapsed}
           onToggleLeftSidebar={toggleLeftCollapsed}
+          sessions={sessions}
+          sessionId={sessionId}
           onAddMessage={(msg) => {
             // Update sender to 'agent' to match CSS and DB conventions
             setMessages((prev) => [...prev, { id: Date.now(), sender: 'agent', text: msg, isStatus: true, isComplete: true }]);
