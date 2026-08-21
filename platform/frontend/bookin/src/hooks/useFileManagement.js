@@ -49,7 +49,7 @@ export const useFileManagement = () => {
   useEffect(() => {
     const restoreFileContents = async () => {
       const filesToRestore = openFiles.filter(
-        path => !path.startsWith('logs-viewer:') && !path.startsWith('simulation-runner:') && !path.endsWith('.vcd')
+        path => !path.startsWith('logs-viewer:') && !path.startsWith('simulation-runner:') && !(path.endsWith('.vcd') || path.endsWith('.vcd.gz'))
       );
       if (filesToRestore.length === 0) return;
 
@@ -96,7 +96,7 @@ export const useFileManagement = () => {
     }
 
     // Intercept logs-viewer virtual tabs, simulation-runner tabs and .vcd visualization tabs (do not load full VCD text into state)
-    if (path.startsWith('logs-viewer:') || path.startsWith('simulation-runner:') || path.endsWith('.vcd')) {
+    if (path.startsWith('logs-viewer:') || path.startsWith('simulation-runner:') || path.endsWith('.vcd') || path.endsWith('.vcd.gz')) {
       if (path.startsWith('logs-viewer:')) {
         setHasUnreadLogs(false);
       }
@@ -131,7 +131,7 @@ export const useFileManagement = () => {
 
   const handleOpenFilePreview = useCallback(async (filePath) => {
     if (!filePath) return;
-    if (filePath.endsWith('.vcd')) {
+    if (filePath.endsWith('.vcd') || filePath.endsWith('.vcd.gz')) {
       setOpenFiles(prev => prev.includes(filePath) ? prev : [...prev, filePath]);
       setActiveFile(filePath);
       return;
@@ -168,7 +168,7 @@ export const useFileManagement = () => {
   }, []);
 
   const handleSilentFileUpdate = useCallback(async (filePath) => {
-    if (!filePath || filePath.endsWith('.vcd')) return;
+    if (!filePath || filePath.endsWith('.vcd') || filePath.endsWith('.vcd.gz')) return;
     
     // Check if the file is in logs/ or is a .log file
     if (filePath.includes('/logs/') || filePath.includes('logs/') || filePath.endsWith('.log')) {

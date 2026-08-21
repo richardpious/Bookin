@@ -111,6 +111,8 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     return () => {
       isMounted = false;
       if (playTimerRef.current) clearInterval(playTimerRef.current);
+      // Clear backend memory cache when component unmounts (file closed)
+      fetch(`/api/vcd/cache?path=${encodeURIComponent(filePath)}`, { method: 'DELETE' }).catch(() => {});
     };
   }, [filePath]);
 

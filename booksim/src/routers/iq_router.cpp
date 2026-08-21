@@ -256,6 +256,21 @@ void IQRouter::_InternalStep( )
     for(int input = 0; input < _inputs; ++input) {
       for(int vc = 0; vc < _vcs; ++vc) {
         gVCDTracer->TraceVCOccupancy(_id, input, vc, _buf[input]->GetOccupancy(vc));
+        // Component 1: VC-level state tracing
+        Flit * ff = _buf[input]->FrontFlit(vc);
+        gVCDTracer->TraceVCState(_id, input, vc,
+          _buf[input]->GetState(vc),
+          ff ? ff->id : -1, ff ? ff->pid : -1,
+          _buf[input]->GetOutputPort(vc), _buf[input]->GetOutputVC(vc));
+      }
+    }
+    // Component 5: Downstream credit state tracing
+    for(int output = 0; output < _outputs; ++output) {
+      for(int vc = 0; vc < _vcs; ++vc) {
+        gVCDTracer->TraceDownstreamCredits(_id, output, vc,
+          _next_buf[output]->OccupancyFor(vc),
+          _next_buf[output]->AvailableFor(vc),
+          _next_buf[output]->LimitFor(vc));
       }
     }
   }
@@ -368,6 +383,10 @@ void IQRouter::_InputQueuing( )
       *gWatchOut << ")." << endl;
     }
     cur_buf->AddFlit(vc, f);
+
+    if(gVCDTracer) {
+      gVCDTracer->TracePipelineBW(_id, input, vc, f);
+    }
 
 #ifdef TRACK_FLOWS
     ++_stored_flits[f->cl][input];
@@ -534,6 +553,11 @@ void IQRouter::_RouteUpdate( )
 
     cur_buf->Route(vc, _rf, this, f, input);
     cur_buf->SetState(vc, VC::vc_alloc);
+
+    if(gVCDTracer) {
+      gVCDTracer->TracePipelineRC(_id, input, vc, f, true);
+    }
+
     if(_speculative) {
       _sw_alloc_vcs.push_back(make_pair(-1, make_pair(item.second, -1)));
     }
@@ -898,6 +922,11 @@ void IQRouter::_VCAllocUpdate( )
 	
       cur_buf->SetOutput(vc, match_output, match_vc);
       cur_buf->SetState(vc, VC::active);
+
+      if(gVCDTracer) {
+        gVCDTracer->TracePipelineVA(_id, input, vc, f, VCDTracer::PIPE_SUCCESS, match_output, match_vc);
+      }
+
       if(!_speculative) {
 	_sw_alloc_vcs.push_back(make_pair(-1, make_pair(item.second.first, -1)));
       }
@@ -905,6 +934,12 @@ void IQRouter::_VCAllocUpdate( )
       if(f->watch) {
 	*gWatchOut << GetSimTime() << " | " << FullName() << " | "
 		   << "  No output VC allocated." << endl;
+      }
+
+      if(gVCDTracer) {
+        int va_result = VCDTracer::PIPE_STALL_CONFLICT;
+        if(output_and_vc == STALL_BUFFER_BUSY) va_result = VCDTracer::PIPE_STALL_BUSY;
+        gVCDTracer->TracePipelineVA(_id, input, vc, f, va_result, -1, -1);
       }
 
 #ifdef TRACK_STALLS
@@ -1977,6 +2012,10 @@ void IQRouter::_SWAllocUpdate( )
 		   << "." << endl;
       }
 
+      if(gVCDTracer) {
+        gVCDTracer->TracePipelineSA(_id, input, vc, f, VCDTracer::PIPE_SUCCESS, output);
+      }
+
       cur_buf->RemoveFlit(vc);
 
 #ifdef TRACK_FLOWS
@@ -2101,6 +2140,14 @@ void IQRouter::_SWAllocUpdate( )
 		   << "  No output port allocated." << endl;
       }
 
+      if(gVCDTracer) {
+        int sa_result = VCDTracer::PIPE_STALL_CONFLICT;
+        if(expanded_output == STALL_BUFFER_BUSY) sa_result = VCDTracer::PIPE_STALL_BUSY;
+        else if(expanded_output == STALL_BUFFER_FULL) sa_result = VCDTracer::PIPE_STALL_FULL;
+        else if(expanded_output == STALL_BUFFER_RESERVED) sa_result = VCDTracer::PIPE_STALL_RESERVED;
+        gVCDTracer->TracePipelineSA(_id, input, vc, f, sa_result, -1);
+      }
+
 #ifdef TRACK_STALLS
       assert((expanded_output == -1) || // for stalls that are accounted for in VC allocation path
 	     (expanded_output == STALL_BUFFER_BUSY) ||
@@ -2152,6 +2199,7 @@ void IQRouter::_SwitchEvaluate( )
       
     if(gVCDTracer) {
       gVCDTracer->TraceCrossbarBegin(_id, expanded_input / _input_speedup, expanded_output / _output_speedup, f);
+      gVCDTracer->TracePipelineST(_id, expanded_input / _input_speedup, expanded_output / _output_speedup, f, true);
     }
       
     if(f->watch) {

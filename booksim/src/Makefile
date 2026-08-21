@@ -31,7 +31,7 @@ INCPATH = -I. -Iarbiters -Iallocators -Irouters -Inetworks -Ipower
 CPPFLAGS += -Wall $(INCPATH) $(DEFINE)
 CPPFLAGS += -g      # Ensure debugging symbols are included
 CPPFLAGS += -O0     # Disable optimizations for easier debugging
-LFLAGS += -g -lstdc++  # Ensure debugging symbols are preserved during linking
+LFLAGS += -g -lstdc++ -lz  # Ensure debugging symbols are preserved during linking; link zlib for VCD compression
 
 PROG := booksim
 

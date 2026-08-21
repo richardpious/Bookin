@@ -54,7 +54,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
         <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>Loading...</div>}>
-        {openFiles.filter(p => p.endsWith('.vcd')).map(vcdPath => (
+        {openFiles.filter(p => p.endsWith('.vcd') || p.endsWith('.vcd.gz')).map(vcdPath => (
           <div key={vcdPath} style={{ display: activeFile === vcdPath ? 'block' : 'none', height: '100%' }}>
             <NetworkVisualizer 
               filePath={vcdPath} 
@@ -64,7 +64,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
           </div>
         ))}
 
-        {activeFile && !activeFile.endsWith('.vcd') ? (
+        {activeFile && !activeFile.endsWith('.vcd') && !activeFile.endsWith('.vcd.gz') ? (
           activeFile.startsWith('simulation-runner:') ? (
             <SimulationRunner sessions={sessions} sessionId={sessionId} onToast={onToast} />
           ) : activeFile.startsWith('logs-viewer:') ? (

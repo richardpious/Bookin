@@ -279,11 +279,15 @@ BookSimConfig::BookSimConfig( )
   AddStrField("sent_packets_out", "sent_packets_out.txt");
   
   _int_map["vcd_trace"] = 0;
-  AddStrField("vcd_trace_file", "booksim.vcd");
+  AddStrField("vcd_trace_file", "booksim.vcd.gz");
   _int_map["vcd_trace_start"] = 0;
   _int_map["vcd_trace_end"] = -1;
   _int_map["vcd_trace_flit"] = -1;
   _int_map["vcd_trace_packet"] = -1;
+  _int_map["vcd_trace_vc"] = 0;
+  _int_map["vcd_trace_pipeline"] = 0;
+  _int_map["vcd_trace_credits"] = 0;
+  _int_map["vcd_trace_router"] = -1;
 
   //==================Power model params=====================
   _int_map["sim_power"] = 0;

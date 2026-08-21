@@ -6,6 +6,7 @@ Provides two endpoints:
   GET /api/vcd/cycles — paginated cycle-range event data
 """
 import json
+import gzip
 from fastapi import APIRouter, Query, Response
 import os
 import re
@@ -17,8 +18,7 @@ router = APIRouter(prefix="/api/vcd", tags=["vcd"])
 # ---------------------------------------------------------------------------
 # In-memory cache: keyed by (abs_path, mtime) → parsed VCDIndex
 # ---------------------------------------------------------------------------
-_vcd_cache: Dict[Tuple[str, float], "VCDIndex"] = {}
-_CACHE_MAX = 8  # keep at most N parsed files
+_vcd_cache: Dict[str, "VCDIndex"] = {}
 
 
 class VCDIndex:
@@ -30,6 +30,11 @@ class VCDIndex:
       - byte_offsets: list of (cycle_number, byte_offset) for each #<timestamp>
       - routers, nodes, ports, vcs counts (derived from signal names)
     """
+
+    def _open_file(self, mode='rt'):
+        if self.filepath.endswith('.gz'):
+            return gzip.open(self.filepath, mode, encoding='ascii', errors='ignore')
+        return open(self.filepath, mode, encoding='ascii', errors='ignore')
 
     def __init__(self, filepath: str):
         self.filepath = filepath
@@ -51,90 +56,95 @@ class VCDIndex:
 
     def _parse(self):
         """Parse VCD header for signal definitions and scan for timestamp offsets."""
-        with open(self.filepath, 'rb') as f:
-            offset = 0
-            # Phase 1: Parse header ($var lines)
-            while True:
-                raw_line = f.readline()
-                if not raw_line:
-                    break
-                line_len = len(raw_line)
-                line = raw_line.strip().decode('ascii', errors='ignore')
-                if line.startswith('$enddefinitions'):
-                    offset += line_len
-                    self.header_end_offset = offset
-                    break
-                if line.startswith('$var'):
-                    parts = line.split()
-                    if len(parts) >= 5:
-                        short_id = parts[3]
-                        sig_name = parts[4]
-                        self.signal_map[short_id] = sig_name
-                        self.signal_name_to_id[sig_name] = short_id
+        with self._open_file('rt') as f:
+            self._raw_content = f.read()
+
+        offset = 0
+        lines = self._raw_content.splitlines(True)
+        
+        # Phase 1: Parse header ($var lines)
+        i = 0
+        while i < len(lines):
+            raw_line = lines[i]
+            line_len = len(raw_line)
+            line = raw_line.strip()
+            if line.startswith('$enddefinitions'):
                 offset += line_len
+                self.header_end_offset = offset
+                break
+            if line.startswith('$var'):
+                parts = line.split()
+                if len(parts) >= 5:
+                    short_id = parts[3]
+                    sig_name = parts[4]
+                    self.signal_map[short_id] = sig_name
+                    self.signal_name_to_id[sig_name] = short_id
+            offset += line_len
+            i += 1
 
-            # Derive topology info from signal names
-            self._derive_topology()
+        # Derive topology info from signal names
+        self._derive_topology()
 
-            # Phase 2: Scan for all timestamp markers, count activity, and snapshot states
-            cycle_changes = 0
-            current_states = {}
-            snapshot_interval = 500
-            last_snapshot_idx = -1
+        # Phase 2: Scan for all timestamp markers, count activity, and snapshot states
+        cycle_changes = 0
+        current_states = {}
+        snapshot_interval = 500
+        last_snapshot_idx = -1
 
-            while True:
-                line_offset = offset
-                raw_line = f.readline()
-                if not raw_line:
-                    break
-                offset += len(raw_line)
-                line = raw_line.strip().decode('ascii', errors='ignore')
-                if line.startswith('#'):
-                    # Save activity count for previous cycle
-                    if self.byte_offsets:
-                        self.activity.append(cycle_changes)
+        i += 1
+        while i < len(lines):
+            line_offset = offset
+            raw_line = lines[i]
+            offset += len(raw_line)
+            line = raw_line.strip()
+            
+            if line.startswith('#'):
+                # Save activity count for previous cycle
+                if self.byte_offsets:
+                    self.activity.append(cycle_changes)
+                try:
+                    cycle_num = int(line[1:])
+                    self.byte_offsets.append((cycle_num, line_offset))
+                    
+                    # Snapshot logic
+                    if len(self.byte_offsets) - 1 >= last_snapshot_idx + snapshot_interval:
+                        self.snapshots.append((cycle_num, dict(current_states)))
+                        last_snapshot_idx = len(self.byte_offsets) - 1
+                except ValueError:
+                    pass
+                cycle_changes = 0
+            elif line and not line.startswith('$'):
+                cycle_changes += 1
+                # Track state for snapshots
+                if line.startswith('b'):
+                    parts = line.split(' ', 1)
+                    if len(parts) == 2:
+                        bits = parts[0][1:]
+                        sid = parts[1]
+                        try:
+                            current_states[sid] = int(bits, 2) if bits != '0' else 0
+                        except ValueError:
+                            current_states[sid] = 0
+                elif line[0] in ('0', '1'):
                     try:
-                        cycle_num = int(line[1:])
-                        self.byte_offsets.append((cycle_num, line_offset))
-                        
-                        # Snapshot logic
-                        if len(self.byte_offsets) - 1 >= last_snapshot_idx + snapshot_interval:
-                            self.snapshots.append((cycle_num, dict(current_states)))
-                            last_snapshot_idx = len(self.byte_offsets) - 1
+                        val = int(line[0])
+                        sid = line[1:]
+                        current_states[sid] = val
                     except ValueError:
                         pass
-                    cycle_changes = 0
-                elif line and not line.startswith('$'):
-                    cycle_changes += 1
-                    # Track state for snapshots
-                    if line.startswith('b'):
-                        parts = line.split(' ', 1)
-                        if len(parts) == 2:
-                            bits = parts[0][1:]
-                            sid = parts[1]
-                            try:
-                                current_states[sid] = int(bits, 2) if bits != '0' else 0
-                            except ValueError:
-                                current_states[sid] = 0
-                    elif line[0] in ('0', '1'):
-                        try:
-                            val = int(line[0])
-                            sid = line[1:]
-                            current_states[sid] = val
-                        except ValueError:
-                            pass
+            i += 1
 
-            # Save activity for last cycle
-            if self.byte_offsets:
-                self.activity.append(cycle_changes)
+        # Save activity for last cycle
+        if self.byte_offsets:
+            self.activity.append(cycle_changes)
 
-            if self.byte_offsets:
-                self.start_cycle = self.byte_offsets[0][0]
-                self.end_cycle = self.byte_offsets[-1][0]
-                self.total_cycles = len(self.byte_offsets)
+        if self.byte_offsets:
+            self.start_cycle = self.byte_offsets[0][0]
+            self.end_cycle = self.byte_offsets[-1][0]
+            self.total_cycles = len(self.byte_offsets)
 
-            # Optimization: pre-resolve signal short IDs to bypass string formats and lookups
-            self._pre_resolve_signals()
+        # Optimization: pre-resolve signal short IDs to bypass string formats and lookups
+        self._pre_resolve_signals()
 
     def _derive_topology(self):
         """Derive router/node counts from signal names."""
@@ -245,6 +255,94 @@ class VCDIndex:
                 "occ": ports_occ
             })
 
+        # 4. New granular signals
+        self.router_vc_state_ids = []
+        self.router_pipe_ids = []
+        self.router_xbar_ids = []
+        self.router_ds_ids = []
+        self.node_inject_ids = []
+        self.node_eject_ids = []
+        
+        for node in range(self.nodes):
+            self.node_inject_ids.append({
+                "valid": self.signal_name_to_id.get(f"node_{node}.inject.valid"),
+                "flit": self.signal_name_to_id.get(f"node_{node}.inject.flit_id"),
+                "pkt": self.signal_name_to_id.get(f"node_{node}.inject.packet_id"),
+                "vc": self.signal_name_to_id.get(f"node_{node}.inject.vc"),
+                "src": self.signal_name_to_id.get(f"node_{node}.inject.src"),
+                "dest": self.signal_name_to_id.get(f"node_{node}.inject.dest"),
+            })
+            self.node_eject_ids.append({
+                "valid": self.signal_name_to_id.get(f"node_{node}.eject.valid"),
+                "flit": self.signal_name_to_id.get(f"node_{node}.eject.flit_id"),
+                "pkt": self.signal_name_to_id.get(f"node_{node}.eject.packet_id"),
+                "vc": self.signal_name_to_id.get(f"node_{node}.eject.vc"),
+                "src": self.signal_name_to_id.get(f"node_{node}.eject.src"),
+                "dest": self.signal_name_to_id.get(f"node_{node}.eject.dest"),
+            })
+            
+        stages = ["BW", "RC", "VA", "SA", "ST"]
+        for router in range(self.routers):
+            ports_vc_state = []
+            ports_pipe = []
+            ports_xbar = []
+            ports_ds = []
+            
+            for port in range(self.ports):
+                # VC state (Component 1)
+                vcs_state = []
+                for vc in range(self.vcs):
+                    prefix = f"router_{router}.in_{port}.vc_{vc}"
+                    vcs_state.append({
+                        "state": self.signal_name_to_id.get(f"{prefix}.state"),
+                        "front_flit": self.signal_name_to_id.get(f"{prefix}.front_flit"),
+                        "front_pkt": self.signal_name_to_id.get(f"{prefix}.front_pkt"),
+                        "out_port": self.signal_name_to_id.get(f"{prefix}.out_port"),
+                        "out_vc": self.signal_name_to_id.get(f"{prefix}.out_vc"),
+                    })
+                ports_vc_state.append(vcs_state)
+                
+                # Pipeline (Component 2) - per stage per input
+                stage_ids = []
+                for st in stages:
+                    prefix = f"router_{router}.pipe.{st}.in_{port}"
+                    stage_ids.append({
+                        "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                        "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
+                        "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                        "vc": self.signal_name_to_id.get(f"{prefix}.vc"),
+                        "output": self.signal_name_to_id.get(f"{prefix}.output"),
+                        "out_vc": self.signal_name_to_id.get(f"{prefix}.out_vc"),
+                        "result": self.signal_name_to_id.get(f"{prefix}.result"),
+                    })
+                ports_pipe.append(stage_ids)
+                
+                # Crossbar (Component 4) - per output
+                prefix = f"router_{router}.xbar.out_{port}"
+                ports_xbar.append({
+                    "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                    "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
+                    "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                    "input": self.signal_name_to_id.get(f"{prefix}.input"),
+                    "output": self.signal_name_to_id.get(f"{prefix}.output"),
+                    "vc": self.signal_name_to_id.get(f"{prefix}.vc"),
+                })
+                
+                # Downstream credits (Component 5) - per output, per vc
+                ds_vcs = []
+                for vc in range(self.vcs):
+                    prefix = f"router_{router}.ds.out_{port}.vc_{vc}"
+                    ds_vcs.append({
+                        "occ": self.signal_name_to_id.get(f"{prefix}.occupancy"),
+                        "avail": self.signal_name_to_id.get(f"{prefix}.available"),
+                    })
+                ports_ds.append(ds_vcs)
+                
+            self.router_vc_state_ids.append(ports_vc_state)
+            self.router_pipe_ids.append(ports_pipe)
+            self.router_xbar_ids.append(ports_xbar)
+            self.router_ds_ids.append(ports_ds)
+
     def get_cycle_index(self, cycle: int) -> Optional[int]:
         """Binary search for the index of a cycle in byte_offsets."""
         lo, hi = 0, len(self.byte_offsets) - 1
@@ -295,12 +393,10 @@ class VCDIndex:
             file_start = self.byte_offsets[snapshot_idx][1] if snapshot_idx is not None else self.header_end_offset
             file_end = self.byte_offsets[end_idx + 1][1] if end_idx + 1 < len(self.byte_offsets) else None
 
-        with open(self.filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            f.seek(file_start)
-            if file_end:
-                raw = f.read(file_end - file_start)
-            else:
-                raw = f.read()
+        if file_end:
+            raw = self._raw_content[file_start:file_end]
+        else:
+            raw = self._raw_content[file_start:]
 
         res = self._parse_raw_cycles(raw, start, end, snapshot_state)
         return res
@@ -344,13 +440,42 @@ class VCDIndex:
             "links": [],
             "router_in": [],
             "vc_occ": [],
-            "gen": []
+            "gen": [],
+            "vc_state": [],
+            "pipeline": [],
+            "xbar": [],
+            "credits": [],
+            "inject": [],
+            "eject": []
         }
 
         # Helper to get signal value directly by short_id
         def val(sid: str) -> Optional[int]:
             if sid is None: return None
             return signal_states.get(sid)
+
+        # Inject/Eject
+        for node in range(self.nodes):
+            i_ids = self.node_inject_ids[node]
+            if val(i_ids["valid"]) == 1:
+                events["inject"].append({
+                    "node": node,
+                    "flit": val(i_ids["flit"]) or 0,
+                    "pkt": val(i_ids["pkt"]) or 0,
+                    "vc": val(i_ids["vc"]) or 0,
+                    "src": val(i_ids["src"]) or 0,
+                    "dest": val(i_ids["dest"]) or 0,
+                })
+            e_ids = self.node_eject_ids[node]
+            if val(e_ids["valid"]) == 1:
+                events["eject"].append({
+                    "node": node,
+                    "flit": val(e_ids["flit"]) or 0,
+                    "pkt": val(e_ids["pkt"]) or 0,
+                    "vc": val(e_ids["vc"]) or 0,
+                    "src": val(e_ids["src"]) or 0,
+                    "dest": val(e_ids["dest"]) or 0,
+                })
 
         # Node generation events
         for node in range(self.nodes):
@@ -429,6 +554,57 @@ class VCDIndex:
                             "vc": vc,
                             "occ": occ_val,
                         })
+                        
+                # VC state
+                for vc in range(self.vcs):
+                    st = self.router_vc_state_ids[router][port][vc]
+                    st_val = val(st["state"])
+                    if st_val is not None:
+                        events["vc_state"].append({
+                            "router": router, "port": port, "vc": vc,
+                            "state": st_val,
+                            "flit": val(st["front_flit"]),
+                            "pkt": val(st["front_pkt"]),
+                            "out_port": val(st["out_port"]),
+                            "out_vc": val(st["out_vc"])
+                        })
+                        
+                # Pipeline
+                stages = ["BW", "RC", "VA", "SA", "ST"]
+                for i, stage_name in enumerate(stages):
+                    p_ids = self.router_pipe_ids[router][port][i]
+                    if val(p_ids["valid"]) == 1:
+                        events["pipeline"].append({
+                            "router": router, "input": port, "stage": stage_name,
+                            "flit": val(p_ids["flit"]) or 0,
+                            "pkt": val(p_ids["pkt"]) or 0,
+                            "vc": val(p_ids["vc"]) or 0,
+                            "output": val(p_ids["output"]),
+                            "out_vc": val(p_ids["out_vc"]),
+                            "result": val(p_ids["result"])
+                        })
+                        
+                # Crossbar
+                x_ids = self.router_xbar_ids[router][port]
+                if val(x_ids["valid"]) == 1:
+                    events["xbar"].append({
+                        "router": router, "output": port,
+                        "flit": val(x_ids["flit"]) or 0,
+                        "pkt": val(x_ids["pkt"]) or 0,
+                        "input": val(x_ids["input"]) or 0,
+                        "vc": val(x_ids["vc"]) or 0
+                    })
+                    
+                # Downstream credits
+                for vc in range(self.vcs):
+                    ds_ids = self.router_ds_ids[router][port][vc]
+                    occ = val(ds_ids["occ"])
+                    avail = val(ds_ids["avail"])
+                    if occ is not None or avail is not None:
+                        events["credits"].append({
+                            "router": router, "output": port, "vc": vc,
+                            "occ": occ, "avail": avail
+                        })
 
         return events
 
@@ -497,20 +673,20 @@ def _resolve_path(path: str) -> Optional[str]:
 
 def _get_index(abs_path: str) -> VCDIndex:
     """Get or create a cached VCDIndex for the given file."""
-    mtime = os.path.getmtime(abs_path)
-    key = (abs_path, mtime)
+    if abs_path in _vcd_cache:
+        return _vcd_cache[abs_path]
 
-    if key in _vcd_cache:
-        return _vcd_cache[key]
-
-    # Evict old entries if cache is full
-    while len(_vcd_cache) >= _CACHE_MAX:
-        oldest_key = next(iter(_vcd_cache))
-        del _vcd_cache[oldest_key]
-
+    _vcd_cache.clear()
     index = VCDIndex(abs_path)
-    _vcd_cache[key] = index
+    _vcd_cache[abs_path] = index
     return index
+
+@router.delete("/cache")
+def vcd_cache_evict(path: str = Query(...)):
+    abs_path = _resolve_path(path)
+    if abs_path and abs_path in _vcd_cache:
+        del _vcd_cache[abs_path]
+    return {"ok": True}
 
 
 @router.get("/meta")
@@ -523,7 +699,7 @@ def vcd_meta(path: str = Query(..., description="Relative path to .vcd file")):
     if not abs_path:
         return {"error": f"File not found or access denied: {path}"}
 
-    if not abs_path.endswith('.vcd'):
+    if not abs_path.endswith('.vcd') and not abs_path.endswith('.vcd.gz'):
         return {"error": "Not a VCD file"}
 
     try:
