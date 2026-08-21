@@ -46,3 +46,5 @@ vcd_trace_file=booksim_trace.vcd.gz;
 vcd_trace_start=0;
 vcd_trace_end=-1;
 vcd_trace_pipeline=1;
+vcd_trace_vc=1;
+vcd_trace_credits=1;

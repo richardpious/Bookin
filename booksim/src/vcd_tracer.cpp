@@ -135,28 +135,28 @@ void VCDTracer::Cycle(int cycle) {
   _Set(_cycle_id, cycle);
 
   for(int node = 0; node < _nodes; ++node) {
-    _Clear(_node_gen[node]);
-    _Clear(_node_link[node]);
-    _Clear(_node_inject[node]);
-    _Clear(_node_eject[node]);
+    _Clear(_node_gen[node], _node_gen_valid_last[node]);
+    _Clear(_node_link[node], _node_link_valid_last[node]);
+    _Clear(_node_inject[node], _node_inject_valid_last[node]);
+    _Clear(_node_eject[node], _node_eject_valid_last[node]);
   }
   for(int router = 0; router < _routers; ++router) {
     if(!ShouldTraceRouter(router)) continue;
     for(int port = 0; port < _router_outputs; ++port) {
-      _Clear(_router_in[router][port]);
-      _Clear(_router_link[router][port]);
+      _Clear(_router_in[router][port], _router_in_valid_last[router][port]);
+      _Clear(_router_link[router][port], _router_link_valid_last[router][port]);
     }
     // Clear crossbar signals
     for(int port = 0; port < _router_outputs; ++port) {
       if(!_router_crossbar.empty() && !_router_crossbar[router].empty()) {
-        _Clear(_router_crossbar[router][port]);
+        _Clear(_router_crossbar[router][port], _router_crossbar_valid_last[router][port]);
       }
     }
     // Clear pipeline signals
     if(_trace_pipeline && !_router_pipeline.empty()) {
       for(int stage = 0; stage < NUM_STAGES; ++stage) {
         for(int inp = 0; inp < _router_outputs; ++inp) {
-          _Clear(_router_pipeline[router][stage][inp]);
+          _Clear(_router_pipeline[router][stage][inp], _router_pipeline_valid_last[router][stage][inp]);
         }
       }
     }
@@ -178,7 +178,7 @@ void VCDTracer::TracePacketGenerated(int node, int packet_id, int src, int dest,
   if(_trace_flit >= 0 && (_trace_flit < flit_id_start || _trace_flit > flit_id_end)) {
     return;
   }
-  _Trace(_node_gen[node], packet_id, src, dest, flit_id_start, flit_id_end);
+  _Trace(_node_gen[node], _node_gen_valid_last[node], packet_id, src, dest, flit_id_start, flit_id_end);
 }
 
 void VCDTracer::TraceRouterOutput(int router, int output, Flit const * f) {
@@ -190,14 +190,14 @@ void VCDTracer::TraceInject(int node, int subnet, Flit const * f) {
   if(!InTraceWindow(GetSimTime()) || node < 0 || node >= _nodes || !ShouldTrace(f)) {
     return;
   }
-  _Trace(_node_inject[node], f);
+  _Trace(_node_inject[node], _node_inject_valid_last[node], f);
 }
 
 void VCDTracer::TraceEject(int node, int subnet, Flit const * f) {
   if(!InTraceWindow(GetSimTime()) || node < 0 || node >= _nodes || !ShouldTrace(f)) {
     return;
   }
-  _Trace(_node_eject[node], f);
+  _Trace(_node_eject[node], _node_eject_valid_last[node], f);
 }
 
 // ---- Channel tracing (existing) ----
@@ -211,14 +211,14 @@ void VCDTracer::TraceChannelBegin(std::string const &, int source_router, int so
     if(node < 0 || node >= _nodes) {
       return;
     }
-    _Trace(_node_link[node], f);
+    _Trace(_node_link[node], _node_link_valid_last[node], f);
     return;
   }
   if(source_router >= _routers || source_port < 0 || source_port >= _router_outputs) {
     return;
   }
   if(!ShouldTraceRouter(source_router)) return;
-  _Trace(_router_link[source_router][source_port], f);
+  _Trace(_router_link[source_router][source_port], _router_link_valid_last[source_router][source_port], f);
 }
 
 void VCDTracer::TraceChannelEnd(std::string const &, int, int, int, int, Flit const *) {}
@@ -229,7 +229,7 @@ void VCDTracer::TraceRouterInput(int router, int input, Flit const * f) {
     return;
   }
   if(!ShouldTraceRouter(router)) return;
-  _Trace(_router_in[router][input], f);
+  _Trace(_router_in[router][input], _router_in_valid_last[router][input], f);
 }
 
 void VCDTracer::TraceVCOccupancy(int router, int input, int vc, int occupancy) {
@@ -257,6 +257,7 @@ void VCDTracer::TraceCrossbarBegin(int router, int input, int output, Flit const
 
   CrossbarSignals & sigs = _router_crossbar[router][output];
   _SetBit(sigs.valid, true);
+  _router_crossbar_valid_last[router][output] = true;
   _Set(sigs.flit, f->id < 0 ? 0 : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? 0 : (unsigned long long)f->pid);
   _Set(sigs.input, input < 0 ? 0 : (unsigned long long)input);
@@ -318,6 +319,7 @@ void VCDTracer::TracePipelineBW(int router, int input, int vc, Flit const * f) {
 
   PipelineSignals & sigs = _router_pipeline[router][STAGE_BW][input];
   _SetBit(sigs.valid, true);
+  _router_pipeline_valid_last[router][STAGE_BW][input] = true;
   _Set(sigs.flit, f->id < 0 ? 0 : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? 0 : (unsigned long long)f->pid);
   _Set(sigs.vc, vc < 0 ? 0 : (unsigned long long)vc);
@@ -332,6 +334,7 @@ void VCDTracer::TracePipelineRC(int router, int input, int vc, Flit const * f, b
 
   PipelineSignals & sigs = _router_pipeline[router][STAGE_RC][input];
   _SetBit(sigs.valid, true);
+  _router_pipeline_valid_last[router][STAGE_RC][input] = true;
   _Set(sigs.flit, f->id < 0 ? 0 : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? 0 : (unsigned long long)f->pid);
   _Set(sigs.vc, vc < 0 ? 0 : (unsigned long long)vc);
@@ -346,6 +349,7 @@ void VCDTracer::TracePipelineVA(int router, int input, int vc, Flit const * f, i
 
   PipelineSignals & sigs = _router_pipeline[router][STAGE_VA][input];
   _SetBit(sigs.valid, true);
+  _router_pipeline_valid_last[router][STAGE_VA][input] = true;
   _Set(sigs.flit, f->id < 0 ? 0 : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? 0 : (unsigned long long)f->pid);
   _Set(sigs.vc, vc < 0 ? 0 : (unsigned long long)vc);
@@ -362,6 +366,7 @@ void VCDTracer::TracePipelineSA(int router, int input, int vc, Flit const * f, i
 
   PipelineSignals & sigs = _router_pipeline[router][STAGE_SA][input];
   _SetBit(sigs.valid, true);
+  _router_pipeline_valid_last[router][STAGE_SA][input] = true;
   _Set(sigs.flit, f->id < 0 ? 0 : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? 0 : (unsigned long long)f->pid);
   _Set(sigs.vc, vc < 0 ? 0 : (unsigned long long)vc);
@@ -377,6 +382,7 @@ void VCDTracer::TracePipelineST(int router, int input, int output, Flit const * 
 
   PipelineSignals & sigs = _router_pipeline[router][STAGE_ST][input];
   _SetBit(sigs.valid, begin);
+  if (begin) _router_pipeline_valid_last[router][STAGE_ST][input] = true;
   if(begin) {
     _Set(sigs.flit, f->id < 0 ? 0 : (unsigned long long)f->id);
     _Set(sigs.packet, f->pid < 0 ? 0 : (unsigned long long)f->pid);
@@ -451,6 +457,7 @@ void VCDTracer::_WriteHeader() {
 
   // Node generation signals
   _node_gen.resize(_nodes);
+  _node_gen_valid_last.assign(_nodes, false);
   for(int node = 0; node < _nodes; ++node) {
     std::ostringstream prefix;
     prefix << "node_" << node << ".gen";
@@ -464,6 +471,7 @@ void VCDTracer::_WriteHeader() {
 
   // Node injection link signals
   _node_link.resize(_nodes);
+  _node_link_valid_last.assign(_nodes, false);
   for(int node = 0; node < _nodes; ++node) {
     std::ostringstream prefix;
     prefix << "node_" << node << ".link";
@@ -479,7 +487,9 @@ void VCDTracer::_WriteHeader() {
 
   // Node inject/eject signals (Component 4)
   _node_inject.resize(_nodes);
+  _node_inject_valid_last.assign(_nodes, false);
   _node_eject.resize(_nodes);
+  _node_eject_valid_last.assign(_nodes, false);
   for(int node = 0; node < _nodes; ++node) {
     {
       std::ostringstream prefix;
@@ -505,10 +515,13 @@ void VCDTracer::_WriteHeader() {
 
   // Router signals
   _router_in.resize(_routers);
+  _router_in_valid_last.resize(_routers);
   _router_link.resize(_routers);
+  _router_link_valid_last.resize(_routers);
   _router_vc_occupancy.resize(_routers);
   _router_vc_occupancy_last.resize(_routers);
   _router_crossbar.resize(_routers);
+  _router_crossbar_valid_last.resize(_routers);
 
   if(_trace_vc) {
     _router_vc_signals.resize(_routers);
@@ -519,6 +532,7 @@ void VCDTracer::_WriteHeader() {
   }
   if(_trace_pipeline) {
     _router_pipeline.resize(_routers);
+    _router_pipeline_valid_last.resize(_routers);
   }
   if(_trace_credits) {
     _router_ds_occupancy.resize(_routers);
@@ -531,10 +545,13 @@ void VCDTracer::_WriteHeader() {
     bool trace_this = ShouldTraceRouter(router);
 
     _router_in[router].resize(_router_outputs);
+    _router_in_valid_last[router].assign(_router_outputs, false);
     _router_link[router].resize(_router_outputs);
+    _router_link_valid_last[router].assign(_router_outputs, false);
     _router_vc_occupancy[router].resize(_router_outputs);
     _router_vc_occupancy_last[router].resize(_router_outputs);
     _router_crossbar[router].resize(_router_outputs);
+    _router_crossbar_valid_last[router].assign(_router_outputs, false);
 
     if(_trace_vc && trace_this) {
       _router_vc_signals[router].resize(_router_outputs);
@@ -545,8 +562,10 @@ void VCDTracer::_WriteHeader() {
     }
     if(_trace_pipeline && trace_this) {
       _router_pipeline[router].resize(NUM_STAGES);
+      _router_pipeline_valid_last[router].resize(NUM_STAGES);
       for(int stage = 0; stage < NUM_STAGES; ++stage) {
         _router_pipeline[router][stage].resize(_router_outputs);
+        _router_pipeline_valid_last[router][stage].assign(_router_outputs, false);
       }
     }
     if(_trace_credits && trace_this) {
@@ -704,6 +723,12 @@ void VCDTracer::_Time(long long time) {
 
 void VCDTracer::_Set(std::string const & id, unsigned long long value) {
   if(id.empty()) return;
+  std::unordered_map<std::string, unsigned long long>::iterator it = _last_values.find(id);
+  if(it != _last_values.end() && it->second == value) {
+    return;
+  }
+  _last_values[id] = value;
+  
   std::ostringstream ss;
   if(value == 0) {
     ss << "b0 " << id << "\n";
@@ -726,6 +751,13 @@ void VCDTracer::_Set(std::string const & id, unsigned long long value) {
 
 void VCDTracer::_SetBit(std::string const & id, bool value) {
   if(id.empty()) return;
+  unsigned long long v = value ? 1 : 0;
+  std::unordered_map<std::string, unsigned long long>::iterator it = _last_values.find(id);
+  if(it != _last_values.end() && it->second == v) {
+    return;
+  }
+  _last_values[id] = v;
+
   std::ostringstream ss;
   ss << (value ? '1' : '0') << id << "\n";
   _Write(ss.str());
@@ -733,31 +765,47 @@ void VCDTracer::_SetBit(std::string const & id, bool value) {
 
 // ---- Clear overloads ----
 
-void VCDTracer::_Clear(PacketGenSignals const & sigs) {
-  _SetBit(sigs.valid, false);
+void VCDTracer::_Clear(PacketGenSignals const & sigs, char & valid_last) {
+  if(valid_last) {
+    _SetBit(sigs.valid, false);
+    valid_last = 0;
+  }
 }
 
-void VCDTracer::_Clear(LinkSignals const & sigs) {
-  _SetBit(sigs.valid, false);
+void VCDTracer::_Clear(LinkSignals const & sigs, char & valid_last) {
+  if(valid_last) {
+    _SetBit(sigs.valid, false);
+    valid_last = 0;
+  }
 }
 
-void VCDTracer::_Clear(InjectEjectSignals const & sigs) {
-  _SetBit(sigs.valid, false);
+void VCDTracer::_Clear(InjectEjectSignals const & sigs, char & valid_last) {
+  if(valid_last) {
+    _SetBit(sigs.valid, false);
+    valid_last = 0;
+  }
 }
 
-void VCDTracer::_Clear(CrossbarSignals const & sigs) {
-  _SetBit(sigs.valid, false);
+void VCDTracer::_Clear(CrossbarSignals const & sigs, char & valid_last) {
+  if(valid_last) {
+    _SetBit(sigs.valid, false);
+    valid_last = 0;
+  }
 }
 
-void VCDTracer::_Clear(PipelineSignals const & sigs) {
-  _SetBit(sigs.valid, false);
+void VCDTracer::_Clear(PipelineSignals const & sigs, char & valid_last) {
+  if(valid_last) {
+    _SetBit(sigs.valid, false);
+    valid_last = 0;
+  }
 }
 
 // ---- Trace helpers ----
 
-void VCDTracer::_Trace(PacketGenSignals const & sigs, int packet_id, int src, int dest,
+void VCDTracer::_Trace(PacketGenSignals const & sigs, char & valid_last, int packet_id, int src, int dest,
                        int flit_id_start, int flit_id_end) {
   _SetBit(sigs.valid, true);
+  valid_last = true;
   _Set(sigs.packet, packet_id < 0 ? 0 : (unsigned long long)packet_id);
   _Set(sigs.src, src < 0 ? 0 : (unsigned long long)src);
   _Set(sigs.dest, dest < 0 ? 0 : (unsigned long long)dest);
@@ -765,7 +813,7 @@ void VCDTracer::_Trace(PacketGenSignals const & sigs, int packet_id, int src, in
   _Set(sigs.flit_id_end, flit_id_end < 0 ? 0 : (unsigned long long)flit_id_end);
 }
 
-void VCDTracer::_Trace(LinkSignals const & sigs, Flit const * f) {
+void VCDTracer::_Trace(LinkSignals const & sigs, char & valid_last, Flit const * f) {
   int src = f->src;
   int dest = f->dest;
   std::map<int, int>::const_iterator src_iter = _packet_src.find(f->pid);
@@ -778,6 +826,7 @@ void VCDTracer::_Trace(LinkSignals const & sigs, Flit const * f) {
   }
 
   _SetBit(sigs.valid, true);
+  valid_last = true;
   _Set(sigs.flit, f->id < 0 ? 0 : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? 0 : (unsigned long long)f->pid);
   _Set(sigs.vc, f->vc < 0 ? 0 : (unsigned long long)f->vc);
@@ -787,7 +836,7 @@ void VCDTracer::_Trace(LinkSignals const & sigs, Flit const * f) {
   _SetBit(sigs.tail, f->tail);
 }
 
-void VCDTracer::_Trace(InjectEjectSignals const & sigs, Flit const * f) {
+void VCDTracer::_Trace(InjectEjectSignals const & sigs, char & valid_last, Flit const * f) {
   int src = f->src;
   int dest = f->dest;
   std::map<int, int>::const_iterator src_iter = _packet_src.find(f->pid);
@@ -800,6 +849,7 @@ void VCDTracer::_Trace(InjectEjectSignals const & sigs, Flit const * f) {
   }
 
   _SetBit(sigs.valid, true);
+  valid_last = true;
   _Set(sigs.flit, f->id < 0 ? 0 : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? 0 : (unsigned long long)f->pid);
   _Set(sigs.vc, f->vc < 0 ? 0 : (unsigned long long)f->vc);

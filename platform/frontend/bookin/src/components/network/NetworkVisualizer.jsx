@@ -1026,14 +1026,14 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
       {/* Router Details Card Sidebar */}
       <div 
         style={{ 
-          width: selectedRouter !== null ? '300px' : '0px', 
+          width: selectedRouter !== null ? '450px' : '0px', 
           flexShrink: 0, 
           height: '100%', 
           transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           overflow: 'hidden'
         }}
       >
-        <div style={{ width: '300px', height: '100%' }}>
+        <div style={{ width: '450px', height: '100%' }}>
           {selectedRouter !== null && (
             <RouterDetailsCard 
               routerId={selectedRouter} 
