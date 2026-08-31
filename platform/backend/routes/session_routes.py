@@ -45,13 +45,13 @@ async def create_session(request: Request, data: SessionCreate, user_id: int = D
         master_booksim = os.path.join(root_dir, "booksim")
         session_booksim = os.path.join(session_log_dir, "booksim")
         if os.path.isdir(master_booksim) and not os.path.exists(session_booksim):
-            shutil.copytree(master_booksim, session_booksim)
+            shutil.copytree(master_booksim, session_booksim, symlinks=True, dirs_exist_ok=True)
             
         # Copy master configs into this session's directory
         master_configs = os.path.join(root_dir, "configs")
         session_configs = os.path.join(session_log_dir, "configs")
         if os.path.isdir(master_configs) and not os.path.exists(session_configs):
-            shutil.copytree(master_configs, session_configs)
+            shutil.copytree(master_configs, session_configs, symlinks=True, dirs_exist_ok=True)
         
     request.app.state.chat_db.create_session(session_id, user_id, data.title)
     return {"id": session_id, "title": data.title}

@@ -84,10 +84,28 @@ class VCDIndex:
 
         # Derive topology info from signal names
         self._derive_topology()
+        self._pre_resolve_signals()
+
+        self.packet_routes = {}
+        self.link_valid_to_info = {}
+        
+        for node in range(self.nodes):
+            valid_sid = self.node_link_ids[node].get("valid")
+            pkt_sid = self.node_link_ids[node].get("packet_id")
+            if valid_sid:
+                self.link_valid_to_info[valid_sid] = (node, pkt_sid)
+
+        for router in range(self.routers):
+            for port in range(self.ports):
+                valid_sid = self.router_ids[router]["link"][port].get("valid")
+                pkt_sid = self.router_ids[router]["link"][port].get("packet_id")
+                if valid_sid:
+                    self.link_valid_to_info[valid_sid] = (router, pkt_sid)
 
         # Phase 2: Scan for all timestamp markers, count activity, and snapshot states
         cycle_changes = 0
         current_states = {}
+        current_high_valids = set()
         snapshot_interval = 500
         last_snapshot_idx = -1
 
@@ -99,6 +117,14 @@ class VCDIndex:
             line = raw_line.strip()
             
             if line.startswith('#'):
+                for sid in current_high_valids:
+                    router, pkt_sid = self.link_valid_to_info[sid]
+                    pkt_id = current_states.get(pkt_sid, -1)
+                    if pkt_id >= 0:
+                        route = self.packet_routes.setdefault(pkt_id, [])
+                        if not route or route[-1] != router:
+                            route.append(router)
+
                 # Save activity count for previous cycle
                 if self.byte_offsets:
                     self.activity.append(cycle_changes)
@@ -130,6 +156,11 @@ class VCDIndex:
                         val = int(line[0])
                         sid = line[1:]
                         current_states[sid] = val
+                        if sid in self.link_valid_to_info:
+                            if val == 1:
+                                current_high_valids.add(sid)
+                            elif sid in current_high_valids:
+                                current_high_valids.remove(sid)
                     except ValueError:
                         pass
             i += 1
@@ -142,9 +173,6 @@ class VCDIndex:
             self.start_cycle = self.byte_offsets[0][0]
             self.end_cycle = self.byte_offsets[-1][0]
             self.total_cycles = len(self.byte_offsets)
-
-        # Optimization: pre-resolve signal short IDs to bypass string formats and lookups
-        self._pre_resolve_signals()
 
     def _derive_topology(self):
         """Derive router/node counts from signal names."""
@@ -763,3 +791,12 @@ async def vcd_cycles(
         return Response(content=json.dumps(res_data), media_type="application/json")
     except Exception as e:
         return {"error": str(e)}
+
+@router.get("/packet-route")
+def vcd_packet_route(path: str = Query(...), pkt: int = Query(...)):
+    abs_path = _resolve_path(path)
+    if not abs_path:
+        return {"error": "File not found"}
+    index = _get_index(abs_path)
+    route = index.packet_routes.get(pkt, [])
+    return {"pkt": pkt, "route": route}

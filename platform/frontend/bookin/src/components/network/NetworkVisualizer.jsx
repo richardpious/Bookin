@@ -16,7 +16,7 @@ const getFlitColor = (flit) => {
 };
 
 // Map mesh (x, y) router coordinate
-const getRouterCoords = (routerId, k, width, height, margin = 80) => {
+const getRouterCoords = (routerId, k, width, height, margin = 40) => {
   if (k <= 0) return { x: width / 2, y: height / 2 };
   const rx = routerId % k;
   const ry = Math.floor(routerId / k);
@@ -56,6 +56,30 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
   const [selectedRouter, setSelectedRouter] = useState(null);
   const [selectedFlit, setSelectedFlit] = useState(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [actualRoute, setActualRoute] = useState(null);
+
+  // Zoom & Pan state
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Fetch actual route from backend when selectedFlit changes
+  useEffect(() => {
+    if (selectedFlit && selectedFlit.pkt !== undefined) {
+      let isMounted = true;
+      fetch(`/api/vcd/packet-route?path=${encodeURIComponent(filePath)}&pkt=${selectedFlit.pkt}`)
+        .then(res => res.json())
+        .then(data => {
+          if (isMounted && !data.error && data.route) {
+            setActualRoute(data.route);
+          }
+        })
+        .catch(err => console.error("Failed to fetch route", err));
+      return () => { isMounted = false; };
+    } else {
+      setActualRoute(null);
+    }
+  }, [selectedFlit, filePath]);
 
   const canvasRef = useRef(null);
   const flitTrackerRef = useRef(new Map());
@@ -70,6 +94,61 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
         y: e.clientY - rect.top
       });
     }
+  }, []);
+
+  // Zoom & Pan Handlers
+  const handleWheel = useCallback((e) => {
+    // scale delta
+    const scaleAdjust = e.deltaY > 0 ? 0.9 : 1.1;
+    setTransform((prev) => {
+      let newScale = prev.scale * scaleAdjust;
+      // Constrain scale between 0.5 and 6
+      newScale = Math.max(0.5, Math.min(newScale, 6));
+
+      if (newScale === prev.scale) return prev; // no change
+
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Calculate how much the mouse position shifts due to scaling
+        const deltaX = (mouseX - prev.x) * (newScale / prev.scale - 1);
+        const deltaY = (mouseY - prev.y) * (newScale / prev.scale - 1);
+
+        return {
+          x: prev.x - deltaX,
+          y: prev.y - deltaY,
+          scale: newScale,
+        };
+      }
+      return { ...prev, scale: newScale };
+    });
+  }, []);
+
+  const handleMouseDown = useCallback((e) => {
+    // Only drag with left click, and don't drag if clicking a router or flit
+    if (e.button !== 0 || e.target.closest('.router-node') || e.target.closest('.flit-dot')) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
+  }, [transform]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (isDragging) {
+      setTransform(prev => ({
+        ...prev,
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      }));
+    }
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsDragging(false);
   }, []);
 
   // Sync cycleInput when currentCycle changes and user is not focused on input
@@ -222,9 +301,9 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
   const routerCount = meta?.topology?.routers || k * k;
   const maxRouterOcc = (meta?.topology?.ports || 5) * (meta?.topology?.vcs || 4) * 8;
 
-  const canvasWidth = 800;
-  const canvasHeight = 500;
-  const routerSize = 50;
+  const canvasWidth = 600;
+  const canvasHeight = 600;
+  const routerSize = 56;
 
   // Build list of routers with layout positions
   const routers = useMemo(() => {
@@ -278,14 +357,41 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
         const routerCoords = getRouterCoords(linkEvt.node, k, canvasWidth, canvasHeight);
         x = routerCoords.x - 30; // offset left for injection
         y = routerCoords.y;
+        linkEvt.angle = 0; // pointing East to the router
       } else if (linkEvt.type === 'router' && linkEvt.from >= 0 && linkEvt.to >= 0) {
         const c1 = getRouterCoords(linkEvt.from, k, canvasWidth, canvasHeight);
-        const c2 = getRouterCoords(linkEvt.to, k, canvasWidth, canvasHeight);
-        // Interpolate along line (midpoint = 0.5)
+        let c2 = getRouterCoords(linkEvt.to, k, canvasWidth, canvasHeight);
+        
+        // Ejection link (from == to)
+        if (linkEvt.from === linkEvt.to) {
+          c2 = { ...c1, x: c1.x + 30 }; // eject to the right
+        }
+        
+        // Interpolate along line
         const progress = linkEvt.head ? 0.6 : 0.4;
-        x = c1.x + (c2.x - c1.x) * progress;
-        y = c1.y + (c2.y - c1.y) * progress;
+        
+        const dx = c2.x - c1.x;
+        const dy = c2.y - c1.y;
+        
+        // Lane offset (perpendicular to travel) to prevent bidirectional overlap
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        if (Math.abs(dx) > Math.abs(dy)) {
+           // Horizontal link: if traveling Right (dx > 0), shift Up.
+           offsetY = dx > 0 ? -4 : 4;
+        } else if (Math.abs(dy) > 0) {
+           // Vertical link: if traveling Down (dy > 0), shift Right.
+           offsetX = dy > 0 ? 4 : -4;
+        }
+
+        x = c1.x + dx * progress + offsetX;
+        y = c1.y + dy * progress + offsetY;
+        
+        // Save angle for direction indicator
+        linkEvt.angle = Math.atan2(dy, dx) * (180 / Math.PI);
       } else {
+
         return;
       }
 
@@ -334,35 +440,15 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     return Array.from(currentLinksMap.values());
   }, [currentEvents.links, k, currentCycle]);
 
-  // Calculate full route path for selected flit (from generator router to destination router)
+  // Calculate full route path for selected flit using actual backend-tracked route
   const highlightedPath = useMemo(() => {
-    if (!selectedFlit || selectedFlit.src === undefined || selectedFlit.dest === undefined) {
+    if (!selectedFlit || !actualRoute || actualRoute.length === 0) {
       return null;
     }
 
-    const src = selectedFlit.src;
-    const dest = selectedFlit.dest;
-
     if (k <= 0) return null;
 
-    const srcX = src % k;
-    const srcY = Math.floor(src / k);
-    const destX = dest % k;
-    const destY = Math.floor(dest / k);
-
-    const routerPath = [];
-
-    // Step along X dimension (DOR routing)
-    const stepX = srcX <= destX ? 1 : -1;
-    for (let x = srcX; x !== destX + stepX; x += stepX) {
-      routerPath.push(srcY * k + x);
-    }
-
-    // Step along Y dimension (DOR routing)
-    const stepY = srcY <= destY ? 1 : -1;
-    for (let y = srcY + stepY; y !== destY + stepY; y += stepY) {
-      routerPath.push(y * k + destX);
-    }
+    const routerPath = actualRoute;
 
     // Build link segments between consecutive routers along path
     const pathSegments = [];
@@ -375,13 +461,13 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     }
 
     return {
-      srcRouter: src,
-      destRouter: dest,
+      srcRouter: routerPath[0],
+      destRouter: routerPath[routerPath.length - 1],
       routerPath,
       pathSegments,
       hopCount: pathSegments.length
     };
-  }, [selectedFlit, k, canvasWidth, canvasHeight]);
+  }, [selectedFlit, actualRoute, k, canvasWidth, canvasHeight]);
 
   // Activity curve data points for smooth seekbar
   const activityCurveData = useMemo(() => {
@@ -529,7 +615,16 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
         <svg
           viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
           preserveAspectRatio="xMidYMid meet"
-          onClick={() => setSelectedFlit(null)}
+          onClick={(e) => {
+             // Only deselect if clicking the background, not panning
+             if (!isDragging && e.target.tagName === 'svg') setSelectedFlit(null);
+          }}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
         >
           <defs>
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -538,6 +633,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
             </filter>
           </defs>
 
+          <g style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0', transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}>
           {/* Links */}
           {links.map(link => (
             <line
@@ -690,15 +786,10 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                     }}
                   />
                 )}
-                <circle
-                  cx={0}
-                  cy={0}
-                  r={flit.head ? 6 : 4}
-                  fill={isFlitSelected ? '#f59e0b' : flitColor}
-                  className={`flit-dot ${flit.head ? 'flit-dot-head' : ''} ${flit.tail ? 'flit-dot-tail' : ''} ${isFlitSelected ? 'flit-dot-selected' : ''}`}
-                  style={{ 
+                
+                <g style={{ 
                     opacity: flit.opacity, 
-                    transform: `translate(${flit.cx}px, ${flit.cy}px)`
+                    transform: `translate(${flit.cx}px, ${flit.cy}px) rotate(${flit.angle || 0}deg)`
                   }}
                   onMouseEnter={(e) => {
                     setHoveredFlit(flit);
@@ -710,11 +801,37 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                     e.stopPropagation();
                     setSelectedFlit(isFlitSelected ? null : flit);
                   }}
-                />
+                >
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={flit.head ? 6 : 4}
+                    fill={isFlitSelected ? '#f59e0b' : flitColor}
+                    className={`flit-dot ${flit.head ? 'flit-dot-head' : ''} ${flit.tail ? 'flit-dot-tail' : ''} ${isFlitSelected ? 'flit-dot-selected' : ''}`}
+                  />
+                  {/* Minimal Directional Indicator */}
+                  {(flit.angle !== undefined || flit.type === 'inject') && (
+                    <path
+                      d="M 3 -3 L 7 0 L 3 3 Z"
+                      fill="#fff"
+                      opacity={0.8}
+                      style={{ pointerEvents: 'none' }}
+                      transform={flit.head ? "translate(3,0)" : "translate(1,0)"}
+                    />
+                  )}
+                </g>
               </g>
             );
           })}
+          </g>
         </svg>
+
+        {/* Zoom Controls Overlay */}
+        <div className="net-viz-zoom-controls" style={{ position: 'absolute', bottom: '20px', left: '20px', display: 'flex', gap: '8px', zIndex: 10 }}>
+          <button className="timeline-btn" onClick={() => setTransform(p => ({ ...p, scale: Math.min(6, p.scale * 1.2) }))} title="Zoom In">+</button>
+          <button className="timeline-btn" onClick={() => setTransform(p => ({ ...p, scale: Math.max(0.5, p.scale / 1.2) }))} title="Zoom Out">-</button>
+          <button className="timeline-btn" style={{ fontSize: '11px', padding: '0 8px' }} onClick={() => setTransform({ x: 0, y: 0, scale: 1 })} title="Reset View">Reset</button>
+        </div>
 
         {/* Hover Tooltip */}
         {hoveredFlit && (

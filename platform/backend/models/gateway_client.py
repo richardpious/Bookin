@@ -83,14 +83,14 @@ class OpenClawGatewayClient:
                     config = json.load(f)
                 
             if "agents" not in config: config["agents"] = {}
-            if "list" not in config["agents"]: config["agents"]["list"] = []
+            if "entries" not in config["agents"]: config["agents"]["entries"] = {}
+            if "list" in config["agents"]: del config["agents"]["list"]
             
             agent_id = username
             
             # Check if already registered
-            for agent in config["agents"]["list"]:
-                if agent.get("id") == agent_id:
-                    return agent_id
+            if agent_id in config["agents"]["entries"]:
+                return agent_id
                     
             # Register new user agent
             log_dir = f"/home/dell/Documents/Bookin/logs/{username}"
@@ -103,13 +103,13 @@ class OpenClawGatewayClient:
                     shutil.copy(md_file, log_dir)
             
             new_agent = {
-                "id": agent_id,
+                "name": username,
                 "workspace": log_dir,
                 "sandbox": {
                     "mode": "all",
                     "backend": "docker",
                     "scope": "session",
-                    "workspaceAccess": "dangerous-override",
+                    "workspaceAccess": "rw",
                     "docker": {
                         "image": "bookin-sandbox:latest",
                         "binds": [
@@ -121,7 +121,7 @@ class OpenClawGatewayClient:
                 }
             }
             
-            config["agents"]["list"].append(new_agent)
+            config["agents"]["entries"][agent_id] = new_agent
             
             with open(config_path, "w") as f:
                 json.dump(config, f, indent=2)

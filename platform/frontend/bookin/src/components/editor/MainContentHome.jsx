@@ -13,7 +13,7 @@ export const MainContentHome = () => {
     }}>
       <img
         src="/logo.png"
-        alt="BookIn Logo"
+        alt="INoCSim Logo"
         style={{
           opacity: 0.3,
           width: '400px',

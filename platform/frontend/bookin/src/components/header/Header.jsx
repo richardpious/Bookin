@@ -12,8 +12,8 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
   const refreshSessionData = () => {
     if (sessionId) {
       fetch(`/init-session?session_id=${sessionId}`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        })
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
         .then(res => res.json())
         .then(data => {
           console.log("Refreshed session data:", data);
@@ -49,8 +49,8 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
     <header className="app-header">
       {/* Left — Logo */}
       <div className="header-left">
-        <img src="/logolight.png" alt="BookIn Logo" className="logo-img" />
-        <span className="logo">BookIn</span>
+        <img src="/logolight.png" alt="INoCSim Logo" className="logo-img" />
+        <span className="logo">INoCSim</span>
       </div>
 
       {/* Center empty space to keep layout balanced */}
@@ -95,7 +95,7 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             {username}
           </span>
-          <button 
+          <button
             onClick={onLogout}
             style={{
               background: 'transparent',

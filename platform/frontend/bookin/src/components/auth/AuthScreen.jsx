@@ -48,7 +48,7 @@ export const AuthScreen = ({ onLogin }) => {
         <div className="auth-container">
             <div className="auth-card">
                 <div className="auth-header">
-                    <h2>{isLogin ? 'Welcome to Bookin' : 'Create Account'}</h2>
+                    <h2>{isLogin ? 'Welcome to INoCSim' : 'Create Account'}</h2>
                     <p>{isLogin ? 'Enter your credentials to continue' : 'Sign up to get started'}</p>
                 </div>
 
