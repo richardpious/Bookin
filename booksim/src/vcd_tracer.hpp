@@ -162,6 +162,7 @@ private:
   std::string _cycle_id;
   std::map<int, int> _packet_src;
   std::map<int, int> _packet_dest;
+  std::map<int, int> _flit_input_vc;
   int _next_id;
   long long _last_time;
 
@@ -206,6 +207,7 @@ private:
   std::vector<std::vector<std::vector<std::string> > > _router_ds_available;
   std::vector<std::vector<std::vector<int> > > _router_ds_occupancy_last;
   std::vector<std::vector<std::vector<int> > > _router_ds_available_last;
+  std::vector<std::vector<std::vector<int> > > _router_ds_occupancy_count;
 
   std::string _AllocId();
   std::string _Register(std::string const & name, int width);

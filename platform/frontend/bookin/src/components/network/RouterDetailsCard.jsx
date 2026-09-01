@@ -45,11 +45,15 @@ export const RouterDetailsCard = ({ routerId, events, meta, onClose }) => {
   const portStats = useMemo(() => {
     const stats = {};
     for (let i = 0; i < numPorts; i++) {
-      stats[i] = { occ: 0, max: numVCs * vcBufSize };
+      stats[i] = { occ: 0, max: numVCs * vcBufSize, vcs: {} };
+      for (let j = 0; j < numVCs; j++) {
+        stats[i].vcs[j] = 0;
+      }
     }
     routerOccs.forEach(v => {
       if (stats[v.port]) {
         stats[v.port].occ += v.occ;
+        stats[v.port].vcs[v.vc] = v.occ;
       }
     });
     return stats;
@@ -92,11 +96,21 @@ export const RouterDetailsCard = ({ routerId, events, meta, onClose }) => {
           {Object.entries(portStats).map(([port, stat]) => {
             const pct = stat.max > 0 ? (stat.occ / stat.max) * 100 : 0;
             return (
-              <div key={port} className="rdc-port-item">
-                <div className="rdc-port-label">Port {port}</div>
-                <div className="rdc-port-value">{stat.occ}</div>
-                <div className="rdc-port-bar-bg">
+              <div key={port} className="rdc-port-item" style={{ paddingBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div className="rdc-port-label">Port {port}</div>
+                  <div className="rdc-port-value">{stat.occ}</div>
+                </div>
+                <div className="rdc-port-bar-bg" style={{ marginBottom: '8px' }}>
                   <div className="rdc-port-bar-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, numVCs)}, 1fr)`, gap: '4px' }}>
+                  {Object.entries(stat.vcs).map(([vc, occ]) => (
+                    <div key={vc} style={{ backgroundColor: '#1e293b', padding: '4px', borderRadius: '4px', textAlign: 'center', border: '1px solid #334155' }}>
+                      <div style={{ fontSize: '9px', color: '#94a3b8', marginBottom: '2px' }}>VC{vc}</div>
+                      <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: '500' }}>{occ}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             );

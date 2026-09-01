@@ -58,6 +58,29 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [actualRoute, setActualRoute] = useState(null);
 
+  // Sidebar resizing state
+  const [sidebarWidth, setSidebarWidth] = useState(450);
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+
+  useEffect(() => {
+    const handleGlobalMouseMove = (e) => {
+      if (isResizingSidebar) {
+        setSidebarWidth(prev => Math.max(300, Math.min(1000, prev - e.movementX)));
+      }
+    };
+    const handleGlobalMouseUp = () => {
+      setIsResizingSidebar(false);
+    };
+
+    if (isResizingSidebar) {
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isResizingSidebar]);
   // Zoom & Pan state
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
@@ -786,8 +809,8 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                       </g>
                     )}
 
-                    {/* Detailed Port Occupancies (High Zoom) */}
-                    {transform.scale >= 1.8 && (() => {
+                    {/* Detailed Port Occupancies (Medium Zoom) */}
+                    {transform.scale >= 1.8 && transform.scale < 3.0 && (() => {
                       const portOccs = {};
                       occEvents.forEach(v => { portOccs[v.port] = (portOccs[v.port] || 0) + v.occ; });
                       const portCap = (meta?.topology?.vcs || 4) * 8;
@@ -803,6 +826,24 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                           <text x={-24} y={0} textAnchor="start">{portOccs[1] || 0}/{portCap}</text>
                           {/* Local (Port 4) */}
                           <text x={0} y={12} textAnchor="middle">{portOccs[4] || 0}/{portCap}</text>
+                        </g>
+                      );
+                    })()}
+
+                    {/* Per-VC Occupancies (High Zoom) */}
+                    {transform.scale >= 3.0 && (() => {
+                      const portVCOccs = { 0: {}, 1: {}, 2: {}, 3: {}, 4: {} };
+                      occEvents.forEach(v => { portVCOccs[v.port][v.vc] = v.occ; });
+                      const vcs = meta?.topology?.vcs || 4;
+                      const getVCStr = (p) => Array.from({length: vcs}, (_, i) => portVCOccs[p][i] || 0).join('|');
+                      
+                      return (
+                        <g style={{ fontSize: '4.5px', fill: '#94a3b8', pointerEvents: 'none', dominantBaseline: 'central' }}>
+                          <text x={0} y={-22} textAnchor="middle">{getVCStr(3)}</text>
+                          <text x={0} y={22} textAnchor="middle">{getVCStr(2)}</text>
+                          <text x={26} y={0} textAnchor="end">{getVCStr(0)}</text>
+                          <text x={-26} y={0} textAnchor="start">{getVCStr(1)}</text>
+                          <text x={0} y={14} textAnchor="middle">{getVCStr(4)}</text>
                         </g>
                       );
                     })()}
@@ -1186,14 +1227,35 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
       {/* Router Details Card Sidebar */}
       <div
         style={{
-          width: selectedRouter !== null ? '450px' : '0px',
+          width: selectedRouter !== null ? `${sidebarWidth}px` : '0px',
           flexShrink: 0,
           height: '100%',
-          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-          overflow: 'hidden'
+          transition: isResizingSidebar ? 'none' : 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden',
+          position: 'relative',
+          borderLeft: selectedRouter !== null ? '1px solid #1e293b' : 'none'
         }}
       >
-        <div style={{ width: '450px', height: '100%' }}>
+        {/* Resize Handle */}
+        {selectedRouter !== null && (
+          <div
+            onMouseDown={(e) => { e.preventDefault(); setIsResizingSidebar(true); }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '4px',
+              cursor: 'col-resize',
+              zIndex: 50,
+              backgroundColor: isResizingSidebar ? '#3b82f6' : 'transparent',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => { e.target.style.backgroundColor = '#3b82f6'; }}
+            onMouseLeave={(e) => { if (!isResizingSidebar) e.target.style.backgroundColor = 'transparent'; }}
+          />
+        )}
+        <div style={{ width: `${sidebarWidth}px`, height: '100%' }}>
           {selectedRouter !== null && (
             <RouterDetailsCard
               routerId={selectedRouter}
