@@ -150,7 +150,7 @@ class VCDIndex:
                         try:
                             current_states[sid] = int(bits, 2) if bits != '0' else 0
                         except ValueError:
-                            current_states[sid] = 0
+                            current_states[sid] = None
                 elif line[0] in ('0', '1'):
                     try:
                         val = int(line[0])
@@ -163,6 +163,11 @@ class VCDIndex:
                                 current_high_valids.remove(sid)
                     except ValueError:
                         pass
+                elif line[0] in ('x', 'z', 'X', 'Z'):
+                    sid = line[1:]
+                    current_states[sid] = None
+                    if sid in current_high_valids:
+                        current_high_valids.remove(sid)
             i += 1
 
         # Save activity for last cycle
@@ -293,12 +298,12 @@ class VCDIndex:
         
         for node in range(self.nodes):
             self.node_inject_ids.append({
-                "valid": self.signal_name_to_id.get(f"node_{node}.inject.valid"),
-                "flit": self.signal_name_to_id.get(f"node_{node}.inject.flit_id"),
-                "pkt": self.signal_name_to_id.get(f"node_{node}.inject.packet_id"),
-                "vc": self.signal_name_to_id.get(f"node_{node}.inject.vc"),
-                "src": self.signal_name_to_id.get(f"node_{node}.inject.src"),
-                "dest": self.signal_name_to_id.get(f"node_{node}.inject.dest"),
+                "valid": self.signal_name_to_id.get(f"node_{node}.link.valid"),
+                "flit": self.signal_name_to_id.get(f"node_{node}.link.flit_id"),
+                "pkt": self.signal_name_to_id.get(f"node_{node}.link.packet_id"),
+                "vc": self.signal_name_to_id.get(f"node_{node}.link.vc"),
+                "src": self.signal_name_to_id.get(f"node_{node}.link.src"),
+                "dest": self.signal_name_to_id.get(f"node_{node}.link.dest"),
             })
             self.node_eject_ids.append({
                 "valid": self.signal_name_to_id.get(f"node_{node}.eject.valid"),
@@ -309,11 +314,10 @@ class VCDIndex:
                 "dest": self.signal_name_to_id.get(f"node_{node}.eject.dest"),
             })
             
-        stages = ["BW", "RC", "VA", "SA", "ST"]
+        stages = ["RC", "VA", "SA", "ST"]
         for router in range(self.routers):
             ports_vc_state = []
             ports_pipe = []
-            ports_xbar = []
             ports_ds = []
             
             for port in range(self.ports):
@@ -345,17 +349,7 @@ class VCDIndex:
                     })
                 ports_pipe.append(stage_ids)
                 
-                # Crossbar (Component 4) - per output
-                prefix = f"router_{router}.xbar.out_{port}"
-                ports_xbar.append({
-                    "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
-                    "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
-                    "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
-                    "input": self.signal_name_to_id.get(f"{prefix}.input"),
-                    "output": self.signal_name_to_id.get(f"{prefix}.output"),
-                    "vc": self.signal_name_to_id.get(f"{prefix}.vc"),
-                })
-                
+                # (Crossbar signals removed, derived from ST stage later)
                 # Downstream credits (Component 5) - per output, per vc
                 ds_vcs = []
                 for vc in range(self.vcs):
@@ -368,7 +362,6 @@ class VCDIndex:
                 
             self.router_vc_state_ids.append(ports_vc_state)
             self.router_pipe_ids.append(ports_pipe)
-            self.router_xbar_ids.append(ports_xbar)
             self.router_ds_ids.append(ports_ds)
 
     def get_cycle_index(self, cycle: int) -> Optional[int]:
@@ -598,7 +591,7 @@ class VCDIndex:
                         })
                         
                 # Pipeline
-                stages = ["BW", "RC", "VA", "SA", "ST"]
+                stages = ["RC", "VA", "SA", "ST"]
                 for i, stage_name in enumerate(stages):
                     p_ids = self.router_pipe_ids[router][port][i]
                     if val(p_ids["valid"]) == 1:
@@ -612,17 +605,15 @@ class VCDIndex:
                             "result": val(p_ids["result"])
                         })
                         
-                # Crossbar
-                x_ids = self.router_xbar_ids[router][port]
-                if val(x_ids["valid"]) == 1:
-                    events["xbar"].append({
-                        "router": router, "output": port,
-                        "flit": val(x_ids["flit"]) or 0,
-                        "pkt": val(x_ids["pkt"]) or 0,
-                        "input": val(x_ids["input"]) or 0,
-                        "vc": val(x_ids["vc"]) or 0
-                    })
-                    
+                        
+                        if stage_name == "ST":
+                            events["xbar"].append({
+                                "router": router, "output": val(p_ids["output"]) or 0,
+                                "flit": val(p_ids["flit"]) or 0,
+                                "pkt": val(p_ids["pkt"]) or 0,
+                                "input": port,
+                                "vc": val(p_ids["vc"]) or 0
+                            })
                 # Downstream credits
                 for vc in range(self.vcs):
                     ds_ids = self.router_ds_ids[router][port][vc]

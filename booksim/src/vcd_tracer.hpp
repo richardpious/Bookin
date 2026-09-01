@@ -24,12 +24,11 @@ public:
   static const int PIPE_MISSPEC      = 6;
 
   // Pipeline stage indices
-  static const int STAGE_BW = 0;  // Buffer Write
-  static const int STAGE_RC = 1;  // Route Compute
-  static const int STAGE_VA = 2;  // VC Alloc
-  static const int STAGE_SA = 3;  // Switch Alloc
-  static const int STAGE_ST = 4;  // Switch Traversal
-  static const int NUM_STAGES = 5;
+  static const int STAGE_RC = 0;  // Route Compute
+  static const int STAGE_VA = 1;  // VC Alloc
+  static const int STAGE_SA = 2;  // Switch Alloc
+  static const int STAGE_ST = 3;  // Switch Traversal
+  static const int NUM_STAGES = 4;
 
   VCDTracer(Configuration const & config, int nodes, int routers, int router_outputs, int vcs);
   ~VCDTracer();
@@ -118,24 +117,14 @@ private:
     std::string result;   // 3-bit
   };
 
-  // Component 4: Inject/Eject signals
-  struct InjectEjectSignals {
+  // Component 4: Eject signals
+  struct EjectSignals {
     std::string valid;    // 1-bit
     std::string flit;     // 16-bit
     std::string packet;   // 16-bit
     std::string vc;       // 4-bit
     std::string src;      // 8-bit
     std::string dest;     // 8-bit
-  };
-
-  // Component 4: Crossbar signals
-  struct CrossbarSignals {
-    std::string valid;    // 1-bit
-    std::string flit;     // 16-bit
-    std::string packet;   // 16-bit
-    std::string input;    // 4-bit
-    std::string output;   // 4-bit
-    std::string vc;       // 4-bit
   };
 
   bool _enabled;
@@ -179,7 +168,6 @@ private:
   std::vector<char> _node_link_valid_last;
   std::vector<std::vector<char> > _router_in_valid_last;
   std::vector<std::vector<char> > _router_link_valid_last;
-  std::vector<char> _node_inject_valid_last;
   std::vector<char> _node_eject_valid_last;
 
 
@@ -194,13 +182,8 @@ private:
   std::vector<std::vector<std::vector<PipelineSignals> > > _router_pipeline;
   std::vector<std::vector<std::vector<char> > > _router_pipeline_valid_last;
 
-  // Component 4: Inject/Eject
-  std::vector<InjectEjectSignals> _node_inject;
-  std::vector<InjectEjectSignals> _node_eject;
-
-  // Component 4: Crossbar [router][output]
-  std::vector<std::vector<CrossbarSignals> > _router_crossbar;
-  std::vector<std::vector<char> > _router_crossbar_valid_last;
+  // Component 4: Eject
+  std::vector<EjectSignals> _node_eject;
 
   // Component 5: Downstream credits [router][output][vc]
   std::vector<std::vector<std::vector<std::string> > > _router_ds_occupancy;
@@ -218,13 +201,12 @@ private:
   void _SetBit(std::string const & id, bool value);
   void _Clear(PacketGenSignals const & sigs, char & valid_last);
   void _Clear(LinkSignals const & sigs, char & valid_last);
-  void _Clear(InjectEjectSignals const & sigs, char & valid_last);
-  void _Clear(CrossbarSignals const & sigs, char & valid_last);
+  void _Clear(EjectSignals const & sigs, char & valid_last);
   void _Clear(PipelineSignals const & sigs, char & valid_last);
   void _Trace(PacketGenSignals const & sigs, char & valid_last, int packet_id, int src, int dest,
               int flit_id_start, int flit_id_end);
   void _Trace(LinkSignals const & sigs, char & valid_last, Flit const * f);
-  void _Trace(InjectEjectSignals const & sigs, char & valid_last, Flit const * f);
+  void _Trace(EjectSignals const & sigs, char & valid_last, Flit const * f);
 
   // Component 7: Gzip write wrapper
   void _Write(std::string const & s);
