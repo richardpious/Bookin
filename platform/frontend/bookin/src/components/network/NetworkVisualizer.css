@@ -497,7 +497,7 @@
 }
 
 .flit-dot-selected {
-  stroke: #38bdf8 !important;
+  stroke: #41c1f8 !important;
   stroke-width: 2 !important;
   filter: drop-shadow(0 0 8px #38bdf8) !important;
 }
