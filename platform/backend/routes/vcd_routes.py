@@ -86,21 +86,21 @@ class VCDIndex:
         self._derive_topology()
         self._pre_resolve_signals()
 
-        self.packet_routes = {}
+        self.flit_routes = {}
         self.link_valid_to_info = {}
         
         for node in range(self.nodes):
             valid_sid = self.node_link_ids[node].get("valid")
-            pkt_sid = self.node_link_ids[node].get("packet_id")
-            if valid_sid:
-                self.link_valid_to_info[valid_sid] = (node, pkt_sid)
+            flit_sid = self.node_link_ids[node].get("flit_id")
+            if valid_sid and flit_sid:
+                self.link_valid_to_info[valid_sid] = (node, flit_sid)
 
         for router in range(self.routers):
             for port in range(self.ports):
                 valid_sid = self.router_ids[router]["link"][port].get("valid")
-                pkt_sid = self.router_ids[router]["link"][port].get("packet_id")
-                if valid_sid:
-                    self.link_valid_to_info[valid_sid] = (router, pkt_sid)
+                flit_sid = self.router_ids[router]["link"][port].get("flit_id")
+                if valid_sid and flit_sid:
+                    self.link_valid_to_info[valid_sid] = (router, flit_sid)
 
         # Phase 2: Scan for all timestamp markers, count activity, and snapshot states
         cycle_changes = 0
@@ -108,6 +108,11 @@ class VCDIndex:
         current_high_valids = set()
         snapshot_interval = 500
         last_snapshot_idx = -1
+
+        # Route reconstruction: record (first_cycle, router) per flit
+        # Using first-seen cycle per (flit, router) gives us true temporal order
+        flit_router_first_cycle = {}  # (flit_id, router) -> first cycle number
+        current_cycle_num = 0
 
         i += 1
         while i < len(lines):
@@ -117,24 +122,26 @@ class VCDIndex:
             line = raw_line.strip()
             
             if line.startswith('#'):
+                # Record route entries: for each high link-valid, record the first
+                # cycle this router was seen outputting this flit
                 for sid in current_high_valids:
-                    router, pkt_sid = self.link_valid_to_info[sid]
-                    pkt_id = current_states.get(pkt_sid, -1)
-                    if pkt_id >= 0:
-                        route = self.packet_routes.setdefault(pkt_id, [])
-                        if not route or route[-1] != router:
-                            route.append(router)
+                    router, flit_sid = self.link_valid_to_info[sid]
+                    flit_id = current_states.get(flit_sid, -1)
+                    if flit_id is not None and flit_id >= 0:
+                        key = (flit_id, router)
+                        if key not in flit_router_first_cycle:
+                            flit_router_first_cycle[key] = current_cycle_num
 
                 # Save activity count for previous cycle
                 if self.byte_offsets:
                     self.activity.append(cycle_changes)
                 try:
-                    cycle_num = int(line[1:])
-                    self.byte_offsets.append((cycle_num, line_offset))
+                    current_cycle_num = int(line[1:])
+                    self.byte_offsets.append((current_cycle_num, line_offset))
                     
                     # Snapshot logic
                     if len(self.byte_offsets) - 1 >= last_snapshot_idx + snapshot_interval:
-                        self.snapshots.append((cycle_num, dict(current_states)))
+                        self.snapshots.append((current_cycle_num, dict(current_states)))
                         last_snapshot_idx = len(self.byte_offsets) - 1
                 except ValueError:
                     pass
@@ -173,6 +180,15 @@ class VCDIndex:
         # Save activity for last cycle
         if self.byte_offsets:
             self.activity.append(cycle_changes)
+
+        # Build final flit routes by sorting each flit's routers by first-seen cycle
+        route_entries = {}  # flit_id -> list of (cycle, router)
+        for (flit_id, router), cycle in flit_router_first_cycle.items():
+            route_entries.setdefault(flit_id, []).append((cycle, router))
+
+        for flit_id, entries in route_entries.items():
+            entries.sort()  # Sort by cycle number (natural temporal order)
+            self.flit_routes[flit_id] = [router for _, router in entries]
 
         if self.byte_offsets:
             self.start_cycle = self.byte_offsets[0][0]
@@ -783,11 +799,11 @@ async def vcd_cycles(
     except Exception as e:
         return {"error": str(e)}
 
-@router.get("/packet-route")
-def vcd_packet_route(path: str = Query(...), pkt: int = Query(...)):
+@router.get("/flit-route")
+def vcd_flit_route(path: str = Query(...), flit: int = Query(...)):
     abs_path = _resolve_path(path)
     if not abs_path:
         return {"error": "File not found"}
     index = _get_index(abs_path)
-    route = index.packet_routes.get(pkt, [])
-    return {"pkt": pkt, "route": route}
+    route = index.flit_routes.get(flit, [])
+    return {"flit": flit, "route": route}

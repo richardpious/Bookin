@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, RotateCcw, Info } from 'lucide-react';
 import { RouterDetailsCard } from './RouterDetailsCard';
+import { RouterHighZoom } from './RouterHighZoom';
 import './NetworkVisualizer.css';
 
 const FLIT_COLORS = {
@@ -83,14 +84,15 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
   }, [isResizingSidebar]);
   // Zoom & Pan state
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [transformTransition, setTransformTransition] = useState('transform 0.1s ease-out');
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // Fetch actual route from backend when selectedFlit changes
   useEffect(() => {
-    if (selectedFlit && selectedFlit.pkt !== undefined) {
+    if (selectedFlit && selectedFlit.flit !== undefined) {
       let isMounted = true;
-      fetch(`/api/vcd/packet-route?path=${encodeURIComponent(filePath)}&pkt=${selectedFlit.pkt}`)
+      fetch(`/api/vcd/flit-route?path=${encodeURIComponent(filePath)}&flit=${selectedFlit.flit}`)
         .then(res => res.json())
         .then(data => {
           if (isMounted && !data.error && data.route) {
@@ -122,6 +124,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
 
   // Zoom & Pan Handlers
   const handleWheel = useCallback((e) => {
+    setTransformTransition('transform 0.1s ease-out');
     const scaleAdjust = e.deltaY > 0 ? 0.9 : 1.1;
     setTransform((prev) => {
       let newScale = prev.scale * scaleAdjust;
@@ -152,6 +155,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
   }, []);
 
   const handleMouseDown = useCallback((e) => {
+    setTransformTransition('none');
     if (e.button !== 0 || e.target.closest('.router-node') || e.target.closest('.flit-dot')) return;
     setIsDragging(true);
     if (svgRef.current) {
@@ -397,18 +401,23 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
       let x = 0;
       let y = 0;
       if (linkEvt.type === 'inject') {
-        // From node to router
+        // From PE node (top-left) to router
         const routerCoords = getRouterCoords(linkEvt.node, k, canvasWidth, canvasHeight);
-        x = routerCoords.x - 30; // offset left for injection
-        y = routerCoords.y;
-        linkEvt.angle = 0; // pointing East to the router
+        const nodeX = routerCoords.x - 36;
+        const nodeY = routerCoords.y - 36;
+        const dx = 36;
+        const dy = 36;
+        const progress = linkEvt.head ? 0.6 : 0.4;
+        x = nodeX + dx * progress;
+        y = nodeY + dy * progress;
+        linkEvt.angle = Math.atan2(dy, dx) * (180 / Math.PI);
       } else if (linkEvt.type === 'router' && linkEvt.from >= 0 && linkEvt.to >= 0) {
         const c1 = getRouterCoords(linkEvt.from, k, canvasWidth, canvasHeight);
         let c2 = getRouterCoords(linkEvt.to, k, canvasWidth, canvasHeight);
 
         // Ejection link (from == to)
         if (linkEvt.from === linkEvt.to) {
-          c2 = { ...c1, x: c1.x + 30 }; // eject to the right
+          c2 = { ...c1, x: c1.x - 36, y: c1.y - 36 }; // eject to top-left PE node
         }
 
         // Interpolate along line
@@ -496,9 +505,12 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
 
     // Build link segments between consecutive routers along path
     const pathSegments = [];
+
     for (let i = 0; i < routerPath.length - 1; i++) {
       const r1 = routerPath[i];
       const r2 = routerPath[i + 1];
+      if (r1 === r2) continue; // Skip self loops
+
       const c1 = getRouterCoords(r1, k, canvasWidth, canvasHeight);
       const c2 = getRouterCoords(r2, k, canvasWidth, canvasHeight);
       pathSegments.push({ from: r1, to: r2, x1: c1.x, y1: c1.y, x2: c2.x, y2: c2.y });
@@ -669,7 +681,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+            style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none', userSelect: 'none' }}
           >
             <defs>
               <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -678,7 +690,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
               </filter>
             </defs>
 
-            <g style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0', transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}>
+            <g style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0', transition: isDragging ? 'none' : transformTransition }}>
               {/* Links */}
               {links.map(link => (
                 <line
@@ -694,16 +706,6 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
               {/* Highlighted Flit Path Overlay */}
               {highlightedPath && (
                 <g className="highlighted-path-group">
-                  {highlightedPath.pathSegments.map((seg, idx) => (
-                    <line
-                      key={`path-glow-${idx}`}
-                      x1={seg.x1}
-                      y1={seg.y1}
-                      x2={seg.x2}
-                      y2={seg.y2}
-                      className="path-line-glow"
-                    />
-                  ))}
                   {highlightedPath.pathSegments.map((seg, idx) => (
                     <line
                       key={`path-line-${idx}`}
@@ -767,9 +769,29 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                       if (isSelecting && wasCardClosed && leftCollapsed === false && onToggleLeftSidebar) {
                         onToggleLeftSidebar();
                       }
+                      if (isSelecting) {
+                        setTransformTransition('transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)');
+                        setTransform({
+                          x: (canvasWidth / 2) - r.x * 4.0,
+                          y: (canvasHeight / 2) - r.y * 4.0,
+                          scale: 4.0
+                        });
+                      }
                     }}
                   >
-                    {/* Outer shadow/highlight rect */}
+                    {transform.scale >= 3.5 ? (
+                      <RouterHighZoom routerId={r.id} events={currentEvents} meta={meta} />
+                    ) : (
+                      <>
+                        {/* Node/PE Block (Top-Left) */}
+                        <g transform="translate(-36, -36)">
+                          <rect x={-8} y={-8} width={16} height={16} fill="#1e293b" stroke="#475569" strokeWidth={0.8} rx={2} />
+                          <text y={1} fontSize="5px" fill="#94a3b8" textAnchor="middle" dominantBaseline="middle">PE</text>
+                          {/* Connection line from PE to Router */}
+                          <line x1={8} y1={8} x2={28} y2={28} stroke="#475569" strokeWidth={0.8} strokeOpacity={0.6} strokeDasharray="1,1" />
+                        </g>
+
+                        {/* Outer shadow/highlight rect */}
                     <rect
                       x={-routerSize / 2}
                       y={-routerSize / 2}
@@ -847,12 +869,23 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                         </g>
                       );
                     })()}
+                      </>
+                    )}
                   </g>
                 );
               })}
 
               {/* Flit Dots moving on canvas */}
               {flitsOnCanvas.map(flit => {
+                const isInsideRouter = (flit.bufferedCycles && flit.bufferedCycles > 0) ||
+                  (flit.type === 'router' && flit.from === flit.to) ||
+                  routers.some(r => Math.abs(flit.cx - r.x) <= 32 && Math.abs(flit.cy - r.y) <= 32);
+
+                // In high-zoom view, hide flit dots inside routers so they don't clutter the VC occupancy display
+                if (transform.scale >= 3.5 && isInsideRouter) {
+                  return null;
+                }
+
                 const isFlitSelected = selectedFlit?.flit === flit.flit && selectedFlit?.pkt === flit.pkt;
                 const flitColor = getFlitColor(flit);
 
@@ -862,18 +895,18 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                       <circle
                         cx={0}
                         cy={0}
-                        r={14}
+                        r={18}
                         className="flit-selected-ring"
                         style={{
                           opacity: flit.opacity,
-                          transform: `translate(${flit.cx}px, ${flit.cy}px)`
+                          transform: `translate(${flit.cx}px, ${flit.cy}px) scale(${1 / transform.scale})`
                         }}
                       />
                     )}
 
                     <g style={{
                       opacity: flit.opacity,
-                      transform: `translate(${flit.cx}px, ${flit.cy}px) rotate(${flit.angle || 0}deg)`
+                      transform: `translate(${flit.cx}px, ${flit.cy}px) rotate(${flit.angle || 0}deg) scale(${1 / transform.scale})`
                     }}
                       onMouseEnter={(e) => {
                         setHoveredFlit(flit);
@@ -889,7 +922,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                       <circle
                         cx={0}
                         cy={0}
-                        r={flit.head ? 6 : 4}
+                        r={6}
                         fill={isFlitSelected ? '#f59e0b' : flitColor}
                         className={`flit-dot ${flit.head ? 'flit-dot-head' : ''} ${flit.tail ? 'flit-dot-tail' : ''} ${isFlitSelected ? 'flit-dot-selected' : ''}`}
                       />
@@ -912,9 +945,9 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
 
           {/* Zoom Controls Overlay */}
           <div className="net-viz-zoom-controls" style={{ position: 'absolute', bottom: '20px', left: '20px', display: 'flex', gap: '8px', zIndex: 10 }}>
-            <button className="timeline-btn" onClick={() => setTransform(p => ({ ...p, scale: Math.min(6, p.scale * 1.2) }))} title="Zoom In">+</button>
-            <button className="timeline-btn" onClick={() => setTransform(p => ({ ...p, scale: Math.max(0.5, p.scale / 1.2) }))} title="Zoom Out">-</button>
-            <button className="timeline-btn" style={{ fontSize: '11px', padding: '0 8px' }} onClick={() => setTransform({ x: 0, y: 0, scale: 1 })} title="Reset View">Reset</button>
+            <button className="timeline-btn" onClick={() => { setTransformTransition('transform 0.2s ease-out'); setTransform(p => ({ ...p, scale: Math.min(6, p.scale * 1.2) }))}} title="Zoom In">+</button>
+            <button className="timeline-btn" onClick={() => { setTransformTransition('transform 0.2s ease-out'); setTransform(p => ({ ...p, scale: Math.max(0.5, p.scale / 1.2) }))}} title="Zoom Out">-</button>
+            <button className="timeline-btn" style={{ fontSize: '11px', padding: '0 8px' }} onClick={() => { setTransformTransition('transform 0.3s ease-out'); setTransform({ x: 0, y: 0, scale: 1 })}} title="Reset View">Reset</button>
           </div>
 
           {/* Hover Tooltip */}
@@ -938,27 +971,15 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
               const routerOccs = currentEvents.vc_occ?.filter(v => v.router === hoveredRouter) || [];
               const totalOcc = routerOccs.reduce((acc, curr) => acc + curr.occ, 0);
 
-              // Group by port
-              const portOccs = {};
-              routerOccs.forEach(v => {
-                if (!portOccs[v.port]) portOccs[v.port] = 0;
-                portOccs[v.port] += v.occ;
-              });
-
               return (
                 <div
                   className="net-viz-tooltip"
                   style={{ left: tooltipPos.x, top: tooltipPos.y }}
                 >
                   <div className="tooltip-label">Router R{hoveredRouter}</div>
-                  <div className="tooltip-value" style={{ marginBottom: '4px' }}>
+                  <div className="tooltip-value">
                     Total: {totalOcc} / {maxRouterOcc} flits
                   </div>
-                  {Object.entries(portOccs).map(([port, occ]) => (
-                    <div key={port} className="tooltip-value" style={{ fontSize: '11px', color: '#cbd5e1' }}>
-                      Port {port}: {occ} flits
-                    </div>
-                  ))}
                   {totalOcc === 0 && (
                     <div className="tooltip-value" style={{ fontSize: '11px', color: '#94a3b8' }}>
                       All buffers empty

@@ -36,7 +36,7 @@
 }
 
 .rdc-icon {
-  color: #c084fc;
+  color: #e2e8f0;
 }
 
 .rdc-header-title h3 {
@@ -96,8 +96,8 @@
 }
 
 .rdc-tab.active {
-  color: #c084fc;
-  border-bottom-color: #c084fc;
+  color: #e2e8f0;
+  border-bottom-color: #e2e8f0;
 }
 
 .rdc-scrollable-content {

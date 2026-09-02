@@ -106,9 +106,9 @@ export const RouterDetailsCard = ({ routerId, events, meta, onClose }) => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, numVCs)}, 1fr)`, gap: '4px' }}>
                   {Object.entries(stat.vcs).map(([vc, occ]) => (
-                    <div key={vc} style={{ backgroundColor: '#1e293b', padding: '4px', borderRadius: '4px', textAlign: 'center', border: '1px solid #334155' }}>
-                      <div style={{ fontSize: '9px', color: '#94a3b8', marginBottom: '2px' }}>VC{vc}</div>
-                      <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: '500' }}>{occ}</div>
+                    <div key={vc} style={{ backgroundColor: '#171717', padding: '4px', borderRadius: '4px', textAlign: 'center', border: '1px solid #262626' }}>
+                      <div style={{ fontSize: '9px', color: '#a3a3a3', marginBottom: '2px' }}>VC{vc}</div>
+                      <div style={{ fontSize: '11px', color: '#f5f5f5', fontWeight: '500' }}>{occ}</div>
                     </div>
                   ))}
                 </div>
