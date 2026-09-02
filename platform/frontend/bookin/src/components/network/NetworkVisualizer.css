@@ -39,7 +39,9 @@
 }
 
 @keyframes netVizSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ─── Topology Canvas ─── */
@@ -456,18 +458,19 @@
 }
 
 .path-line-flow {
-  stroke: #f59e0b;
+  stroke: #9ce1ffca;
   stroke-width: 3.5;
   stroke-linecap: round;
   stroke-dasharray: 6 6;
   animation: pathDashFlow 0.6s linear infinite;
-  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.75));
+  filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.75));
 }
 
 @keyframes pathDashFlow {
   from {
     stroke-dashoffset: 12;
   }
+
   to {
     stroke-dashoffset: 0;
   }
@@ -475,25 +478,32 @@
 
 .flit-selected-ring {
   fill: none;
-  stroke: #f59e0b;
+  stroke: #73aec8;
   stroke-width: 2;
   animation: flitPulseRing 1.2s ease-in-out infinite;
   pointer-events: none;
 }
 
 @keyframes flitPulseRing {
-  0% { r: 10px; opacity: 1; }
-  100% { r: 18px; opacity: 0; }
+  0% {
+    r: 10px;
+    opacity: 1;
+  }
+
+  100% {
+    r: 18px;
+    opacity: 0;
+  }
 }
 
 .flit-dot-selected {
-  stroke: #f59e0b !important;
+  stroke: #38bdf8 !important;
   stroke-width: 2 !important;
-  filter: drop-shadow(0 0 8px #f59e0b) !important;
+  filter: drop-shadow(0 0 8px #38bdf8) !important;
 }
 
 .router-badge-src {
-  fill: #4ade80;
+  fill: #22d3ee;
   font-size: 8px;
   font-weight: 700;
   text-anchor: middle;
@@ -537,9 +547,17 @@
 }
 
 @keyframes pulseOpacity {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
+  0% {
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.7;
+  }
 }
 
 .net-viz-fetching-spinner {

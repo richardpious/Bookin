@@ -742,14 +742,14 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                 let rectStroke = isSelected ? '#d4d4d4' : totalOcc > 0 ? '#737373' : 'rgba(255, 255, 255, 0.15)';
 
                 if (isPathSrc) {
-                  rectFill = 'rgba(34, 197, 94, 0.25)';
-                  rectStroke = '#22c55e';
+                  rectFill = 'rgba(6, 182, 212, 0.25)';
+                  rectStroke = '#83c0cbff';
                 } else if (isPathDest) {
                   rectFill = 'rgba(168, 85, 247, 0.25)';
-                  rectStroke = '#c084fc';
+                  rectStroke = '#b5a4c7ff';
                 } else if (isInPath) {
-                  rectFill = 'rgba(245, 158, 11, 0.15)';
-                  rectStroke = '#f59e0b';
+                  rectFill = 'rgba(56, 189, 248, 0.2)';
+                  rectStroke = '#778fbdff';
                 }
 
                 const fillRatio = Math.min(1, busyVCs / totalVCs);
@@ -785,7 +785,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                     }}
                   >
                     {transform.scale >= 3.5 ? (
-                      <RouterHighZoom routerId={r.id} events={currentEvents} meta={meta} />
+                      <RouterHighZoom routerId={r.id} events={currentEvents} meta={meta} selectedFlit={selectedFlit} />
                     ) : (
                       <>
                         {/* Node/PE Block (Top-Left) */}
@@ -797,83 +797,83 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                         </g>
 
                         {/* Outer shadow/highlight rect */}
-                    <rect
-                      x={-routerSize / 2}
-                      y={-routerSize / 2}
-                      width={routerSize}
-                      height={routerSize}
-                      className="router-rect"
-                      fill={rectFill}
-                      stroke={rectStroke}
-                    />
-
-                    {/* Router Label */}
-                    <text className="router-label" y={totalOcc > 0 ? -6 : 0}>
-                      R{r.id}
-                    </text>
-
-                    {isPathSrc && (
-                      <text className="router-badge-src" y={totalOcc > 0 ? 16 : 14}>
-                        SRC
-                      </text>
-                    )}
-                    {isPathDest && !isPathSrc && (
-                      <text className="router-badge-dest" y={totalOcc > 0 ? 16 : 14}>
-                        DEST
-                      </text>
-                    )}
-
-                    {/* Micro VC Occupancy Indicator Bar inside router (Low Zoom) */}
-                    {transform.scale < 1.8 && busyVCs > 0 && (
-                      <g transform={`translate(${-routerSize / 2 + 8}, 8)`}>
-                        <rect className="vc-bar-bg" width={routerSize - 16} height={5} />
                         <rect
-                          className="vc-bar-fill"
-                          width={Math.max(2, Math.min(routerSize - 16, fillRatio * (routerSize - 16)))}
-                          height={5}
-                          fill={barColor}
+                          x={-routerSize / 2}
+                          y={-routerSize / 2}
+                          width={routerSize}
+                          height={routerSize}
+                          className="router-rect"
+                          fill={rectFill}
+                          stroke={rectStroke}
                         />
-                      </g>
-                    )}
 
-                    {/* Detailed Port Occupancies (Medium Zoom) */}
-                    {transform.scale >= 1.8 && transform.scale < 3.0 && (() => {
-                      const portOccs = {};
-                      occEvents.forEach(v => { portOccs[v.port] = (portOccs[v.port] || 0) + v.occ; });
-                      const portCap = (meta?.topology?.vcs || 4) * 8;
-                      return (
-                        <g style={{ fontSize: '6px', fill: '#cbd5e1', pointerEvents: 'none', dominantBaseline: 'central' }}>
-                          {/* North (Port 3) */}
-                          <text x={0} y={-22} textAnchor="middle">{portOccs[3] || 0}/{portCap}</text>
-                          {/* South (Port 2) */}
-                          <text x={0} y={22} textAnchor="middle">{portOccs[2] || 0}/{portCap}</text>
-                          {/* East (Port 0) */}
-                          <text x={24} y={0} textAnchor="end">{portOccs[0] || 0}/{portCap}</text>
-                          {/* West (Port 1) */}
-                          <text x={-24} y={0} textAnchor="start">{portOccs[1] || 0}/{portCap}</text>
-                          {/* Local (Port 4) */}
-                          <text x={0} y={12} textAnchor="middle">{portOccs[4] || 0}/{portCap}</text>
-                        </g>
-                      );
-                    })()}
+                        {/* Router Label */}
+                        <text className="router-label" y={totalOcc > 0 ? -6 : 0}>
+                          R{r.id}
+                        </text>
 
-                    {/* Per-VC Occupancies (High Zoom) */}
-                    {transform.scale >= 3.0 && (() => {
-                      const portVCOccs = { 0: {}, 1: {}, 2: {}, 3: {}, 4: {} };
-                      occEvents.forEach(v => { portVCOccs[v.port][v.vc] = v.occ; });
-                      const vcs = meta?.topology?.vcs || 4;
-                      const getVCStr = (p) => Array.from({length: vcs}, (_, i) => portVCOccs[p][i] || 0).join('|');
-                      
-                      return (
-                        <g style={{ fontSize: '4.5px', fill: '#94a3b8', pointerEvents: 'none', dominantBaseline: 'central' }}>
-                          <text x={0} y={-22} textAnchor="middle">{getVCStr(3)}</text>
-                          <text x={0} y={22} textAnchor="middle">{getVCStr(2)}</text>
-                          <text x={26} y={0} textAnchor="end">{getVCStr(0)}</text>
-                          <text x={-26} y={0} textAnchor="start">{getVCStr(1)}</text>
-                          <text x={0} y={14} textAnchor="middle">{getVCStr(4)}</text>
-                        </g>
-                      );
-                    })()}
+                        {isPathSrc && (
+                          <text className="router-badge-src" y={24}>
+                            SRC
+                          </text>
+                        )}
+                        {isPathDest && !isPathSrc && (
+                          <text className="router-badge-dest" y={24}>
+                            DEST
+                          </text>
+                        )}
+
+                        {/* Micro VC Occupancy Indicator Bar inside router (Low Zoom) */}
+                        {transform.scale < 1.8 && busyVCs > 0 && (
+                          <g transform={`translate(${-routerSize / 2 + 8}, 8)`}>
+                            <rect className="vc-bar-bg" width={routerSize - 16} height={5} />
+                            <rect
+                              className="vc-bar-fill"
+                              width={Math.max(2, Math.min(routerSize - 16, fillRatio * (routerSize - 16)))}
+                              height={5}
+                              fill={barColor}
+                            />
+                          </g>
+                        )}
+
+                        {/* Detailed Port Occupancies (Medium Zoom) */}
+                        {transform.scale >= 1.8 && transform.scale < 3.0 && (() => {
+                          const portOccs = {};
+                          occEvents.forEach(v => { portOccs[v.port] = (portOccs[v.port] || 0) + v.occ; });
+                          const portCap = (meta?.topology?.vcs || 4) * 8;
+                          return (
+                            <g style={{ fontSize: '6px', fill: '#cbd5e1', pointerEvents: 'none', dominantBaseline: 'central' }}>
+                              {/* North (Port 3) */}
+                              <text x={0} y={-22} textAnchor="middle">{portOccs[3] || 0}/{portCap}</text>
+                              {/* South (Port 2) */}
+                              <text x={0} y={22} textAnchor="middle">{portOccs[2] || 0}/{portCap}</text>
+                              {/* East (Port 0) */}
+                              <text x={24} y={0} textAnchor="end">{portOccs[0] || 0}/{portCap}</text>
+                              {/* West (Port 1) */}
+                              <text x={-24} y={0} textAnchor="start">{portOccs[1] || 0}/{portCap}</text>
+                              {/* Local (Port 4) */}
+                              <text x={0} y={12} textAnchor="middle">{portOccs[4] || 0}/{portCap}</text>
+                            </g>
+                          );
+                        })()}
+
+                        {/* Per-VC Occupancies (High Zoom) */}
+                        {transform.scale >= 3.0 && (() => {
+                          const portVCOccs = { 0: {}, 1: {}, 2: {}, 3: {}, 4: {} };
+                          occEvents.forEach(v => { portVCOccs[v.port][v.vc] = v.occ; });
+                          const vcs = meta?.topology?.vcs || 4;
+                          const getVCStr = (p) => Array.from({ length: vcs }, (_, i) => portVCOccs[p][i] || 0).join('|');
+
+                          return (
+                            <g style={{ fontSize: '4.5px', fill: '#94a3b8', pointerEvents: 'none', dominantBaseline: 'central' }}>
+                              <text x={0} y={-22} textAnchor="middle">{getVCStr(3)}</text>
+                              <text x={0} y={22} textAnchor="middle">{getVCStr(2)}</text>
+                              <text x={26} y={0} textAnchor="end">{getVCStr(0)}</text>
+                              <text x={-26} y={0} textAnchor="start">{getVCStr(1)}</text>
+                              <text x={0} y={14} textAnchor="middle">{getVCStr(4)}</text>
+                            </g>
+                          );
+                        })()}
                       </>
                     )}
                   </g>
@@ -928,7 +928,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                         cx={0}
                         cy={0}
                         r={6}
-                        fill={isFlitSelected ? '#f59e0b' : flitColor}
+                        fill={flitColor}
                         className={`flit-dot ${flit.head ? 'flit-dot-head' : ''} ${flit.tail ? 'flit-dot-tail' : ''} ${isFlitSelected ? 'flit-dot-selected' : ''}`}
                       />
                       {/* Minimal Directional Indicator */}
@@ -950,9 +950,9 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
 
           {/* Zoom Controls Overlay */}
           <div className="net-viz-zoom-controls" style={{ position: 'absolute', bottom: '20px', left: '20px', display: 'flex', gap: '8px', zIndex: 10 }}>
-            <button className="timeline-btn" onClick={() => { setTransformTransition('transform 0.2s ease-out'); setTransform(p => ({ ...p, scale: Math.min(6, p.scale * 1.2) }))}} title="Zoom In">+</button>
-            <button className="timeline-btn" onClick={() => { setTransformTransition('transform 0.2s ease-out'); setTransform(p => ({ ...p, scale: Math.max(0.5, p.scale / 1.2) }))}} title="Zoom Out">-</button>
-            <button className="timeline-btn" style={{ fontSize: '11px', padding: '0 8px' }} onClick={() => { setTransformTransition('transform 0.3s ease-out'); setTransform({ x: 0, y: 0, scale: 1 })}} title="Reset View">Reset</button>
+            <button className="timeline-btn" onClick={() => { setTransformTransition('transform 0.2s ease-out'); setTransform(p => ({ ...p, scale: Math.min(6, p.scale * 1.2) })) }} title="Zoom In">+</button>
+            <button className="timeline-btn" onClick={() => { setTransformTransition('transform 0.2s ease-out'); setTransform(p => ({ ...p, scale: Math.max(0.5, p.scale / 1.2) })) }} title="Zoom Out">-</button>
+            <button className="timeline-btn" style={{ fontSize: '11px', padding: '0 8px' }} onClick={() => { setTransformTransition('transform 0.3s ease-out'); setTransform({ x: 0, y: 0, scale: 1 }) }} title="Reset View">Reset</button>
           </div>
 
           {/* Hover Tooltip */}

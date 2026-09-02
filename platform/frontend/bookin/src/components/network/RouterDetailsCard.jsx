@@ -64,6 +64,36 @@ export const RouterDetailsCard = ({ routerId, events, meta, onClose }) => {
   const pipeline = events?.pipeline?.filter(p => p.router === routerId) || [];
   const xbar = events?.xbar?.filter(x => x.router === routerId) || [];
 
+  const PORT_NAMES = {
+    0: 'Port 0 (East)',
+    1: 'Port 1 (West)',
+    2: 'Port 2 (South)',
+    3: 'Port 3 (North)',
+    4: 'Port 4 (Local)',
+  };
+
+  const getFlitsInVC = (portStr, vcStr) => {
+    const port = Number(portStr);
+    const vc = Number(vcStr);
+    const flits = new Set();
+    
+    // Check VC state for head flit
+    vcStates.forEach(v => {
+      if (v.port === port && v.vc === vc && v.flit != null && v.flit >= 0) {
+        flits.add(v.flit);
+      }
+    });
+
+    // Check pipeline stages for active flits in this input port & VC
+    pipeline.forEach(p => {
+      if (p.input === port && p.vc === vc && p.flit != null && p.flit >= 0) {
+        flits.add(p.flit);
+      }
+    });
+
+    return Array.from(flits);
+  };
+
   const renderOverview = () => (
     <div className="rdc-body">
       {/* Overall Buffer Occupancy */}
@@ -95,22 +125,31 @@ export const RouterDetailsCard = ({ routerId, events, meta, onClose }) => {
         <div className="rdc-ports-grid">
           {Object.entries(portStats).map(([port, stat]) => {
             const pct = stat.max > 0 ? (stat.occ / stat.max) * 100 : 0;
+            const portTitle = PORT_NAMES[port] || `Port ${port}`;
             return (
               <div key={port} className="rdc-port-item" style={{ paddingBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <div className="rdc-port-label">Port {port}</div>
-                  <div className="rdc-port-value">{stat.occ}</div>
+                  <div className="rdc-port-label">{portTitle}</div>
+                  <div className="rdc-port-value">{stat.occ} flits</div>
                 </div>
                 <div className="rdc-port-bar-bg" style={{ marginBottom: '8px' }}>
                   <div className="rdc-port-bar-fill" style={{ width: `${Math.min(100, pct)}%` }} />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, numVCs)}, 1fr)`, gap: '4px' }}>
-                  {Object.entries(stat.vcs).map(([vc, occ]) => (
-                    <div key={vc} style={{ backgroundColor: '#171717', padding: '4px', borderRadius: '4px', textAlign: 'center', border: '1px solid #262626' }}>
-                      <div style={{ fontSize: '9px', color: '#a3a3a3', marginBottom: '2px' }}>VC{vc}</div>
-                      <div style={{ fontSize: '11px', color: '#f5f5f5', fontWeight: '500' }}>{occ}</div>
-                    </div>
-                  ))}
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, numVCs)}, 1fr)`, gap: '6px' }}>
+                  {Object.entries(stat.vcs).map(([vc, occ]) => {
+                    const flitList = getFlitsInVC(port, vc);
+                    return (
+                      <div key={vc} style={{ backgroundColor: '#171717', padding: '6px', borderRadius: '4px', textAlign: 'center', border: '1px solid #262626' }}>
+                        <div style={{ fontSize: '10px', color: '#a3a3a3', fontWeight: '500', marginBottom: '2px' }}>VC {vc}</div>
+                        <div style={{ fontSize: '12px', color: '#f5f5f5', fontWeight: '600' }}>{occ}</div>
+                        {occ > 0 && (
+                          <div style={{ fontSize: '10px', color: '#60a5fa', marginTop: '3px', fontWeight: '500', wordBreak: 'break-word' }}>
+                            {flitList.length > 0 ? flitList.map(f => `F${f}`).join(', ') : 'Occupied'}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

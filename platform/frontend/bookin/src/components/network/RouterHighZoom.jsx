@@ -12,7 +12,7 @@ const PORT_POS = {
 
 const FILLED_VC_COLOR = '#59e160ff';
 
-export const RouterHighZoom = ({ routerId, events, meta }) => {
+export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
   const numPorts = meta?.topology?.ports || 5;
   const numVCs = meta?.topology?.vcs || 4;
   const vcBufSize = meta?.topology?.vcBufSize || 8;
@@ -27,7 +27,7 @@ export const RouterHighZoom = ({ routerId, events, meta }) => {
     const data = {};
     for (let i = 0; i < numPorts; i++) {
       data[i] = {
-        vcs: Array.from({ length: numVCs }, () => ({ state: 0, occ: 0, front_flit: -1 })),
+        vcs: Array.from({ length: numVCs }, () => ({ state: 0, occ: 0, front_flit: -1, has_selected: false })),
         pipeline: []
       };
     }
@@ -36,6 +36,9 @@ export const RouterHighZoom = ({ routerId, events, meta }) => {
       if (data[v.port] && data[v.port].vcs[v.vc]) {
         data[v.port].vcs[v.vc].state = v.state;
         data[v.port].vcs[v.vc].front_flit = v.flit;
+        if (selectedFlit != null && v.flit === selectedFlit.flit) {
+          data[v.port].vcs[v.vc].has_selected = true;
+        }
       }
     });
 
@@ -48,6 +51,9 @@ export const RouterHighZoom = ({ routerId, events, meta }) => {
     pipeline.forEach(p => {
       if (data[p.input]) {
         data[p.input].pipeline.push(p);
+        if (selectedFlit != null && p.flit === selectedFlit.flit && data[p.input].vcs[p.vc]) {
+          data[p.input].vcs[p.vc].has_selected = true;
+        }
       }
     });
 
@@ -87,7 +93,7 @@ export const RouterHighZoom = ({ routerId, events, meta }) => {
 
             const blocks = [];
             for (let i = 0; i < vcBufSize; i++) {
-              const isFilled = i < vc.occ;
+              const isFilled = i < vc.occ || (i === 0 && vc.has_selected);
               const bx = i * (length + 0.2);
 
               blocks.push(
@@ -97,10 +103,11 @@ export const RouterHighZoom = ({ routerId, events, meta }) => {
                   y={dy - thickness / 2}
                   width={length}
                   height={thickness}
-                  fill={isFilled ? FILLED_VC_COLOR : '#4e4e4eff'}
-                  stroke="#1a1a1a"
+                  fill={isFilled ? (vc.has_selected ? '#38bdf8' : FILLED_VC_COLOR) : '#4e4e4eff'}
+                  stroke={vc.has_selected && isFilled ? '#7dd3fc' : '#1a1a1a'}
                   strokeWidth="0.2"
                   rx="0.2"
+                  style={vc.has_selected && isFilled ? { filter: 'drop-shadow(0 0 1px rgba(56, 189, 248, 0.6))' } : {}}
                 />
               );
             }
@@ -163,10 +170,11 @@ export const RouterHighZoom = ({ routerId, events, meta }) => {
                 y={by - h / 2}
                 width={w}
                 height={h}
-                fill={isFilled ? FILLED_VC_COLOR : '#4e4e4eff'}
-                stroke="#1a1a1a"
+                fill={isFilled ? (vc.has_selected ? '#38bdf8' : FILLED_VC_COLOR) : '#4e4e4eff'}
+                stroke={vc.has_selected && isFilled ? '#7dd3fc' : '#1a1a1a'}
                 strokeWidth="0.2"
                 rx="0.2"
+                style={vc.has_selected && isFilled ? { filter: 'drop-shadow(0 0 1px rgba(56, 189, 248, 0.6))' } : {}}
               />
             );
           }
@@ -239,7 +247,16 @@ export const RouterHighZoom = ({ routerId, events, meta }) => {
           pairCounts[pairKey] = (pairCounts[pairKey] || 0) + 1;
         });
 
-        return xbar.map((x, idx) => {
+        // Sort xbar so selected flit is drawn last
+        const sortedXbar = [...xbar].sort((a, b) => {
+          if (selectedFlit != null) {
+            if (a.flit === selectedFlit.flit && b.flit !== selectedFlit.flit) return 1;
+            if (b.flit === selectedFlit.flit && a.flit !== selectedFlit.flit) return -1;
+          }
+          return 0;
+        });
+
+        return sortedXbar.map((x, idx) => {
           const inPos = PORT_POS[x.input];
           const outPos = PORT_POS[x.output];
           if (!inPos || !outPos) return null;
@@ -303,15 +320,18 @@ export const RouterHighZoom = ({ routerId, events, meta }) => {
             controlY = inPos.ry * (5 + offsetIndex * 3);
           }
 
+          const isSelected = selectedFlit != null && x.flit === selectedFlit.flit;
+
           return (
             <path
               key={`xbar-${idx}`}
               d={`M ${startX.toFixed(2)} ${startY.toFixed(2)} Q ${controlX.toFixed(2)} ${controlY.toFixed(2)} ${endX.toFixed(2)} ${endY.toFixed(2)}`}
               fill="none"
-              stroke="#d1d1d1ff"
-              strokeWidth="0.35"
-              strokeOpacity="0.85"
+              stroke={isSelected ? '#38bdf8' : '#d1d1d1ff'}
+              strokeWidth={isSelected ? "0.8" : "0.35"}
+              strokeOpacity={isSelected ? "1.0" : "0.85"}
               strokeLinecap="round"
+              style={isSelected ? { filter: 'drop-shadow(0 0 2px rgba(56, 189, 248, 0.8))' } : {}}
             />
           );
         });

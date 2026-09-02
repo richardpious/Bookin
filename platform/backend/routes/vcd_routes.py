@@ -605,6 +605,18 @@ class VCDIndex:
                             "out_port": val(st["out_port"]),
                             "out_vc": val(st["out_vc"])
                         })
+                # Synthesize BW stage from input pins
+                r_in = self.router_ids[router]["in"][port]
+                if val(r_in["valid"]) == 1:
+                    events["pipeline"].append({
+                        "router": router, "input": port, "stage": "BW",
+                        "flit": val(r_in["flit_id"]) or 0,
+                        "pkt": val(r_in["packet_id"]) or 0,
+                        "vc": val(r_in["vc"]) or 0,
+                        "output": None,
+                        "out_vc": None,
+                        "result": 1
+                    })
                         
                 # Pipeline
                 stages = ["RC", "VA", "SA", "ST"]
