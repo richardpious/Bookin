@@ -111,6 +111,8 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
   const flitTrackerRef = useRef(new Map());
   const lastCycleRef = useRef(null);
   const playTimerRef = useRef(null);
+  const hasDraggedRef = useRef(false);
+  const mouseDownPosRef = useRef({ x: 0, y: 0 });
 
   const updateTooltipPos = useCallback((e) => {
     if (canvasRef.current) {
@@ -128,18 +130,12 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     const scaleAdjust = e.deltaY > 0 ? 0.9 : 1.1;
     setTransform((prev) => {
       let newScale = prev.scale * scaleAdjust;
-      newScale = Math.max(0.5, Math.min(newScale, 6));
-
-      if (newScale === prev.scale) return prev;
+      newScale = Math.max(0.5, Math.min(20, newScale));
 
       if (svgRef.current) {
-        const point = svgRef.current.createSVGPoint();
-        point.x = e.clientX;
-        point.y = e.clientY;
-        const svgP = point.matrixTransform(svgRef.current.getScreenCTM().inverse());
-
-        const mouseX = svgP.x;
-        const mouseY = svgP.y;
+        const rect = svgRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
         const deltaX = (mouseX - prev.x) * (newScale / prev.scale - 1);
         const deltaY = (mouseY - prev.y) * (newScale / prev.scale - 1);
@@ -158,6 +154,9 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     setTransformTransition('none');
     if (e.button !== 0 || e.target.closest('.router-node') || e.target.closest('.flit-dot')) return;
     setIsDragging(true);
+    hasDraggedRef.current = false;
+    mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+
     if (svgRef.current) {
       const point = svgRef.current.createSVGPoint();
       point.x = e.clientX;
@@ -171,6 +170,12 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
 
   const handleMouseMove = useCallback((e) => {
     if (isDragging) {
+      const dx = e.clientX - mouseDownPosRef.current.x;
+      const dy = e.clientY - mouseDownPosRef.current.y;
+      if (Math.hypot(dx, dy) > 3) {
+        hasDraggedRef.current = true;
+      }
+
       if (svgRef.current) {
         const point = svgRef.current.createSVGPoint();
         point.x = e.clientX;
@@ -673,8 +678,8 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
             viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
             preserveAspectRatio="xMidYMid meet"
             onClick={(e) => {
-              // Only deselect if clicking the background, not panning
-              if (!isDragging && e.target.tagName === 'svg') setSelectedFlit(null);
+              // Only deselect if clicking the background without dragging
+              if (!hasDraggedRef.current && e.target.tagName === 'svg') setSelectedFlit(null);
             }}
             onWheel={handleWheel}
             onMouseDown={handleMouseDown}
