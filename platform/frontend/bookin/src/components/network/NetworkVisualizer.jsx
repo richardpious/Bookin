@@ -1287,6 +1287,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
               routerId={selectedRouter}
               events={currentEvents}
               meta={meta}
+              selectedFlit={selectedFlit}
               onClose={() => setSelectedRouter(null)}
             />
           )}
