@@ -19,7 +19,7 @@ const PIPE_RESULT = {
   6: 'MISSPEC'
 };
 
-export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onClose }) => {
+export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlitSelect, onClose }) => {
   const k = meta?.topology?.k || 4;
   const numPorts = meta?.topology?.ports || 5;
   const numVCs = meta?.topology?.vcs || 4;
@@ -186,7 +186,12 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onClos
                   const isStall = resStr.startsWith('STALL');
                   const isHighlighted = selectedFlit && p.flit === selectedFlit.flit && p.pkt === selectedFlit.pkt;
                   return (
-                    <tr key={idx} className={isHighlighted ? 'rdc-highlight-row' : ''}>
+                    <tr 
+                      key={idx} 
+                      className={isHighlighted ? 'rdc-highlight-row' : ''}
+                      onClick={() => onFlitSelect && onFlitSelect({ flit: p.flit, pkt: p.pkt })}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <td>{p.input}</td>
                       <td>{p.vc}</td>
                       <td>{p.flit}</td>
@@ -213,7 +218,12 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onClos
             {xbar.map((x, idx) => {
               const isHighlighted = selectedFlit && x.flit === selectedFlit.flit && x.pkt === selectedFlit.pkt;
               return (
-              <div key={idx} className={`rdc-xbar-item ${isHighlighted ? 'rdc-highlight-row' : ''}`}>
+              <div 
+                key={idx} 
+                className={`rdc-xbar-item ${isHighlighted ? 'rdc-highlight-row' : ''}`}
+                onClick={() => onFlitSelect && onFlitSelect({ flit: x.flit, pkt: x.pkt })}
+                style={{ cursor: 'pointer' }}
+              >
                 <ArrowRightLeft size={14} className="rdc-xbar-icon" />
                 <div className="rdc-xbar-details">
                   <span>In {x.input} (V{x.vc})</span>

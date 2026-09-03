@@ -344,7 +344,6 @@ class VCDIndex:
                     vcs_state.append({
                         "state": self.signal_name_to_id.get(f"{prefix}.state"),
                         "front_flit": self.signal_name_to_id.get(f"{prefix}.front_flit"),
-                        "front_pkt": self.signal_name_to_id.get(f"{prefix}.front_pkt"),
                         "out_port": self.signal_name_to_id.get(f"{prefix}.out_port"),
                         "out_vc": self.signal_name_to_id.get(f"{prefix}.out_vc"),
                     })
@@ -360,7 +359,6 @@ class VCDIndex:
                             "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
                             "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
                             "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
-                            "vc": self.signal_name_to_id.get(f"{prefix}.vc"),
                             "output": self.signal_name_to_id.get(f"{prefix}.output"),
                             "out_vc": self.signal_name_to_id.get(f"{prefix}.out_vc"),
                             "result": self.signal_name_to_id.get(f"{prefix}.result"),
@@ -644,7 +642,7 @@ class VCDIndex:
                                     "flit": val(p_ids["flit"]) or 0,
                                     "pkt": val(p_ids["pkt"]) or 0,
                                     "input": port,
-                                    "vc": val(p_ids["vc"]) or 0
+                                    "vc": vc
                                 })
                 # Downstream credits
                 for vc in range(self.vcs):

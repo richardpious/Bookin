@@ -101,7 +101,6 @@ private:
   struct VCSignals {
     std::string state;         // 2-bit
     std::string front_flit;    // 16-bit
-    std::string front_packet;  // 16-bit
     std::string out_port;      // 8-bit
     std::string out_vc;        // 8-bit
   };
@@ -111,7 +110,6 @@ private:
     std::string valid;    // 1-bit
     std::string flit;     // 16-bit
     std::string packet;   // 16-bit
-    std::string vc;       // 4-bit
     std::string output;   // 4-bit
     std::string out_vc;   // 4-bit
     std::string result;   // 3-bit

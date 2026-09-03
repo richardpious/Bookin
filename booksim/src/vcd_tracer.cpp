@@ -296,9 +296,6 @@ void VCDTracer::TraceVCState(int router, int input, int vc, int state,
     _router_vc_front_flit_last[router][input][vc] = front_flit_id;
     _Set(sigs.front_flit,
          front_flit_id < 0 ? ULLONG_MAX : (unsigned long long)front_flit_id);
-    if (front_packet_id >= 0) {
-      _Set(sigs.front_packet, (unsigned long long)front_packet_id);
-    }
     changed = true;
   }
   if (_router_vc_out_port_last[router][input][vc] != out_port) {
@@ -336,7 +333,6 @@ void VCDTracer::TracePipelineRC(int router, int input, int vc, Flit const *f,
   _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
   _flit_input_vc[f->id] = vc;
-  _Set(sigs.vc, vc < 0 ? ULLONG_MAX : (unsigned long long)vc);
   _Set(sigs.result, complete ? (unsigned long long)PIPE_SUCCESS
                              : (unsigned long long)PIPE_NONE);
 }
@@ -358,7 +354,6 @@ void VCDTracer::TracePipelineVA(int router, int input, int vc, Flit const *f,
   _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
   _flit_input_vc[f->id] = vc;
-  _Set(sigs.vc, vc < 0 ? ULLONG_MAX : (unsigned long long)vc);
   _Set(sigs.output, out_port < 0 ? ULLONG_MAX : (unsigned long long)out_port);
   _Set(sigs.out_vc,
        out_vc_val < 0 ? ULLONG_MAX : (unsigned long long)out_vc_val);
@@ -382,7 +377,6 @@ void VCDTracer::TracePipelineSA(int router, int input, int vc, Flit const *f,
   _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
   _flit_input_vc[f->id] = vc;
-  _Set(sigs.vc, vc < 0 ? ULLONG_MAX : (unsigned long long)vc);
   _Set(sigs.output, out_port < 0 ? ULLONG_MAX : (unsigned long long)out_port);
   _Set(sigs.result, (unsigned long long)result);
 }
@@ -409,7 +403,6 @@ void VCDTracer::TracePipelineST(int router, int input, int output,
   if (begin) {
     _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
     _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
-    _Set(sigs.vc, invc < 0 ? ULLONG_MAX : (unsigned long long)invc);
     _Set(sigs.output, output < 0 ? ULLONG_MAX : (unsigned long long)output);
     _Set(sigs.result, (unsigned long long)PIPE_SUCCESS);
 
@@ -642,8 +635,6 @@ void VCDTracer::_WriteHeader() {
                 _Register(vc_prefix.str() + ".state", 2);
             _router_vc_signals[router][output][vc].front_flit =
                 _RegisterInteger(vc_prefix.str() + ".front_flit", 16);
-            _router_vc_signals[router][output][vc].front_packet =
-                _RegisterInteger(vc_prefix.str() + ".front_pkt", 16);
             _router_vc_signals[router][output][vc].out_port =
                 _RegisterInteger(vc_prefix.str() + ".out_port", 8);
             _router_vc_signals[router][output][vc].out_vc =
@@ -773,7 +764,6 @@ void VCDTracer::_WriteHeader() {
             ps.valid = _Register(pipe_prefix.str() + ".valid", 1);
             ps.flit = _RegisterInteger(pipe_prefix.str() + ".flit_id", 16);
             ps.packet = _RegisterInteger(pipe_prefix.str() + ".packet_id", 16);
-            ps.vc = _RegisterInteger(pipe_prefix.str() + ".vc", 4);
             ps.output = _RegisterInteger(pipe_prefix.str() + ".output", 4);
             ps.out_vc = _RegisterInteger(pipe_prefix.str() + ".out_vc", 4);
             ps.result = _RegisterInteger(pipe_prefix.str() + ".result", 3);
