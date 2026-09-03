@@ -145,8 +145,10 @@ void VCDTracer::Cycle(int cycle) {
     if (_trace_pipeline && !_router_pipeline.empty()) {
       for (int stage = 0; stage < NUM_STAGES; ++stage) {
         for (int inp = 0; inp < _router_outputs; ++inp) {
-          _Clear(_router_pipeline[router][stage][inp],
-                 _router_pipeline_valid_last[router][stage][inp]);
+          for (int vc = 0; vc < _vcs; ++vc) {
+            _Clear(_router_pipeline[router][stage][inp][vc],
+                   _router_pipeline_valid_last[router][stage][inp][vc]);
+          }
         }
       }
     }
@@ -328,9 +330,9 @@ void VCDTracer::TracePipelineRC(int router, int input, int vc, Flit const *f,
   if (_router_pipeline.empty())
     return;
 
-  PipelineSignals &sigs = _router_pipeline[router][STAGE_RC][input];
+  PipelineSignals &sigs = _router_pipeline[router][STAGE_RC][input][vc];
   _SetBit(sigs.valid, true);
-  _router_pipeline_valid_last[router][STAGE_RC][input] = true;
+  _router_pipeline_valid_last[router][STAGE_RC][input][vc] = true;
   _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
   _flit_input_vc[f->id] = vc;
@@ -350,9 +352,9 @@ void VCDTracer::TracePipelineVA(int router, int input, int vc, Flit const *f,
   if (_router_pipeline.empty())
     return;
 
-  PipelineSignals &sigs = _router_pipeline[router][STAGE_VA][input];
+  PipelineSignals &sigs = _router_pipeline[router][STAGE_VA][input][vc];
   _SetBit(sigs.valid, true);
-  _router_pipeline_valid_last[router][STAGE_VA][input] = true;
+  _router_pipeline_valid_last[router][STAGE_VA][input][vc] = true;
   _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
   _flit_input_vc[f->id] = vc;
@@ -374,9 +376,9 @@ void VCDTracer::TracePipelineSA(int router, int input, int vc, Flit const *f,
   if (_router_pipeline.empty())
     return;
 
-  PipelineSignals &sigs = _router_pipeline[router][STAGE_SA][input];
+  PipelineSignals &sigs = _router_pipeline[router][STAGE_SA][input][vc];
   _SetBit(sigs.valid, true);
-  _router_pipeline_valid_last[router][STAGE_SA][input] = true;
+  _router_pipeline_valid_last[router][STAGE_SA][input][vc] = true;
   _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
   _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
   _flit_input_vc[f->id] = vc;
@@ -396,16 +398,17 @@ void VCDTracer::TracePipelineST(int router, int input, int output,
   if (_router_pipeline.empty())
     return;
 
-  PipelineSignals &sigs = _router_pipeline[router][STAGE_ST][input];
+  int invc = f->vc;
+  if (_flit_input_vc.count(f->id))
+    invc = _flit_input_vc[f->id];
+
+  PipelineSignals &sigs = _router_pipeline[router][STAGE_ST][input][invc];
   _SetBit(sigs.valid, begin);
   if (begin)
-    _router_pipeline_valid_last[router][STAGE_ST][input] = true;
+    _router_pipeline_valid_last[router][STAGE_ST][input][invc] = true;
   if (begin) {
     _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
     _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
-    int invc = f->vc;
-    if (_flit_input_vc.count(f->id))
-      invc = _flit_input_vc[f->id];
     _Set(sigs.vc, invc < 0 ? ULLONG_MAX : (unsigned long long)invc);
     _Set(sigs.output, output < 0 ? ULLONG_MAX : (unsigned long long)output);
     _Set(sigs.result, (unsigned long long)PIPE_SUCCESS);
@@ -596,8 +599,11 @@ void VCDTracer::_WriteHeader() {
       _router_pipeline_valid_last[router].resize(NUM_STAGES);
       for (int stage = 0; stage < NUM_STAGES; ++stage) {
         _router_pipeline[router][stage].resize(_router_outputs);
-        _router_pipeline_valid_last[router][stage].assign(_router_outputs,
-                                                          false);
+        _router_pipeline_valid_last[router][stage].resize(_router_outputs);
+        for (int inp = 0; inp < _router_outputs; ++inp) {
+          _router_pipeline[router][stage][inp].resize(_vcs);
+          _router_pipeline_valid_last[router][stage][inp].assign(_vcs, false);
+        }
       }
     }
     if (_trace_credits && trace_this) {
@@ -754,22 +760,24 @@ void VCDTracer::_WriteHeader() {
       }
     }
 
-    // Pipeline signals (Component 2) — per stage, per input
+    // Pipeline signals (Component 2) — per stage, per input, per vc
     if (_trace_pipeline && trace_this) {
       static const char *stage_names[] = {"RC", "VA", "SA", "ST"};
       for (int stage = 0; stage < NUM_STAGES; ++stage) {
         for (int inp = 0; inp < _router_outputs; ++inp) {
-          std::ostringstream pipe_prefix;
-          pipe_prefix << "router_" << router << ".pipe." << stage_names[stage]
-                      << ".in_" << inp;
-          PipelineSignals &ps = _router_pipeline[router][stage][inp];
-          ps.valid = _Register(pipe_prefix.str() + ".valid", 1);
-          ps.flit = _RegisterInteger(pipe_prefix.str() + ".flit_id", 16);
-          ps.packet = _RegisterInteger(pipe_prefix.str() + ".packet_id", 16);
-          ps.vc = _RegisterInteger(pipe_prefix.str() + ".vc", 4);
-          ps.output = _RegisterInteger(pipe_prefix.str() + ".output", 4);
-          ps.out_vc = _RegisterInteger(pipe_prefix.str() + ".out_vc", 4);
-          ps.result = _RegisterInteger(pipe_prefix.str() + ".result", 3);
+          for (int vc = 0; vc < _vcs; ++vc) {
+            std::ostringstream pipe_prefix;
+            pipe_prefix << "router_" << router << ".pipe." << stage_names[stage]
+                        << ".in_" << inp << ".vc_" << vc;
+            PipelineSignals &ps = _router_pipeline[router][stage][inp][vc];
+            ps.valid = _Register(pipe_prefix.str() + ".valid", 1);
+            ps.flit = _RegisterInteger(pipe_prefix.str() + ".flit_id", 16);
+            ps.packet = _RegisterInteger(pipe_prefix.str() + ".packet_id", 16);
+            ps.vc = _RegisterInteger(pipe_prefix.str() + ".vc", 4);
+            ps.output = _RegisterInteger(pipe_prefix.str() + ".output", 4);
+            ps.out_vc = _RegisterInteger(pipe_prefix.str() + ".out_vc", 4);
+            ps.result = _RegisterInteger(pipe_prefix.str() + ".result", 3);
+          }
         }
       }
     }

@@ -179,8 +179,8 @@ private:
   std::vector<std::vector<std::vector<int> > > _router_vc_out_vc_last;
 
   // Component 2: Pipeline signals [router][stage][input]
-  std::vector<std::vector<std::vector<PipelineSignals> > > _router_pipeline;
-  std::vector<std::vector<std::vector<char> > > _router_pipeline_valid_last;
+  std::vector<std::vector<std::vector<std::vector<PipelineSignals> > > > _router_pipeline;
+  std::vector<std::vector<std::vector<std::vector<char> > > > _router_pipeline_valid_last;
 
   // Component 4: Eject
   std::vector<EjectSignals> _node_eject;

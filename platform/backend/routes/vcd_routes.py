@@ -350,19 +350,22 @@ class VCDIndex:
                     })
                 ports_vc_state.append(vcs_state)
                 
-                # Pipeline (Component 2) - per stage per input
+                # Pipeline (Component 2) - per stage per input, per vc
                 stage_ids = []
                 for st in stages:
-                    prefix = f"router_{router}.pipe.{st}.in_{port}"
-                    stage_ids.append({
-                        "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
-                        "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
-                        "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
-                        "vc": self.signal_name_to_id.get(f"{prefix}.vc"),
-                        "output": self.signal_name_to_id.get(f"{prefix}.output"),
-                        "out_vc": self.signal_name_to_id.get(f"{prefix}.out_vc"),
-                        "result": self.signal_name_to_id.get(f"{prefix}.result"),
-                    })
+                    vcs_pipe = []
+                    for vc in range(self.vcs):
+                        prefix = f"router_{router}.pipe.{st}.in_{port}.vc_{vc}"
+                        vcs_pipe.append({
+                            "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                            "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
+                            "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                            "vc": self.signal_name_to_id.get(f"{prefix}.vc"),
+                            "output": self.signal_name_to_id.get(f"{prefix}.output"),
+                            "out_vc": self.signal_name_to_id.get(f"{prefix}.out_vc"),
+                            "result": self.signal_name_to_id.get(f"{prefix}.result"),
+                        })
+                    stage_ids.append(vcs_pipe)
                 ports_pipe.append(stage_ids)
                 
                 # (Crossbar signals removed, derived from ST stage later)
@@ -621,27 +624,28 @@ class VCDIndex:
                 # Pipeline
                 stages = ["RC", "VA", "SA", "ST"]
                 for i, stage_name in enumerate(stages):
-                    p_ids = self.router_pipe_ids[router][port][i]
-                    if val(p_ids["valid"]) == 1:
-                        events["pipeline"].append({
-                            "router": router, "input": port, "stage": stage_name,
-                            "flit": val(p_ids["flit"]) or 0,
-                            "pkt": val(p_ids["pkt"]) or 0,
-                            "vc": val(p_ids["vc"]) or 0,
-                            "output": val(p_ids["output"]),
-                            "out_vc": val(p_ids["out_vc"]),
-                            "result": val(p_ids["result"])
-                        })
-                        
-                        
-                        if stage_name == "ST":
-                            events["xbar"].append({
-                                "router": router, "output": val(p_ids["output"]) or 0,
+                    for vc in range(self.vcs):
+                        p_ids = self.router_pipe_ids[router][port][i][vc]
+                        if val(p_ids["valid"]) == 1:
+                            events["pipeline"].append({
+                                "router": router, "input": port, "stage": stage_name,
                                 "flit": val(p_ids["flit"]) or 0,
                                 "pkt": val(p_ids["pkt"]) or 0,
-                                "input": port,
-                                "vc": val(p_ids["vc"]) or 0
+                                "vc": val(p_ids["vc"]) or 0,
+                                "output": val(p_ids["output"]),
+                                "out_vc": val(p_ids["out_vc"]),
+                                "result": val(p_ids["result"])
                             })
+                            
+                            
+                            if stage_name == "ST":
+                                events["xbar"].append({
+                                    "router": router, "output": val(p_ids["output"]) or 0,
+                                    "flit": val(p_ids["flit"]) or 0,
+                                    "pkt": val(p_ids["pkt"]) or 0,
+                                    "input": port,
+                                    "vc": val(p_ids["vc"]) or 0
+                                })
                 # Downstream credits
                 for vc in range(self.vcs):
                     ds_ids = self.router_ds_ids[router][port][vc]
