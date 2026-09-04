@@ -76,6 +76,10 @@ public:
   // Component 5: Downstream credits
   void TraceDownstreamCredits(int router, int output, int vc, int occupancy, int available, int limit);
 
+  // Sub-step support for internal speedup
+  void SetSubStep(int step);
+  void ClearRouterValid(int router);
+
 private:
   struct PacketGenSignals {
     std::string valid;
@@ -153,6 +157,12 @@ private:
   int _next_id;
   long long _last_time;
 
+  // Sub-step timing state
+  long long _time_tick;
+  int _current_sub_step;
+  int _current_cycle;
+  std::vector<std::vector<std::string> > _sub_cycle_buffer;
+
   // Existing port-level signals
   std::vector<PacketGenSignals> _node_gen;
   std::vector<LinkSignals> _node_link;
@@ -205,6 +215,8 @@ private:
               int flit_id_start, int flit_id_end);
   void _Trace(LinkSignals const & sigs, char & valid_last, Flit const * f);
   void _Trace(EjectSignals const & sigs, char & valid_last, Flit const * f);
+
+  void _FlushSubSteps();
 
   // Component 7: Gzip write wrapper
   void _Write(std::string const & s);

@@ -15,6 +15,7 @@
 #include <iostream>
 #include <cassert>
 #include "router.hpp"
+#include "vcd_tracer.hpp"
 
 //////////////////Sub router types//////////////////////
 #include "iq_router.hpp"
@@ -78,9 +79,20 @@ void Router::AddOutputChannel( FlitChannel *channel, CreditChannel *backchannel 
 void Router::Evaluate( )
 {
   _partial_internal_cycles += _internal_speedup;
+  int sub_step = 0;
   while( _partial_internal_cycles >= 1.0 ) {
+    if (gVCDTracer) {
+      gVCDTracer->SetSubStep(sub_step);
+      if (sub_step > 0) {
+        gVCDTracer->ClearRouterValid(_id);
+      }
+    }
     _InternalStep( );
     _partial_internal_cycles -= 1.0;
+    sub_step++;
+  }
+  if (gVCDTracer) {
+    gVCDTracer->SetSubStep(0);
   }
 }
 

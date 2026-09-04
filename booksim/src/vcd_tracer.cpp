@@ -25,7 +25,8 @@ VCDTracer::VCDTracer(Configuration const &config, int nodes, int routers,
       _trace_pipeline(config.GetInt("vcd_trace_pipeline") > 0),
       _trace_credits(config.GetInt("vcd_trace_credits") > 0),
       _trace_router(config.GetInt("vcd_trace_router")), _use_gzip(false),
-      _gz_out(NULL), _next_id(0), _last_time(-1) {
+      _gz_out(NULL), _next_id(0), _last_time(-1),
+      _time_tick(0), _current_sub_step(0), _current_cycle(0) {
   if (!_enabled) {
     return;
   }
@@ -56,6 +57,7 @@ VCDTracer::VCDTracer(Configuration const &config, int nodes, int routers,
 }
 
 VCDTracer::~VCDTracer() {
+  _FlushSubSteps();
   if (_use_gzip && _gz_out) {
     gzclose(_gz_out);
     _gz_out = NULL;
@@ -123,10 +125,12 @@ bool VCDTracer::LookupPacket(int packet_id, int *src, int *dest) const {
 // ---- Cycle start: clear per-cycle signals ----
 
 void VCDTracer::Cycle(int cycle) {
+  _FlushSubSteps();
   if (!InTraceWindow(cycle)) {
     return;
   }
-  _Time(cycle);
+  _current_cycle = cycle;
+  _current_sub_step = 0;
   _Set(_cycle_id, cycle);
 
   for (int node = 0; node < _nodes; ++node) {
@@ -817,7 +821,10 @@ void VCDTracer::_Set(std::string const &id, unsigned long long value) {
     }
     ss << " " << id << "\n";
   }
-  _Write(ss.str());
+  if (_current_sub_step >= (int)_sub_cycle_buffer.size()) {
+    _sub_cycle_buffer.resize(_current_sub_step + 1);
+  }
+  _sub_cycle_buffer[_current_sub_step].push_back(ss.str());
 }
 
 void VCDTracer::_SetBit(std::string const &id, bool value) {
@@ -833,7 +840,10 @@ void VCDTracer::_SetBit(std::string const &id, bool value) {
 
   std::ostringstream ss;
   ss << (value ? '1' : '0') << id << "\n";
-  _Write(ss.str());
+  if (_current_sub_step >= (int)_sub_cycle_buffer.size()) {
+    _sub_cycle_buffer.resize(_current_sub_step + 1);
+  }
+  _sub_cycle_buffer[_current_sub_step].push_back(ss.str());
 }
 
 // ---- Clear overloads ----
@@ -926,4 +936,38 @@ void VCDTracer::_Trace(EjectSignals const &sigs, char &valid_last,
   _Set(sigs.vc, f->vc < 0 ? ULLONG_MAX : (unsigned long long)f->vc);
   _Set(sigs.src, src < 0 ? ULLONG_MAX : (unsigned long long)src);
   _Set(sigs.dest, dest < 0 ? ULLONG_MAX : (unsigned long long)dest);
+}
+
+// ---- Sub-step support methods ----
+
+void VCDTracer::SetSubStep(int step) {
+  _current_sub_step = step;
+}
+
+void VCDTracer::ClearRouterValid(int router) {
+  if (!InTraceWindow(GetSimTime()) || !_trace_pipeline) return;
+  if (router < 0 || router >= _routers) return;
+  if (!ShouldTraceRouter(router)) return;
+
+  for (int stage = 0; stage < NUM_STAGES; ++stage) {
+    for (int inp = 0; inp < _router_outputs; ++inp) {
+      for (int vc = 0; vc < _vcs; ++vc) {
+        _Clear(_router_pipeline[router][stage][inp][vc],
+               _router_pipeline_valid_last[router][stage][inp][vc]);
+      }
+    }
+  }
+}
+
+void VCDTracer::_FlushSubSteps() {
+  if (_sub_cycle_buffer.empty()) return;
+  for (size_t step = 0; step < _sub_cycle_buffer.size(); ++step) {
+    if (step == 0 || !_sub_cycle_buffer[step].empty()) {
+      _Time(_time_tick++);
+    }
+    for (size_t i = 0; i < _sub_cycle_buffer[step].size(); ++i) {
+      _Write(_sub_cycle_buffer[step][i]);
+    }
+  }
+  _sub_cycle_buffer.clear();
 }

@@ -52,6 +52,7 @@ class VCDIndex:
         self.end_cycle = 0
         self.total_cycles = 0
         self.snapshots: List[Tuple[int, Dict[str, int]]] = [] # (cycle, signal_states)
+        self.time_tick_displays: List[Dict[str, str]] = [] # [{tick: 0, display: "0"}, ...]
         self._parse()
 
     def _parse(self):
@@ -112,7 +113,10 @@ class VCDIndex:
         # Route reconstruction: record (first_cycle, router) per flit
         # Using first-seen cycle per (flit, router) gives us true temporal order
         flit_router_first_cycle = {}  # (flit_id, router) -> first cycle number
-        current_cycle_num = 0
+        current_cycle_num = None
+        self.cycle_sid = self.signal_name_to_id.get("cycle")
+        last_sim_cyc = -1
+        sub_idx = 0
 
         i += 1
         while i < len(lines):
@@ -133,8 +137,21 @@ class VCDIndex:
                             flit_router_first_cycle[key] = current_cycle_num
 
                 # Save activity count for previous cycle
-                if self.byte_offsets:
+                if self.byte_offsets and current_cycle_num is not None:
                     self.activity.append(cycle_changes)
+                    # Determine display string for previous cycle
+                    if self.cycle_sid:
+                        sim_cyc = current_states.get(self.cycle_sid, 0)
+                        if sim_cyc != last_sim_cyc:
+                            sub_idx = 0
+                            last_sim_cyc = sim_cyc
+                        else:
+                            sub_idx += 1
+                        display_str = str(sim_cyc) if sub_idx == 0 else f"{sim_cyc}.{sub_idx}"
+                    else:
+                        display_str = str(current_cycle_num)
+                    self.time_tick_displays.append({"tick": current_cycle_num, "display": display_str})
+
                 try:
                     current_cycle_num = int(line[1:])
                     self.byte_offsets.append((current_cycle_num, line_offset))
@@ -178,8 +195,19 @@ class VCDIndex:
             i += 1
 
         # Save activity for last cycle
-        if self.byte_offsets:
+        if self.byte_offsets and current_cycle_num is not None:
             self.activity.append(cycle_changes)
+            if self.cycle_sid:
+                sim_cyc = current_states.get(self.cycle_sid, 0)
+                if sim_cyc != last_sim_cyc:
+                    sub_idx = 0
+                    last_sim_cyc = sim_cyc
+                else:
+                    sub_idx += 1
+                display_str = str(sim_cyc) if sub_idx == 0 else f"{sim_cyc}.{sub_idx}"
+            else:
+                display_str = str(current_cycle_num)
+            self.time_tick_displays.append({"tick": current_cycle_num, "display": display_str})
 
         # Build final flit routes by sorting each flit's routers by first-seen cycle
         route_entries = {}  # flit_id -> list of (cycle, router)
@@ -602,7 +630,6 @@ class VCDIndex:
                             "router": router, "port": port, "vc": vc,
                             "state": st_val,
                             "flit": val(st["front_flit"]),
-                            "pkt": val(st["front_pkt"]),
                             "out_port": val(st["out_port"]),
                             "out_vc": val(st["out_vc"])
                         })
@@ -629,7 +656,7 @@ class VCDIndex:
                                 "router": router, "input": port, "stage": stage_name,
                                 "flit": val(p_ids["flit"]) or 0,
                                 "pkt": val(p_ids["pkt"]) or 0,
-                                "vc": val(p_ids["vc"]) or 0,
+                                "vc": vc,
                                 "output": val(p_ids["output"]),
                                 "out_vc": val(p_ids["out_vc"]),
                                 "result": val(p_ids["result"])
@@ -770,6 +797,7 @@ def vcd_meta(path: str = Query(..., description="Relative path to .vcd file")):
                 "startCycle": index.start_cycle,
                 "endCycle": index.end_cycle,
                 "totalCycles": index.total_cycles,
+                "ticks": index.time_tick_displays,
             },
             "activityMap": index.activity,
             "parseTimeMs": round(parse_time * 1000, 1),

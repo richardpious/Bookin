@@ -204,12 +204,18 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     setIsDragging(false);
   }, []);
 
+  const currentDisplay = useMemo(() => {
+    if (!meta?.timeline?.ticks) return String(currentCycle);
+    const match = meta.timeline.ticks.find(t => t.tick === currentCycle);
+    return match ? match.display : String(currentCycle);
+  }, [currentCycle, meta]);
+
   // Sync cycleInput when currentCycle changes and user is not focused on input
   useEffect(() => {
     if (!isInputFocused) {
-      setCycleInput(String(currentCycle));
+      setCycleInput(currentDisplay);
     }
-  }, [currentCycle, isInputFocused]);
+  }, [currentDisplay, isInputFocused]);
 
   // 1. Fetch VCD Metadata on file change
   useEffect(() => {
@@ -230,7 +236,8 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
           setMeta(data);
           const start = data.timeline.startCycle;
           setCurrentCycle(start);
-          setCycleInput(String(start));
+          const startDisplay = data.timeline.ticks?.find(t => t.tick === start)?.display || String(start);
+          setCycleInput(startDisplay);
         }
       })
       .catch(err => {
@@ -315,16 +322,32 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     };
   }, [isPlaying, speed, meta]);
 
+  const resolveCycleInput = (inputVal) => {
+    if (!meta) return null;
+    const str = String(inputVal).trim();
+    if (meta.timeline?.ticks) {
+      const exactMatch = meta.timeline.ticks.find(t => t.display === str);
+      if (exactMatch) return exactMatch.tick;
+      const baseMatch = meta.timeline.ticks.find(t => t.display === str + '.0');
+      if (baseMatch) return baseMatch.tick;
+      const partialMatch = meta.timeline.ticks.find(t => t.display.startsWith(str));
+      if (partialMatch) return partialMatch.tick;
+    }
+    const val = parseInt(str, 10);
+    return isNaN(val) ? null : val;
+  };
+
   // Handle direct cycle input submit & blur
   const handleCycleSubmit = (e) => {
     if (e.key === 'Enter') {
-      const val = parseInt(cycleInput, 10);
-      if (!isNaN(val) && meta) {
-        const clamped = Math.max(meta.timeline.startCycle, Math.min(meta.timeline.endCycle, val));
+      const targetTick = resolveCycleInput(cycleInput);
+      if (targetTick !== null && meta) {
+        const clamped = Math.max(meta.timeline.startCycle, Math.min(meta.timeline.endCycle, targetTick));
         setCurrentCycle(clamped);
-        setCycleInput(String(clamped));
+        const disp = meta.timeline.ticks?.find(t => t.tick === clamped)?.display || String(clamped);
+        setCycleInput(disp);
       } else {
-        setCycleInput(String(currentCycle));
+        setCycleInput(currentDisplay);
       }
       e.target.blur();
     }
@@ -332,13 +355,14 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
 
   const handleCycleBlur = () => {
     setIsInputFocused(false);
-    const val = parseInt(cycleInput, 10);
-    if (!isNaN(val) && meta) {
-      const clamped = Math.max(meta.timeline.startCycle, Math.min(meta.timeline.endCycle, val));
+    const targetTick = resolveCycleInput(cycleInput);
+    if (targetTick !== null && meta) {
+      const clamped = Math.max(meta.timeline.startCycle, Math.min(meta.timeline.endCycle, targetTick));
       setCurrentCycle(clamped);
-      setCycleInput(String(clamped));
+      const disp = meta.timeline.ticks?.find(t => t.tick === clamped)?.display || String(clamped);
+      setCycleInput(disp);
     } else {
-      setCycleInput(String(currentCycle));
+      setCycleInput(currentDisplay);
     }
   };
 
@@ -1179,7 +1203,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                 className="seekbar-hover-tooltip"
                 style={{ left: `${seekHoverX}px` }}
               >
-                Cycle {seekHoverCycle}
+                Cycle {meta?.timeline?.ticks?.find(t => t.tick === seekHoverCycle)?.display || seekHoverCycle}
               </div>
             )}
           </div>
@@ -1243,7 +1267,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={handleCycleBlur}
               />
-              <span className="cycle-total">/ {meta?.timeline?.endCycle || 0}</span>
+              <span className="cycle-total">/ {meta?.timeline?.ticks?.[meta.timeline.ticks.length - 1]?.display || meta?.timeline?.endCycle || 0}</span>
               {fetchingRange && <span className="cycle-events">Loading data...</span>}
             </div>
           </div>
