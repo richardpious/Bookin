@@ -1,21 +1,49 @@
 import React, { useMemo } from 'react';
 
-// Maps port index to a visual position
-// BookSim: 0=East, 1=West, 2=South, 3=North, 4=Local
-const PORT_POS = {
-  0: { name: 'E', x: 20, y: 0, rx: 1, ry: 0, color: '#3b82f6' },
-  1: { name: 'W', x: -20, y: 0, rx: -1, ry: 0, color: '#eab308' },
-  2: { name: 'S', x: 0, y: 20, rx: 0, ry: 1, color: '#22c55e' },
-  3: { name: 'N', x: 0, y: -20, rx: 0, ry: -1, color: '#ef4444' },
-  4: { name: 'L', x: -22, y: -22, rx: -1, ry: -1, angle: -135, color: '#a855f7' }
-};
-
 const FILLED_VC_COLOR = '#59e160ff';
 
 export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
   const numPorts = meta?.topology?.ports || 5;
   const numVCs = meta?.topology?.vcs || 4;
   const vcBufSize = meta?.topology?.vcBufSize || 8;
+
+  // --- Dynamic sizing based on VC dimensions ---
+  const length = 1.2;       // Block size along flow direction
+  const thickness = 3.0;    // Block size across flow direction
+  const spacing = 0.8;      // Inter-VC gap
+  const blockStep = length + 0.2;
+
+  // How far the buffers extend along the flow direction from the port origin
+  const bufferDepth = vcBufSize * blockStep;
+  // How wide the set of VCs is perpendicular to the flow
+  const vcSpan = numVCs * (thickness + spacing);
+
+  // Port distance from center: crossbar half-size + gap + buffer depth
+  const xbarHalf = 10;
+  const portGap = 3;
+  const portDist = xbarHalf + portGap;
+
+  // Background rect needs to enclose all buffers with some padding
+  const bgPad = 6;
+  const bgHalf = portDist + bufferDepth + bgPad;
+
+  // Local port position (top-left corner area)
+  const localDist = portDist + 2;
+  const localX = -localDist;
+  const localY = -localDist;
+
+  // PE position: further out from local port
+  const peX = localX - bufferDepth - 12;
+  const peY = localY - bufferDepth - 12;
+
+  // Dynamic port positions
+  const PORT_POS = useMemo(() => ({
+    0: { name: 'E', x: portDist, y: 0, rx: 1, ry: 0, color: '#3b82f6' },
+    1: { name: 'W', x: -portDist, y: 0, rx: -1, ry: 0, color: '#eab308' },
+    2: { name: 'S', x: 0, y: portDist, rx: 0, ry: 1, color: '#22c55e' },
+    3: { name: 'N', x: 0, y: -portDist, rx: 0, ry: -1, color: '#ef4444' },
+    4: { name: 'L', x: localX, y: localY, rx: -1, ry: -1, angle: -135, color: '#a855f7' }
+  }), [portDist, localX, localY]);
 
   const pipeline = events?.pipeline?.filter(p => p.router === routerId) || [];
   const xbar = events?.xbar?.filter(x => x.router === routerId) || [];
@@ -78,10 +106,6 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
   const renderInputBuffers = (portIdx, data, pos) => {
     const { rx, ry } = pos;
     const isAngled = rx !== 0 && ry !== 0;
-
-    const length = 3;      // Block size along flow direction
-    const thickness = 1.5;  // Block size across flow direction
-    const spacing = 1.5;    // Inter-VC gap
 
     if (isAngled) {
       const angle = pos.angle || -135;
@@ -205,10 +229,19 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
 
   return (
     <g className="router-high-zoom">
+      <defs>
+        <marker id="arrow-default" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3.5" markerHeight="3.5" orient="auto-start-reverse">
+          <path d="M 0 2 L 10 5 L 0 8 z" fill="#d1d1d1" />
+        </marker>
+        <marker id="arrow-highlight" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3.5" markerHeight="3.5" orient="auto-start-reverse">
+          <path d="M 0 2 L 10 5 L 0 8 z" fill="#38bdf8" />
+        </marker>
+      </defs>
+
       {/* Background for High Zoom */}
       <rect
-        x="-32" y="-32"
-        width="64" height="64"
+        x={-bgHalf} y={-bgHalf}
+        width={bgHalf * 2} height={bgHalf * 2}
         fill="#0a0a0a"
         stroke="#4a4a4a"
         strokeWidth="0.5"
@@ -217,8 +250,8 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
 
       {/* Router ID Label (Top Right) */}
       <text
-        x={28}
-        y={-26}
+        x={bgHalf - 4}
+        y={-bgHalf + 6}
         fontSize="3.5px"
         fill="#94a3b8"
         textAnchor="end"
@@ -229,10 +262,22 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
         R{routerId}
       </text>
 
+      {/* PE Node */}
+      <g transform={`translate(${peX}, ${peY})`}>
+        <rect x={-6} y={-6} width={12} height={12} fill="#1e293b" stroke="#475569" strokeWidth={0.5} rx={1.5} />
+        <text y={0.5} fontSize="3.5px" fill="#94a3b8" textAnchor="middle" dominantBaseline="middle" fontWeight="bold">PE</text>
+      </g>
+      {/* Connection line from PE to Local port */}
+      <line
+        x1={peX + 6} y1={peY + 6}
+        x2={localX} y2={localY}
+        stroke="#475569" strokeWidth={0.4} strokeOpacity={0.6} strokeDasharray="1.5,1"
+      />
+
       {/* Central Crossbar Grid */}
       <rect
-        x="-10" y="-10"
-        width="20" height="20"
+        x={-xbarHalf} y={-xbarHalf}
+        width={xbarHalf * 2} height={xbarHalf * 2}
         fill="#141414"
         stroke="#262626"
         strokeWidth="0.5"
@@ -240,8 +285,8 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
 
       {Array.from({ length: 5 }).map((_, i) => (
         <g key={`grid-${i}`}>
-          <line x1="-10" y1={(i - 2) * 4} x2="10" y2={(i - 2) * 4} stroke="#262626" strokeWidth="0.2" />
-          <line x1={(i - 2) * 4} y1="-10" x2={(i - 2) * 4} y2="10" stroke="#262626" strokeWidth="0.2" />
+          <line x1={-xbarHalf} y1={(i - 2) * 4} x2={xbarHalf} y2={(i - 2) * 4} stroke="#262626" strokeWidth="0.2" />
+          <line x1={(i - 2) * 4} y1={-xbarHalf} x2={(i - 2) * 4} y2={xbarHalf} stroke="#262626" strokeWidth="0.2" />
         </g>
       ))}
 
@@ -288,19 +333,19 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
           const pos1 = PORT_POS[p1];
           const pos2 = PORT_POS[p2];
 
-          const p1X = pos1 ? pos1.rx * 10 : 0;
-          const p1Y = pos1 ? pos1.ry * 10 : 0;
-          const p2X = pos2 ? pos2.rx * 10 : 0;
-          const p2Y = pos2 ? pos2.ry * 10 : 0;
+          const p1X = pos1 ? pos1.rx * xbarHalf : 0;
+          const p1Y = pos1 ? pos1.ry * xbarHalf : 0;
+          const p2X = pos2 ? pos2.rx * xbarHalf : 0;
+          const p2Y = pos2 ? pos2.ry * xbarHalf : 0;
 
           const refDx = p2X - p1X;
           const refDy = p2Y - p1Y;
           const refDist = Math.hypot(refDx, refDy);
 
-          const baseStartX = inPos.rx * 10;
-          const baseStartY = inPos.ry * 10;
-          const baseEndX = outPos.rx * 10;
-          const baseEndY = outPos.ry * 10;
+          const baseStartX = inPos.rx * (xbarHalf - 2);
+          const baseStartY = inPos.ry * (xbarHalf - 2);
+          const baseEndX = outPos.rx * (xbarHalf - 2);
+          const baseEndY = outPos.ry * (xbarHalf - 2);
 
           let startX = baseStartX;
           let startY = baseStartY;
@@ -345,6 +390,7 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
               strokeWidth={isSelected ? "0.8" : "0.35"}
               strokeOpacity={isSelected ? "1.0" : "0.85"}
               strokeLinecap="round"
+              markerEnd={isSelected ? "url(#arrow-highlight)" : "url(#arrow-default)"}
               style={isSelected ? { filter: 'drop-shadow(0 0 2px rgba(56, 189, 248, 0.8))' } : {}}
             />
           );
