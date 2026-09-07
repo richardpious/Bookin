@@ -1,6 +1,6 @@
 ---
 name: "self-improving-proactive-agent"
-description: "Update storage path to /home/dell/Documents/Bookin/agent/self-improving/"
+description: "Maintains tiered memory structure for agent self-improvement and learning."
 ---
 
 # Self-Improving + Proactive Agent Skill
@@ -21,4 +21,7 @@ This skill enables the agent to learn from user corrections and self-reflection,
 ```
 
 ## Core Rules
-... (rest of the original content updated with new base path)
+1. Maintain tiered memory: HOT memory is always loaded; COLD memory stays in /archive.
+2. Log all corrections to corrections.md.
+3. Update index.md on new pattern storage.
+4. Review heartbeat-state.md daily to ensure improvement cycle continuity.

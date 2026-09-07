@@ -35,34 +35,59 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
     };
   }, [routerId, k]);
 
-  // Aggregate VC occupancy
-  const routerOccs = events?.vc_occ?.filter(v => v.router === routerId) || [];
-  const totalOcc = routerOccs.reduce((acc, curr) => acc + curr.occ, 0);
-  const maxCapacity = numPorts * numVCs * vcBufSize;
-  const occPercentage = maxCapacity > 0 ? (totalOcc / maxCapacity) * 100 : 0;
-
-  // Group by port
-  const portStats = useMemo(() => {
-    const stats = {};
-    for (let i = 0; i < numPorts; i++) {
-      stats[i] = { occ: 0, max: numVCs * vcBufSize, vcs: {} };
-      for (let j = 0; j < numVCs; j++) {
-        stats[i].vcs[j] = 0;
-      }
-    }
-    routerOccs.forEach(v => {
-      if (stats[v.port]) {
-        stats[v.port].occ += v.occ;
-        stats[v.port].vcs[v.vc] = v.occ;
-      }
-    });
-    return stats;
-  }, [routerOccs, numPorts, numVCs, vcBufSize]);
-
   // VCD Advanced Data
   const vcStates = events?.vc_state?.filter(v => v.router === routerId) || [];
   const pipeline = events?.pipeline?.filter(p => p.router === routerId) || [];
   const xbar = events?.xbar?.filter(x => x.router === routerId) || [];
+
+  // Compute effective per-VC stats: occupancy = max(rawOcc, detectedFlits)
+  // This ensures the count, flit list, and progress bar all agree.
+  const effectiveStats = useMemo(() => {
+    // Build raw occ lookup from vc_occ events
+    const routerOccs = events?.vc_occ?.filter(v => v.router === routerId) || [];
+    const rawOccMap = {};
+    routerOccs.forEach(v => {
+      rawOccMap[`${v.port}-${v.vc}`] = v.occ;
+    });
+
+    const portStats = {};
+    let totalOcc = 0;
+
+    for (let port = 0; port < numPorts; port++) {
+      let portOcc = 0;
+      const vcs = {};
+
+      for (let vc = 0; vc < numVCs; vc++) {
+        const rawOcc = rawOccMap[`${port}-${vc}`] || 0;
+
+        // Detect flits from VC state and pipeline (same logic as old getFlitsInVC)
+        const flits = new Set();
+        vcStates.forEach(v => {
+          if (v.port === port && v.vc === vc && v.flit != null && v.flit >= 0) {
+            flits.add(v.flit);
+          }
+        });
+        pipeline.forEach(p => {
+          if (p.input === port && p.vc === vc && p.flit != null && p.flit >= 0 && p.stage !== 'ST') {
+            flits.add(p.flit);
+          }
+        });
+
+        const flitList = Array.from(flits);
+        const effOcc = Math.max(rawOcc, flitList.length);
+        vcs[vc] = { occ: effOcc, rawOcc, flitList };
+        portOcc += effOcc;
+      }
+
+      portStats[port] = { occ: portOcc, max: numVCs * vcBufSize, vcs };
+      totalOcc += portOcc;
+    }
+
+    const maxCapacity = numPorts * numVCs * vcBufSize;
+    const occPercentage = maxCapacity > 0 ? (totalOcc / maxCapacity) * 100 : 0;
+
+    return { portStats, totalOcc, maxCapacity, occPercentage };
+  }, [events, routerId, numPorts, numVCs, vcBufSize, vcStates, pipeline]);
 
   const PORT_NAMES = {
     0: 'Port 0 (East)',
@@ -72,29 +97,9 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
     4: 'Port 4 (Local)',
   };
 
-  const getFlitsInVC = (portStr, vcStr) => {
-    const port = Number(portStr);
-    const vc = Number(vcStr);
-    const flits = new Set();
-    
-    // Check VC state for head flit
-    vcStates.forEach(v => {
-      if (v.port === port && v.vc === vc && v.flit != null && v.flit >= 0) {
-        flits.add(v.flit);
-      }
-    });
-
-    // Check pipeline stages for active flits in this input port & VC
-    pipeline.forEach(p => {
-      if (p.input === port && p.vc === vc && p.flit != null && p.flit >= 0) {
-        flits.add(p.flit);
-      }
-    });
-
-    return Array.from(flits);
-  };
-
-  const renderOverview = () => (
+  const renderOverview = () => {
+    const { portStats, totalOcc, maxCapacity, occPercentage } = effectiveStats;
+    return (
     <div className="rdc-body">
       {/* Overall Buffer Occupancy */}
       <div className="rdc-section">
@@ -136,13 +141,13 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
                   <div className="rdc-port-bar-fill" style={{ width: `${Math.min(100, pct)}%` }} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, numVCs)}, 1fr)`, gap: '6px' }}>
-                  {Object.entries(stat.vcs).map(([vc, occ]) => {
-                    const flitList = getFlitsInVC(port, vc);
+                  {Object.entries(stat.vcs).map(([vc, vcData]) => {
+                    const { occ, flitList } = vcData;
                     return (
                       <div key={vc} style={{ backgroundColor: '#171717', padding: '6px', borderRadius: '4px', textAlign: 'center', border: '1px solid #262626' }}>
                         <div style={{ fontSize: '10px', color: '#a3a3a3', fontWeight: '500', marginBottom: '2px' }}>VC {vc}</div>
                         <div style={{ fontSize: '12px', color: '#f5f5f5', fontWeight: '600' }}>{occ}</div>
-                        {occ > 0 && (
+                        {(occ > 0 || flitList.length > 0) && (
                           <div style={{ fontSize: '10px', color: '#60a5fa', marginTop: '3px', fontWeight: '500', wordBreak: 'break-word' }}>
                             {flitList.length > 0 ? flitList.map(f => `F${f}`).join(', ') : 'Occupied'}
                           </div>
@@ -158,16 +163,49 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
       </div>
     </div>
   );
+  };
 
-  const renderPipeline = () => (
+  const renderPipeline = () => {
+    // Build a merged list: active pipeline entries (BW-SA) + idle flits in VCs
+    const activePipelineEntries = pipeline.filter(p => p.stage !== 'ST');
+    
+    // Track which (port, vc, flit) combos are already covered by pipeline events
+    const activeFlidKeys = new Set();
+    activePipelineEntries.forEach(p => {
+      if (p.flit != null && p.flit >= 0) {
+        activeFlidKeys.add(`${p.input}-${p.vc}-${p.flit}`);
+      }
+    });
+
+    // Find flits that are in the VC but not in any active pipeline stage
+    const idleEntries = [];
+    vcStates.forEach(v => {
+      if (v.flit != null && v.flit >= 0 && !activeFlidKeys.has(`${v.port}-${v.vc}-${v.flit}`)) {
+        // This flit is the front of the VC but not actively in a pipeline stage
+        idleEntries.push({
+          input: v.port,
+          vc: v.vc,
+          flit: v.flit,
+          pkt: null,
+          stage: 'IDLE',
+          result: 0,
+          output: null,
+          out_vc: null,
+        });
+      }
+    });
+
+    const allEntries = [...activePipelineEntries, ...idleEntries];
+
+    return (
     <div className="rdc-body">
       <div className="rdc-section">
         <div className="rdc-section-header">
           <FastForward size={14} />
           <h4>Pipeline Stages</h4>
         </div>
-        {pipeline.length === 0 ? (
-          <div className="rdc-empty-state">No pipeline activity in current cycle.</div>
+        {allEntries.length === 0 ? (
+          <div className="rdc-empty-state">No flits in buffers in current cycle.</div>
         ) : (
           <div className="rdc-table-wrapper">
             <table className="rdc-table">
@@ -181,10 +219,11 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
                 </tr>
               </thead>
               <tbody>
-                {pipeline.map((p, idx) => {
+                {allEntries.map((p, idx) => {
                   const resStr = PIPE_RESULT[p.result] || 'UNKNOWN';
                   const isStall = resStr.startsWith('STALL');
-                  const isHighlighted = selectedFlit && p.flit === selectedFlit.flit && p.pkt === selectedFlit.pkt;
+                  const isIdle = p.stage === 'IDLE';
+                  const isHighlighted = selectedFlit && p.flit === selectedFlit.flit && (p.pkt == null || p.pkt === selectedFlit.pkt);
                   return (
                     <tr 
                       key={idx} 
@@ -195,7 +234,7 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
                       <td>{p.input}</td>
                       <td>{p.vc}</td>
                       <td>{p.flit}</td>
-                      <td><span className="rdc-badge rdc-badge-stage">{p.stage}</span></td>
+                      <td><span className={`rdc-badge ${isIdle ? 'rdc-badge-neutral' : 'rdc-badge-stage'}`}>{p.stage}</span></td>
                       <td><span className={`rdc-badge ${isStall ? 'rdc-badge-warning' : p.result === 1 ? 'rdc-badge-success' : 'rdc-badge-neutral'}`}>{resStr}</span></td>
                     </tr>
                   );
@@ -239,6 +278,7 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
       </div>
     </div>
   );
+  };
 
   const renderVCs = () => {
     // Group VC states by port

@@ -488,7 +488,7 @@ class VCDIndex:
                     try:
                         signal_states[sid] = int(bits, 2) if bits != '0' else 0
                     except ValueError:
-                        pass
+                        signal_states[sid] = None
             elif c == '#':
                 # Flush previous cycle
                 if current_cycle is not None and target_start <= current_cycle <= target_end:

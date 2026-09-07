@@ -27,7 +27,7 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
     const data = {};
     for (let i = 0; i < numPorts; i++) {
       data[i] = {
-        vcs: Array.from({ length: numVCs }, () => ({ state: 0, occ: 0, front_flit: -1, has_selected: false })),
+        vcs: Array.from({ length: numVCs }, () => ({ state: 0, occ: 0, front_flit: -1, has_selected: false, flits: new Set() })),
         pipeline: []
       };
     }
@@ -36,6 +36,9 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
       if (data[v.port] && data[v.port].vcs[v.vc]) {
         data[v.port].vcs[v.vc].state = v.state;
         data[v.port].vcs[v.vc].front_flit = v.flit;
+        if (v.flit != null && v.flit >= 0) {
+          data[v.port].vcs[v.vc].flits.add(v.flit);
+        }
         if (selectedFlit != null && v.flit === selectedFlit.flit) {
           data[v.port].vcs[v.vc].has_selected = true;
         }
@@ -51,11 +54,22 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
     pipeline.forEach(p => {
       if (data[p.input]) {
         data[p.input].pipeline.push(p);
-        if (selectedFlit != null && p.flit === selectedFlit.flit && data[p.input].vcs[p.vc]) {
+        if (p.stage !== 'ST' && p.flit != null && p.flit >= 0 && data[p.input].vcs[p.vc]) {
+          data[p.input].vcs[p.vc].flits.add(p.flit);
+        }
+        if (selectedFlit != null && p.flit === selectedFlit.flit && p.stage !== 'ST' && data[p.input].vcs[p.vc]) {
           data[p.input].vcs[p.vc].has_selected = true;
         }
       }
     });
+
+    // Compute effective occ = max(rawOcc, detected flit count)
+    for (let i = 0; i < numPorts; i++) {
+      for (let j = 0; j < numVCs; j++) {
+        const vc = data[i].vcs[j];
+        vc.occ = Math.max(vc.occ, vc.flits.size);
+      }
+    }
 
     return data;
   }, [vcStates, vcOccs, pipeline, numPorts, numVCs]);
@@ -93,7 +107,7 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
 
             const blocks = [];
             for (let i = 0; i < vcBufSize; i++) {
-              const isFilled = i < vc.occ || (i === 0 && vc.has_selected);
+              const isFilled = i < vc.occ;
               const bx = i * (length + 0.2);
 
               blocks.push(
