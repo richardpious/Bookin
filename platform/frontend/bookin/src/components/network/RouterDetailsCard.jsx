@@ -223,7 +223,7 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
                   const resStr = PIPE_RESULT[p.result] || 'UNKNOWN';
                   const isStall = resStr.startsWith('STALL');
                   const isIdle = p.stage === 'IDLE';
-                  const isHighlighted = selectedFlit && p.flit === selectedFlit.flit && (p.pkt == null || p.pkt === selectedFlit.pkt);
+                  const isHighlighted = selectedFlit && p.flit === selectedFlit.flit && (p.pkt == null || selectedFlit.pkt == null || p.pkt === selectedFlit.pkt);
                   return (
                     <tr 
                       key={idx} 
@@ -255,7 +255,7 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
         ) : (
           <div className="rdc-xbar-list">
             {xbar.map((x, idx) => {
-              const isHighlighted = selectedFlit && x.flit === selectedFlit.flit && x.pkt === selectedFlit.pkt;
+              const isHighlighted = selectedFlit && x.flit === selectedFlit.flit && (x.pkt == null || selectedFlit.pkt == null || x.pkt === selectedFlit.pkt);
               return (
               <div 
                 key={idx} 

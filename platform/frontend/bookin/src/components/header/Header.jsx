@@ -48,9 +48,12 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
   return (
     <header className="app-header">
       {/* Left — Logo */}
-      <div className="header-left">
-        <img src="/logolight.png" alt="INoCSim Logo" className="logo-img" />
-        <span className="logo">INoCSim</span>
+      <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <img src="/icon.svg" alt="iNoCSim Icon" style={{ width: '24px', height: '24px' }} />
+        <div style={{ width: '2px', height: '20px', background: '#5B8DEF', borderRadius: '1px' }}></div>
+        <div style={{ fontFamily: "'Unbounded', sans-serif", fontWeight: 800, fontSize: '19px', letterSpacing: '-0.02em', color: '#F5F6F8', transform: 'scaleX(0.85)', transformOrigin: 'left center' }}>
+          iNoCSim
+        </div>
       </div>
 
       {/* Center empty space to keep layout balanced */}

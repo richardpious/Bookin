@@ -915,7 +915,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                   return null;
                 }
 
-                const isFlitSelected = selectedFlit?.flit === flit.flit && selectedFlit?.pkt === flit.pkt;
+                const isFlitSelected = selectedFlit?.flit === flit.flit && (selectedFlit?.pkt == null || flit.pkt == null || selectedFlit?.pkt === flit.pkt);
                 const flitColor = getFlitColor(flit);
 
                 return (
