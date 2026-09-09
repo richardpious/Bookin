@@ -77,7 +77,7 @@ class OpenClawGatewayClient:
         
         async with OpenClawGatewayClient.config_lock:
             if not os.path.exists(config_path):
-                config = {"agents": {"list": []}}
+                config = {"agents": {"list": []}, "gateway": {"mode": "local", "auth": {"mode": "none"}}}
             else:
                 with open(config_path, "r") as f:
                     config = json.load(f)
@@ -85,6 +85,9 @@ class OpenClawGatewayClient:
             if "agents" not in config: config["agents"] = {}
             if "entries" not in config["agents"]: config["agents"]["entries"] = {}
             if "list" in config["agents"]: del config["agents"]["list"]
+            if "gateway" not in config: config["gateway"] = {}
+            if "mode" not in config["gateway"]: config["gateway"]["mode"] = "local"
+            if "auth" not in config["gateway"]: config["gateway"]["auth"] = {"mode": "none"}
             
             agent_id = username
             

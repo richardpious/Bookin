@@ -18,7 +18,7 @@ async def init_session(session_id: str, request: Request, authorization: Optiona
         username = get_current_username(authorization.split(" ", 1)[1])
 
     # 1. Fetch available models
-    models_response = await get_models(request)
+    models_response = await get_models(request, username)
 
     # 2. Fetch session model
     session_model_response = await get_session_model(session_id, request, username)
@@ -33,7 +33,10 @@ async def init_session(session_id: str, request: Request, authorization: Optiona
         "thinkingLevels": session_data.get("thinkingLevels")
     }
 @router.get("/available-models")
-async def get_models(request: Request):
+async def get_models(request: Request, username: str = None, authorization: Optional[str] = FastAPIHeader(None)):
+    if not username and authorization and authorization.startswith("Bearer "):
+        username = get_current_username(authorization.split(" ", 1)[1])
+        
     gateway_client = request.app.state.gateway_client
 
     request_id = str(uuid.uuid4())
@@ -64,13 +67,19 @@ async def get_models(request: Request):
             # Filter to strictly display gemini-3.1-flash-lite and nemotron models
             filtered_models = [
                 m for m in models_data
-                if "gemini-3.1-flash-lite" in m.get('id', '').lower() or "nemotron" in m.get('id', '').lower()
+                if "gemini-3.1-flash-lite" in m.get('key', m.get('id', '')).lower() or "nemotron" in m.get('key', m.get('id', '')).lower()
             ]
 
             # Group models by provider
             providers = {}
             for m in filtered_models:
-                p = m.get('provider', 'unknown')
+                key = m.get('key', m.get('id', ''))
+                parts = key.split('/', 1)
+                p = parts[0] if len(parts) > 1 else 'unknown'
+                
+                # fallback for old provider field just in case
+                p = m.get('provider', p)
+                
                 if p not in providers:
                     providers[p] = []
                 providers[p].append(m)
@@ -85,8 +94,8 @@ async def get_models(request: Request):
                 # Add Models
                 for m in provider_models:
                     models.append({
-                        "id": m['id'],
-                        "name": m['name']
+                        "id": m.get('key', m.get('id', '')),
+                        "name": m.get('name', '')
                     })
             return {"models": models}
         await asyncio.sleep(0.5)

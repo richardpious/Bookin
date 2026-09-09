@@ -75,7 +75,8 @@ export function useSessionManagement(token) {
 
   const deleteSession = useCallback(async (session, shouldReopen = false, onResetSuccess = null) => {
     try {
-      const response = await fetch(`/delete_session/${session}`, { 
+      const endpoint = shouldReopen ? `/reset_session/${session}` : `/delete_session/${session}`;
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
