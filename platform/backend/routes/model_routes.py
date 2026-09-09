@@ -36,7 +36,10 @@ async def init_session(session_id: str, request: Request, authorization: Optiona
 async def get_models(request: Request, username: str = None, authorization: Optional[str] = FastAPIHeader(None)):
     if not username and authorization and authorization.startswith("Bearer "):
         username = get_current_username(authorization.split(" ", 1)[1])
-        
+    global available_models
+    if available_models:
+        return {"models": available_models}
+
     gateway_client = request.app.state.gateway_client
 
     request_id = str(uuid.uuid4())
@@ -93,10 +96,12 @@ async def get_models(request: Request, username: str = None, authorization: Opti
                 })
                 # Add Models
                 for m in provider_models:
+                    raw_id = m.get('key', m.get('id', ''))
                     models.append({
-                        "id": m.get('key', m.get('id', '')),
+                        "id": f"{provider}/{raw_id}" if '/' not in raw_id else raw_id,
                         "name": m.get('name', '')
                     })
+            available_models = models
             return {"models": models}
         await asyncio.sleep(0.5)
 
