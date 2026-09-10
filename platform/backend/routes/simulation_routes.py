@@ -4,7 +4,7 @@ import re
 import shutil
 import subprocess
 import logging
-from paths import get_project_root, sanitize_path
+from paths import get_project_root
 
 logger = logging.getLogger("SimulationRoutes")
 router = APIRouter()

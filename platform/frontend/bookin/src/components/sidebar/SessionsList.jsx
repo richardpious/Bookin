@@ -124,7 +124,7 @@ const SessionHeader = React.memo(({ onAddClick, onToggleCollapse }) => (
   </div>
 ))
 
-export const SessionsList = React.memo(({ sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, sidebarRef, createSession, onToggleCollapse }) => {
+export const SessionsList = React.memo(({ sessions, sessionsLoaded, currentSession, onSelectSession, onResetSession, sidebarRef, createSession, onToggleCollapse }) => {
   const isEmpty = !sessions || sessions.length === 0
   const [isCreating, setIsCreating] = useState(false)
   const [newSessionName, setNewSessionName] = useState('')

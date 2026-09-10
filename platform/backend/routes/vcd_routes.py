@@ -720,7 +720,7 @@ class VCDIndex:
             return ny * self.k + nx
         return -1  # out of bounds (edge of mesh)
 
-from paths import get_project_root, sanitize_path
+from paths import sanitize_path
 
 
 def _resolve_path(path: str) -> Optional[str]:

@@ -83,7 +83,6 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
                 }
             }
             const normalizedPath = normalizedParts.join('/');
-            console.log(`Navigating from ${filePath} to: ${normalizedPath}`);
             // Pass true to replace the current tab
             onFileClick(normalizedPath, true);
           }

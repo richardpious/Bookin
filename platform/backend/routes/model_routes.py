@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends, Header as FastAPIHeader
+from fastapi import APIRouter, Request, Depends
 from typing import Optional
 import uuid
 import json

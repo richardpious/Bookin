@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Settings, Server, Cpu } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Play, Settings, Cpu } from 'lucide-react';
 import { fetchFiles, readFileContent, updateFileContent, runSimulationAPI } from '../../utils/fileUtils';
 import './SimulationRunner.css';
 

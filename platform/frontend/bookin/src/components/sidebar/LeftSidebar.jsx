@@ -1,10 +1,10 @@
 import React, { useRef } from 'react'
-import { BookOpen, Activity, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { BookOpen, Activity, PanelLeftOpen } from 'lucide-react'
 import { SessionsList } from './SessionsList'
 import { ProjectFilesList } from './ProjectFilesList'
 import './LeftSidebar.css'
 
-export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, connectionStatus, username, hasUnreadLogs, onClearUnreadLogs, createSession, collapsed, onToggleCollapse, onSearch, onError }) => {
+export const LeftSidebar = React.memo(({ onFileClick, activeFile, sessions, sessionsLoaded, setSessions, currentSession, onSelectSession, onResetSession, username, hasUnreadLogs, onClearUnreadLogs, createSession, collapsed, onToggleCollapse, onSearch, onError }) => {
   const sidebarRef = useRef(null)
 
   if (collapsed) {

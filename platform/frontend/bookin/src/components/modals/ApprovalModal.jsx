@@ -5,7 +5,6 @@ const ApprovalModal = ({ isOpen, approvalRequest, setApprovalRequest }) => {
   if (!isOpen || !approvalRequest) return null;
 
   const handleDecision = async (decision) => {
-    console.log(`${decision} clicked`, approvalRequest.id);
     await fetch('/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

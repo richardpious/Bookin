@@ -1,4 +1,3 @@
-import React, { useMemo } from 'react';
 
 const FILLED_VC_COLOR = '#59e160ff';
 

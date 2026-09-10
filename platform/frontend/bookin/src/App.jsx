@@ -121,9 +121,8 @@ function App() {
 
   const handleOpenFileFromSearch = useCallback(async (filePath, lineNumber) => {
     // Wait for the file to be opened and the actual path to be resolved
-    const resolvedPath = await handleFileClick(filePath);
+    await handleFileClick(filePath);
     setActiveLine(lineNumber);
-    console.log(`Opened ${resolvedPath} at line ${lineNumber}`);
   }, [handleFileClick]);
 
   if (!token) {

@@ -83,7 +83,7 @@ export function useSessionManagement(token) {
       let responseData = {};
       try {
         responseData = await response.json();
-      } catch (e) {
+      } catch {
         // ignore JSON parse error
       }
 
@@ -92,7 +92,6 @@ export function useSessionManagement(token) {
       }
 
       const newSessions = await fetchSessions(token);
-      console.log("Updated sessions:", newSessions);
 
       if (shouldReopen && !newSessions.some(s => s.id === session)) {
           // If reopen is true but it's not in the new list, it was deleted, so we should keep our optimistic UI state?

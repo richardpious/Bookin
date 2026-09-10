@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 
 export function useAgentSettings(token, username, sessionId) {
   const handleModelChange = useCallback(async (modelId) => {
-    console.log("Model changed to:", modelId);
     try {
       const response = await fetch('/set-model', {
         method: 'POST',
@@ -16,7 +15,6 @@ export function useAgentSettings(token, username, sessionId) {
         })
       });
       const data = await response.json();
-      console.log("Model switch response:", data);
       return data;
     } catch (err) {
       console.error("Error setting model:", err);
@@ -25,7 +23,6 @@ export function useAgentSettings(token, username, sessionId) {
   }, [sessionId, token]);
 
   const handleThinkingLevelChange = useCallback(async (level) => {
-    console.log("Thinking level changed to:", level);
     try {
       const response = await fetch('/set-thinking-level', {
         method: 'POST',
@@ -40,7 +37,6 @@ export function useAgentSettings(token, username, sessionId) {
         })
       });
       const data = await response.json();
-      console.log("Thinking level switch response:", data);
       return data;
     } catch (err) {
       console.error("Error setting thinking level:", err);

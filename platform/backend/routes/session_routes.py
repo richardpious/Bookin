@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uuid
 import logging
-from .auth_routes import get_current_user, get_optional_username_from_header, build_session_key
+from .auth_routes import get_current_user, get_optional_username_from_header
 from typing import Optional
 from paths import get_project_root
 

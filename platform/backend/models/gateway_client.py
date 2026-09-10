@@ -59,7 +59,7 @@ class OpenClawGatewayClient:
             await self.websocket.send(json.dumps(handshake))
             
             # 3. Wait for hello-ok
-            response = await self.websocket.recv()
+            await self.websocket.recv()
             logger.info(f"Handshake complete ")
             
         except Exception as e:

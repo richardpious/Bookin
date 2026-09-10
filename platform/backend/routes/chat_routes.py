@@ -1,6 +1,4 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials
-import json
 from .session_routes import verify_token
 from .auth_routes import get_current_username
 

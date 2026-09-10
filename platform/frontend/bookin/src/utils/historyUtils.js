@@ -34,7 +34,7 @@ export const fetchChatHistory = async (sessionId, token) => {
             isError: Boolean(parsed.isError),
             text: `Using tool: ${parsed.title || parsed.name}`
           };
-        } catch (e) {
+        } catch {
           return null;
         }
       }

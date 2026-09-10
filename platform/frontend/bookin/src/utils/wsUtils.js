@@ -7,15 +7,10 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
     let data;
     try {
       data = JSON.parse(event.data);
-    } catch (e) {
+    } catch {
       console.error("Non-JSON message received:", event.data);
       return;
     }
-    if (import.meta.env.DEV) {
-      console.log("WebSocket message received:", data);
-    }
-
-
     if (data.type === 'gateway_log') {
       if (import.meta.env.DEV) {
         console.group("OpenClaw Gateway Event");
@@ -103,7 +98,6 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
     }
 
     if (data.type === 'command' && data.action === 'reset') {
-      console.log("Reset command received");
       setMessages([]); // Assuming you want to clear the chat UI
       setIsLoading(false);
       return;
@@ -112,7 +106,6 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
       onRequireApproval(data.data);
     } else if (data.type === 'simulation-completed' || data.type === 'file-changed') {
       const fullPath = data.path;
-      console.log("WebSocket file update received:", data.type, fullPath);
       onFileSilentUpdate(fullPath);
     } else if (data.type === 'file-preview') {
       onFilePreview(data.data); // data.data is now the file path string

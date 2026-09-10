@@ -2,7 +2,6 @@ import sqlite3
 import os
 import bcrypt
 import json
-from datetime import datetime
 
 class ChatHistoryDB:
     def __init__(self, db_path="chat_history.db"):

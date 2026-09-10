@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Request, Body
+from fastapi import APIRouter, Body
 import os
 import shutil
 import asyncio
-import uuid
 import logging
 from datetime import datetime, timezone
-from paths import get_project_root, sanitize_path
+from paths import get_project_root
 
 logger = logging.getLogger("FileRoutes")
 

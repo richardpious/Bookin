@@ -53,7 +53,6 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
     const triggerFastReconnect = () => {
       if (cancelled) return;
       if (!currentWs || currentWs.readyState === WebSocket.CLOSED || currentWs.readyState === WebSocket.CLOSING) {
-        console.log('[WS] Fast-tracking reconnect due to event (user interaction / online / tab focus)');
         clearTimeout(retryTimeout);
         retryCount = 0;
         connect();
@@ -102,7 +101,6 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
 
       ws.onopen = () => {
         if (cancelled) { ws.close(); return; }
-        console.log('[WS] Connected');
         retryCount = 0; // reset backoff on successful connection
 
         // Keep-Warm HTTP & WS Stream Timer: Send lightweight HTTP request every 25s
@@ -122,18 +120,16 @@ export const useChatManagement = (sessionId, handleOpenFilePreview, handleSilent
 
       ws.onerror = (err) => {
         console.error('[WS] Error:', err);
-        try { ws.close(); } catch (_) { /* already closing */ }
+        try { ws.close(); } catch { /* already closing */ }
       };
 
       ws.onclose = () => {
         clearInterval(healthInterval);
         if (cancelled) return;          // intentional close on unmount/session-switch
         if (ws !== currentWs) return;    // stale socket — a newer connect() already ran
-        console.log('[WS] Disconnected — scheduling reconnect…');
         setIsLoading(false);             // clear any stuck loading spinner
         setIsConnecting(true);
         const delay = Math.min(BASE_DELAY_MS * 2 ** retryCount, MAX_DELAY_MS);
-        console.log(`[WS] Reconnecting in ${delay}ms (attempt ${retryCount + 1})`);
         retryCount++;
         retryTimeout = setTimeout(connect, delay);
       };

@@ -16,7 +16,6 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
       })
         .then(res => res.json())
         .then(data => {
-          console.log("Refreshed session data:", data);
           setSessionData(data);
         })
         .catch(err => console.error('Error fetching session:', err));
@@ -24,7 +23,6 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
   };
 
   useEffect(() => {
-    console.log("Header session change detected, fetching:", sessionId);
     if (sessionId) {
       setSessionData(null); // Clear previous data so selectors reset
       refreshSessionData();

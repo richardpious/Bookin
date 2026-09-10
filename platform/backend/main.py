@@ -7,7 +7,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse
 import asyncio
 from watchdog.observers import Observer
 from chat_history import ChatHistoryDB
@@ -15,7 +15,7 @@ from models.connection_manager import ConnectionManager
 from models.gateway_client import OpenClawGatewayClient
 from models.search_engine import SearchEngine
 from models.file_watcher import FileChangeHandler
-from routes import auth_routes, chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, log_routes, debug_routes, health_routes, vcd_routes, simulation_routes
+from routes import auth_routes, chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, debug_routes, health_routes, vcd_routes, simulation_routes
 
 app = FastAPI()
 

@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
 import uuid
 import logging
 import os
-import shutil
-import asyncio
 from .auth_routes import get_current_user, get_current_username, build_session_key
 
 logger = logging.getLogger("WebSocketRoutes")
@@ -126,5 +124,5 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
         # We MUST NOT clear the busy flag here. 
         # The agent run in OpenClaw is still active. 
         # Clearing it here allows a new chat.send to be fired upon reconnect, causing initialization conflicts.
-    except Exception as e:
+    except Exception:
         manager.disconnect(compound_key, websocket)

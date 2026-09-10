@@ -7,21 +7,17 @@ import './ProjectFilesList.css'
 const FileNode = React.memo(({ name, path, isDir, onFileClick, activeFile, depth = 0 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [children, setChildren] = useState([])
-  const [loading, setLoading] = useState(false)
   const isActive = path === activeFile
 
   const handleClick = async (e) => {
     e.stopPropagation();
     if (isDir) {
       if (!isOpen) {
-        setLoading(true)
         try {
           const fetchedFiles = await fetchFiles(path)
           setChildren(fetchedFiles)
         } catch (err) {
           console.error(err)
-        } finally {
-          setLoading(false)
         }
       }
       setIsOpen(!isOpen)
