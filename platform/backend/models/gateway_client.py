@@ -168,7 +168,6 @@ class OpenClawGatewayClient:
             "method": "chat.send",
             "params": {
                 "sessionKey": session_key,
-                "sessionId": openclaw_session_id,
                 "message": message,
                 "deliver": False,
                 "idempotencyKey": str(uuid.uuid4())
