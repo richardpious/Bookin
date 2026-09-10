@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from typing import Any
+import logging
+
+logger = logging.getLogger("EventRoutes")
 
 router = APIRouter()
 
@@ -19,8 +22,8 @@ async def agent_event(request: Request, payload: AgentEventPayload):
 
     # Log all connections
     registered_sessions = list(manager.active_connections.keys())
-    print(f"DEBUG: active_connections: {registered_sessions}")
-    print(f"DEBUG: trying to send to: {session}")
+    logger.debug(f"active_connections: {registered_sessions}")
+    logger.debug(f"trying to send to: {session}")
 
     target_session = None
     for sess in registered_sessions:
@@ -28,7 +31,7 @@ async def agent_event(request: Request, payload: AgentEventPayload):
             target_session = sess
             break
 
-    print(f"DEBUG: final target session: {target_session}")
+    logger.debug(f"final target session: {target_session}")
     if target_session:
         await manager.send_personal_message(
             {"type": event, "data": data},

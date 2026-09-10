@@ -2,7 +2,12 @@ from fastapi import APIRouter, Request, Depends, HTTPException, status
 from pydantic import BaseModel
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uuid
-from .auth_routes import get_current_user, get_current_username, build_session_key
+import logging
+from .auth_routes import get_current_user, get_optional_username_from_header, build_session_key
+from typing import Optional
+from paths import get_project_root
+
+logger = logging.getLogger("SessionRoutes")
 
 router = APIRouter()
 security = HTTPBearer()
@@ -28,16 +33,11 @@ import os
 import shutil
 
 @router.post("/sessions")
-async def create_session(request: Request, data: SessionCreate, user_id: int = Depends(verify_token)):
+async def create_session(request: Request, data: SessionCreate, user_id: int = Depends(verify_token), username: Optional[str] = Depends(get_optional_username_from_header)):
     session_id = str(uuid.uuid4())
     
-    auth_header = request.headers.get("authorization", "")
-    username = None
-    if auth_header.startswith("Bearer "):
-        username = get_current_username(auth_header.split(" ", 1)[1])
-        
     if username:
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        root_dir = get_project_root()
         session_log_dir = os.path.join(root_dir, "logs", username, data.title)
         os.makedirs(session_log_dir, exist_ok=True)
         
@@ -56,95 +56,62 @@ async def create_session(request: Request, data: SessionCreate, user_id: int = D
     request.app.state.chat_db.create_session(session_id, user_id, data.title)
     return {"id": session_id, "title": data.title}
 
-@router.post("/delete_session/{session_id}")
-async def delete_session(request: Request, session_id: str, user_id: int = Depends(verify_token)):
+
+async def _cleanup_session_resources(request: Request, session_id: str, username: Optional[str]):
+    """Helper to clean up WebSockets, gateway session, and log files for a session."""
     manager = request.app.state.manager
-    chat_db = request.app.state.chat_db
     gateway_client = request.app.state.gateway_client
+    chat_db = request.app.state.chat_db
+
+    compound_key = f"{username}:{session_id}" if username else session_id
+
+    if compound_key in manager.active_connections:
+        for ws in manager.active_connections[compound_key]:
+            try:
+                await ws.send_json({"type": "command", "action": "reset"})
+            except Exception:
+                pass
+
+    # Send reset command to openclaw
+    try:
+        await gateway_client.send_agent_message("/reset", session_id, username)
+    except Exception as e:
+        logger.warning(f"Failed to reset openclaw agent session {session_id}: {e}")
+
+    # Delete session folder from logs
+    session_title = chat_db.get_session_title(session_id)
+    if username and session_title:
+        session_log_dir = os.path.join(get_project_root(), "logs", username, session_title)
+        if os.path.exists(session_log_dir):
+            shutil.rmtree(session_log_dir)
+
+@router.post("/delete_session/{session_id}")
+async def delete_session(request: Request, session_id: str, user_id: int = Depends(verify_token), username: Optional[str] = Depends(get_optional_username_from_header)):
+    chat_db = request.app.state.chat_db
 
     # Verify ownership
     sessions = chat_db.get_user_sessions(user_id)
     if not any(s["id"] == session_id for s in sessions):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your session")
 
-    # Extract username from token for compound key and session key
-    auth_header = request.headers.get("authorization", "")
-    username = None
-    if auth_header.startswith("Bearer "):
-        username = get_current_username(auth_header.split(" ", 1)[1])
-
-    # Compound key used by connection manager: "username:session_id"
-    compound_key = f"{username}:{session_id}" if username else session_id
-
     try:
-        if compound_key in manager.active_connections:
-            # Multi-tab support: active_connections[compound_key] is a list of WebSockets
-            for ws in manager.active_connections[compound_key]:
-                try:
-                    await ws.send_json({"type": "command", "action": "reset"})
-                except Exception:
-                    pass
-
-        # Send reset command to openclaw
-        try:
-            await gateway_client.send_agent_message("/reset", session_id, username)
-        except Exception as e:
-            print(f"Warning: Failed to reset openclaw agent session {session_id}: {e}")
-
-        # Delete session folder from logs
-        session_title = chat_db.get_session_title(session_id)
-        if username and session_title:
-            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-            session_log_dir = os.path.join(root_dir, "logs", username, session_title)
-            if os.path.exists(session_log_dir):
-                shutil.rmtree(session_log_dir)
-
+        await _cleanup_session_resources(request, session_id, username)
         chat_db.delete_session(session_id)
         return {"status": "success"}
     except Exception as e:
         return {"error": str(e)}
 
 @router.post("/reset_session/{session_id}")
-async def reset_session(request: Request, session_id: str, user_id: int = Depends(verify_token)):
-    manager = request.app.state.manager
+async def reset_session(request: Request, session_id: str, user_id: int = Depends(verify_token), username: Optional[str] = Depends(get_optional_username_from_header)):
     chat_db = request.app.state.chat_db
-    gateway_client = request.app.state.gateway_client
 
     # Verify ownership
     sessions = chat_db.get_user_sessions(user_id)
     if not any(s["id"] == session_id for s in sessions):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your session")
 
-    # Extract username from token for compound key and session key
-    auth_header = request.headers.get("authorization", "")
-    username = None
-    if auth_header.startswith("Bearer "):
-        username = get_current_username(auth_header.split(" ", 1)[1])
-
-    compound_key = f"{username}:{session_id}" if username else session_id
-
     try:
-        if compound_key in manager.active_connections:
-            for ws in manager.active_connections[compound_key]:
-                try:
-                    await ws.send_json({"type": "command", "action": "reset"})
-                except Exception:
-                    pass
-
-        # Send reset command to openclaw
-        try:
-            await gateway_client.send_agent_message("/reset", session_id, username)
-        except Exception as e:
-            print(f"Warning: Failed to reset openclaw agent session {session_id}: {e}")
-
-        # Delete session folder from logs
-        session_title = chat_db.get_session_title(session_id)
-        if username and session_title:
-            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-            session_log_dir = os.path.join(root_dir, "logs", username, session_title)
-            if os.path.exists(session_log_dir):
-                shutil.rmtree(session_log_dir)
-
+        await _cleanup_session_resources(request, session_id, username)
         chat_db.reset_session(session_id)
         return {"status": "success"}
     except Exception as e:

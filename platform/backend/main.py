@@ -1,16 +1,21 @@
+from dotenv import load_dotenv
+import os
+
+# Load .env from project root (two levels up from platform/backend/)
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 import asyncio
-import os
 from watchdog.observers import Observer
 from chat_history import ChatHistoryDB
 from models.connection_manager import ConnectionManager
 from models.gateway_client import OpenClawGatewayClient
 from models.search_engine import SearchEngine
 from models.file_watcher import FileChangeHandler
-from routes import auth_routes, chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, log_routes, debug_routes, health_routes, vcd_routes
+from routes import auth_routes, chat_routes, file_routes, session_routes, ws_routes, event_routes, approval_routes, model_routes, search_routes, plugin_routes, log_routes, debug_routes, health_routes, vcd_routes, simulation_routes
 
 app = FastAPI()
 
@@ -53,6 +58,10 @@ app.state.chat_db = chat_db
 app.state.gateway_client = gateway_client
 app.state.search_engine = search_engine
 app.state.busy_sessions = set()  # tracks sessions with an active agent run
+app.state.pending_responses = {}  # gateway request_id -> response data
+app.state.active_simulations = {} # tracks running booksim subprocesses
+app.state.models_cache = None
+app.state.models_cache_time = 0
 
 @app.on_event("startup")
 async def startup_event():
@@ -81,6 +90,21 @@ async def shutdown_event():
         app.state.observer.stop()
         app.state.observer.join()
 
+    # Clean up any running simulation subprocesses
+    if hasattr(app.state, "active_simulations"):
+        for sim_info in app.state.active_simulations.values():
+            try:
+                process = sim_info.get("process")
+                log_file = sim_info.get("log_file")
+                if process and process.poll() is None:
+                    process.terminate()
+                    process.wait(timeout=2)
+                if log_file and not log_file.closed:
+                    log_file.close()
+            except Exception as e:
+                print(f"Error cleaning up simulation: {e}")
+        app.state.active_simulations.clear()
+
 app.include_router(auth_routes.router)
 app.include_router(chat_routes.router)
 app.include_router(file_routes.router)
@@ -94,6 +118,7 @@ app.include_router(plugin_routes.router)
 app.include_router(health_routes.router)
 app.include_router(debug_routes.router)  # TODO: remove before production
 app.include_router(vcd_routes.router)
+app.include_router(simulation_routes.router)
 
 
 @app.get("/{full_path:path}")

@@ -1,11 +1,17 @@
 from fastapi import APIRouter, Request, HTTPException, status
 from pydantic import BaseModel
 import jwt
+import os
 from datetime import datetime, timedelta
 
 router = APIRouter()
 
-SECRET_KEY = "super-secret-development-key" # In production, use environment variable
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY environment variable is not set. "
+        "Add it to your .env file or export it before starting the server."
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
@@ -30,6 +36,12 @@ def get_current_username(token: str):
         return payload.get("username")
     except jwt.PyJWTError:
         return None
+
+def get_optional_username_from_header(authorization: str = None) -> str | None:
+    """FastAPI dependency to extract username from the Authorization header, if present."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    return get_current_username(authorization.split(" ", 1)[1])
 
 def build_session_key(username: str, session_id: str) -> str:
     """Build the OpenClaw session key for a given user and session."""

@@ -34,8 +34,8 @@ export function useAgentSettings(token, username, sessionId) {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          key: `agent:main:${username}:${sessionId}`,
-          agentId: "main",
+          key: `agent:${username}:${sessionId}`,
+          agentId: username,
           thinkingLevel: level
         })
       });

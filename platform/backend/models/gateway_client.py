@@ -6,15 +6,20 @@ import logging
 import os
 import glob
 import shutil
+from paths import get_project_root
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GatewayClient")
+
+_PROJECT_ROOT = get_project_root()
 
 class OpenClawGatewayClient:
     def __init__(self, url="ws://127.0.0.1:18789",
                  token=None):
         self.url = url
-        self.token = token or os.environ.get("OPENCLAW_GATEWAY_TOKEN", "34e4d57af2be264ad2f405c588ba4d26c79a1cd5ea7ebece")
+        self.token = token or os.environ.get("OPENCLAW_GATEWAY_TOKEN", "")
+        if not self.token:
+            logger.warning("OPENCLAW_GATEWAY_TOKEN is not set. Gateway authentication may fail.")
         self.websocket = None
         self.pending_chat_requests = {}  # req_id -> compound_key
         self.active_runs = {}  # compound_key -> req_info for retries
@@ -96,11 +101,11 @@ class OpenClawGatewayClient:
                 return agent_id
                     
             # Register new user agent
-            log_dir = f"/home/dell/Documents/Bookin/logs/{username}"
+            log_dir = os.path.join(_PROJECT_ROOT, "logs", username)
             os.makedirs(log_dir, exist_ok=True)
             
             # Copy all markdown files from default agent workspace to the user's workspace
-            agent_dir = "/home/dell/Documents/Bookin/agent"
+            agent_dir = os.path.join(_PROJECT_ROOT, "agent")
             if os.path.exists(agent_dir):
                 for md_file in glob.glob(os.path.join(agent_dir, "*.md")):
                     shutil.copy(md_file, log_dir)
@@ -146,14 +151,14 @@ class OpenClawGatewayClient:
             if chat_db:
                 session_title = chat_db.get_session_title(session_id)
                 if session_title:
-                    marker_path = f"/home/dell/Documents/Bookin/logs/{username}/.current_session"
+                    marker_path = os.path.join(_PROJECT_ROOT, "logs", username, ".current_session")
                     try:
                         with open(marker_path, "w") as f:
                             f.write(session_title)
                     except Exception as e:
                         logger.warning(f"Failed to write .current_session marker: {e}")
         else:
-            session_key = f"agent:main:webchat:{session_id}"
+            session_key = f"main:{session_id}"
             openclaw_session_id = session_id
         
         req_id = str(uuid.uuid4())
@@ -175,6 +180,204 @@ class OpenClawGatewayClient:
             "retry_count": 0
         }
         await self.websocket.send(json.dumps(payload))
+    async def _handle_response(self, data, manager):
+        logger.info(f"Received response: {data}")
+        request_id = data.get("id")
+
+        if manager and hasattr(manager, 'app'):
+            pending = manager.app.state.pending_responses.get(request_id)
+            if pending:
+                pending["data"] = data
+                pending["event"].set()
+
+        # If this is a response to a chat.send request
+        if request_id in self.pending_chat_requests:
+            req_info = self.pending_chat_requests.pop(request_id)
+            if isinstance(req_info, dict):
+                compound_key = req_info.get("compound_key", "")
+                payload = req_info.get("payload")
+                retry_count = req_info.get("retry_count", 0)
+            else:
+                compound_key = req_info
+                payload = None
+                retry_count = 0
+
+            if not data.get("ok"):
+                err_info = data.get("error", {})
+                err_msg = err_info.get("message", "Failed to start agent run")
+
+                if "initialization conflicted" in err_msg.lower():
+                    logger.info(f"Session initialization conflicted for {compound_key}. Session is locked by a background process. Triggering abort.")
+                    abort_req_id = str(uuid.uuid4())
+                    session_key = payload.get("params", {}).get("sessionKey") if payload else None
+                    if session_key:
+                        abort_payload = {
+                            "type": "req",
+                            "id": abort_req_id,
+                            "method": "chat.abort",
+                            "params": {
+                                "sessionKey": session_key,
+                            }
+                        }
+                        try:
+                            await self.websocket.send(json.dumps(abort_payload))
+                        except Exception as e:
+                            logger.error(f"Failed to send abort for locked session: {e}")
+                    err_msg = "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
+                    # Fall through to the error handler below
+                logger.warning(f"chat.send rejected for {compound_key}: {err_msg}")
+                if manager and hasattr(manager, 'app'):
+                    manager.app.state.busy_sessions.discard(compound_key)
+                    chat_db = manager.app.state.chat_db
+                    db_session_id = compound_key.split(":", 1)[1] if ":" in compound_key else compound_key
+                    chat_db.add_message(db_session_id, "agent", f"[Error] {err_msg}")
+                    await manager.send_personal_message(
+                        {"type": "error", "message": err_msg},
+                        compound_key
+                    )
+            else:
+                if hasattr(self, 'active_runs'):
+                    self.active_runs[compound_key] = {
+                        "compound_key": compound_key,
+                        "payload": payload,
+                        "retry_count": retry_count
+                    }
+
+    async def _handle_event(self, data, manager):
+        if not manager:
+            return
+            
+        event_name = data.get("event", "")
+        event_payload = data.get("payload", {})
+        session_key = event_payload.get("sessionKey", "") if isinstance(event_payload, dict) else ""
+        
+        # Persist tool execution events to DB for long-term history
+        if event_name == "agent":
+            evt_data = event_payload.get("data", {}) if isinstance(event_payload, dict) else {}
+            stream = event_payload.get("stream", "") if isinstance(event_payload, dict) else ""
+            
+            is_tool_event = (stream == "item" and (evt_data.get("kind") == "tool" or evt_data.get("kind") == "command")) or (stream == "tool")
+            if is_tool_event:
+                if session_key and ":" in session_key:
+                    parts = session_key.split(":")
+                    if len(parts) >= 4:
+                        db_session_id = parts[-1]
+                        tool_call_id = evt_data.get("toolCallId") or evt_data.get("itemId") or evt_data.get("id")
+                        if tool_call_id:
+                            tool_data = {
+                                "toolCallId": tool_call_id,
+                                "title": evt_data.get("title") or evt_data.get("name") or "",
+                                "name": evt_data.get("name") or evt_data.get("title") or "",
+                            }
+                            meta_val = evt_data.get("meta") or evt_data.get("args")
+                            if meta_val:
+                                tool_data["meta"] = meta_val
+                            if evt_data.get("phase"):
+                                tool_data["phase"] = evt_data.get("phase")
+                            if "status" in evt_data:
+                                tool_data["status"] = evt_data.get("status")
+                            if "isError" in evt_data:
+                                tool_data["isError"] = evt_data.get("isError")
+                            
+                            result_val = None
+                            for k in ["result", "output", "progressText", "partialResult", "details", "content", "text", "error"]:
+                                if k in evt_data and evt_data[k] is not None:
+                                    result_val = evt_data[k]
+                                    break
+                            if result_val is not None:
+                                tool_data["result"] = result_val
+
+                            manager.app.state.chat_db.update_tool_message(db_session_id, tool_call_id, tool_data)
+
+        forward_packet = {"type": "gateway_log", "payload": data}
+        for client_id in manager.active_connections:
+            if not session_key or session_key.endswith(f":{client_id}"):
+                await manager.send_personal_message(forward_packet, client_id)
+
+        # Handle chat events to stream text to the UI
+        if event_name == "chat":
+            chat_payload = data.get("payload", {})
+            reasoning = chat_payload.get("reasoning", "")
+
+            text = ""
+            if "deltaText" in chat_payload:
+                text = chat_payload["deltaText"]
+            elif "message" in chat_payload:
+                content = chat_payload["message"].get("content", [])
+                if content and isinstance(content, list):
+                    text = content[0].get("text", "") if content[0].get("type") == "text" else ""
+
+            session_key = chat_payload.get("sessionKey", "")
+            state = chat_payload.get("state")
+
+            for client_id, ws in manager.active_connections.items():
+                if session_key.endswith(f":{client_id}"):
+                    # Extract plain session_id from compound key "username:session_id"
+                    db_session_id = client_id.split(":", 1)[1] if ":" in client_id else client_id
+                    
+                    if state == "delta" and (text or reasoning):
+                        payload = {"type": "chunk", "message": text}
+                        if reasoning:
+                            payload["reasoning"] = reasoning
+                        await manager.send_personal_message(payload, client_id)
+
+                    elif state in ["final", "done", "complete"]:
+                        full_text = ""
+                        if "message" in chat_payload:
+                            content = chat_payload["message"].get("content", [])
+                            if content and isinstance(content, list):
+                                full_text = content[0].get("text", "") if content[0].get("type") == "text" else ""
+                        if full_text:
+                            chat_db = manager.app.state.chat_db
+                            chat_db.add_message(db_session_id, "agent", full_text)
+                        # Clear busy flag safely after agent run finished
+                        asyncio.create_task(self.delayed_unlock(manager, client_id))
+                        await manager.send_personal_message({"type": "done"}, client_id)
+
+                    elif state == "error":
+                        error_message = chat_payload.get("errorMessage", "unknown error")
+                        
+                        if "Exec failed:" in error_message or "⚠️ 🛠️" in error_message:
+                            logger.info(f"Filtered out internal tool error for {client_id}")
+                            continue
+
+                        if "initialization conflicted" in error_message.lower():
+                            logger.info(f"Session initialization conflicted for {client_id} (async). Session is locked by a background process. Triggering abort.")
+                            req_info = getattr(self, 'active_runs', {}).get(client_id)
+                            if req_info:
+                                payload = req_info.get("payload")
+                                if payload:
+                                    session_key = payload.get("params", {}).get("sessionKey")
+                                    if session_key:
+                                        abort_req_id = str(uuid.uuid4())
+                                        abort_payload = {
+                                            "type": "req",
+                                            "id": abort_req_id,
+                                            "method": "chat.abort",
+                                            "params": {
+                                                "sessionKey": session_key,
+                                            }
+                                        }
+                                        try:
+                                            await self.websocket.send(json.dumps(abort_payload))
+                                        except Exception as e:
+                                            logger.error(f"Failed to send abort for locked session: {e}")
+                            
+                            error_message = "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
+                            # Fall through to the error handler below
+
+                        logger.warning(f"Agent run error for session {client_id}: {error_message}")
+                        # Clear busy flag safely after agent run errored out
+                        asyncio.create_task(self.delayed_unlock(manager, client_id))
+                        # Persist the error to chat history with a clear prefix
+                        chat_db = manager.app.state.chat_db
+                        chat_db.add_message(db_session_id, "agent", f"[Error] {error_message}")
+                        # Forward the raw error to the frontend for classification/display
+                        await manager.send_personal_message(
+                            {"type": "error", "message": error_message},
+                            client_id
+                        )
+
 
     async def listen(self, manager=None):
         """Main loop to listen for events and optionally broadcast to the frontend."""
@@ -187,206 +390,11 @@ class OpenClawGatewayClient:
 
                 # Handle responses to our requests
                 if data.get("type") == "res":
-                    logger.info(f"Received response: {data}")
-                    request_id = data.get("id")
-
-                    if manager and hasattr(manager, 'app'):
-                        if not hasattr(manager.app.state, 'pending_responses'):
-                            manager.app.state.pending_responses = {}
-                        manager.app.state.pending_responses[request_id] = data
-
-                    # If this is a response to a chat.send request
-                    if request_id in self.pending_chat_requests:
-                        req_info = self.pending_chat_requests.pop(request_id)
-                        if isinstance(req_info, dict):
-                            compound_key = req_info.get("compound_key", "")
-                            payload = req_info.get("payload")
-                            retry_count = req_info.get("retry_count", 0)
-                        else:
-                            compound_key = req_info
-                            payload = None
-                            retry_count = 0
-
-                        if not data.get("ok"):
-                            err_info = data.get("error", {})
-                            err_msg = err_info.get("message", "Failed to start agent run")
-
-                            if "initialization conflicted" in err_msg.lower():
-                                logger.info(f"Session initialization conflicted for {compound_key}. Session is locked by a background process. Triggering abort.")
-                                abort_req_id = str(uuid.uuid4())
-                                session_key = payload.get("params", {}).get("sessionKey") if payload else None
-                                if session_key:
-                                    abort_payload = {
-                                        "type": "req",
-                                        "id": abort_req_id,
-                                        "method": "chat.abort",
-                                        "params": {
-                                            "sessionKey": session_key,
-                                        }
-                                    }
-                                    try:
-                                        await self.websocket.send(json.dumps(abort_payload))
-                                    except Exception as e:
-                                        logger.error(f"Failed to send abort for locked session: {e}")
-                                err_msg = "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
-                                # Fall through to the error handler below
-                            logger.warning(f"chat.send rejected for {compound_key}: {err_msg}")
-                            if manager and hasattr(manager, 'app'):
-                                manager.app.state.busy_sessions.discard(compound_key)
-                                chat_db = manager.app.state.chat_db
-                                db_session_id = compound_key.split(":", 1)[1] if ":" in compound_key else compound_key
-                                chat_db.add_message(db_session_id, "agent", f"[Error] {err_msg}")
-                                await manager.send_personal_message(
-                                    {"type": "error", "message": err_msg},
-                                    compound_key
-                                )
-                        else:
-                            if hasattr(self, 'active_runs'):
-                                self.active_runs[compound_key] = {
-                                    "compound_key": compound_key,
-                                    "payload": payload,
-                                    "retry_count": retry_count
-                                }
-
-                    if manager and hasattr(manager, 'app'):
-                        if not hasattr(manager.app.state, 'pending_responses'):
-                            manager.app.state.pending_responses = {}
-                        manager.app.state.pending_responses[request_id] = data
+                    await self._handle_response(data, manager)
 
                 if manager:
-                    # Forward all events as gateway logs to the frontend
                     if data.get("type") == "event":
-                        event_name = data.get("event", "")
-                        event_payload = data.get("payload", {})
-                        session_key = event_payload.get("sessionKey", "") if isinstance(event_payload, dict) else ""
-                        
-                        # Persist tool execution events to DB for long-term history
-                        if event_name == "agent":
-                            evt_data = event_payload.get("data", {}) if isinstance(event_payload, dict) else {}
-                            stream = event_payload.get("stream", "") if isinstance(event_payload, dict) else ""
-                            
-                            is_tool_event = (stream == "item" and (evt_data.get("kind") == "tool" or evt_data.get("kind") == "command")) or (stream == "tool")
-                            if is_tool_event:
-                                if session_key and ":" in session_key:
-                                    parts = session_key.split(":")
-                                    if len(parts) >= 4:
-                                        db_session_id = parts[-1]
-                                        tool_call_id = evt_data.get("toolCallId") or evt_data.get("itemId") or evt_data.get("id")
-                                        if tool_call_id:
-                                            tool_data = {
-                                                "toolCallId": tool_call_id,
-                                                "title": evt_data.get("title") or evt_data.get("name") or "",
-                                                "name": evt_data.get("name") or evt_data.get("title") or "",
-                                            }
-                                            meta_val = evt_data.get("meta") or evt_data.get("args")
-                                            if meta_val:
-                                                tool_data["meta"] = meta_val
-                                            if evt_data.get("phase"):
-                                                tool_data["phase"] = evt_data.get("phase")
-                                            if "status" in evt_data:
-                                                tool_data["status"] = evt_data.get("status")
-                                            if "isError" in evt_data:
-                                                tool_data["isError"] = evt_data.get("isError")
-                                            
-                                            result_val = None
-                                            for k in ["result", "output", "progressText", "partialResult", "details", "content", "text", "error"]:
-                                                if k in evt_data and evt_data[k] is not None:
-                                                    result_val = evt_data[k]
-                                                    break
-                                            if result_val is not None:
-                                                tool_data["result"] = result_val
-
-                                            manager.app.state.chat_db.update_tool_message(db_session_id, tool_call_id, tool_data)
-
-
-                        forward_packet = {"type": "gateway_log", "payload": data}
-                        for client_id in manager.active_connections:
-                            if not session_key or session_key.endswith(f":{client_id}"):
-                                await manager.send_personal_message(forward_packet, client_id)
-
-                        # Handle chat events to stream text to the UI
-                        if data.get("event") == "chat":
-                            chat_payload = data.get("payload", {})
-                            reasoning = chat_payload.get("reasoning", "")
-
-                            text = ""
-                            if "deltaText" in chat_payload:
-                                text = chat_payload["deltaText"]
-                            elif "message" in chat_payload:
-                                content = chat_payload["message"].get("content", [])
-                                if content and isinstance(content, list):
-                                    text = content[0].get("text", "") if content[0].get("type") == "text" else ""
-
-                            session_key = chat_payload.get("sessionKey", "")
-                            state = chat_payload.get("state")
-
-                            for client_id, ws in manager.active_connections.items():
-                                if session_key.endswith(f":{client_id}"):
-                                    # Extract plain session_id from compound key "username:session_id"
-                                    db_session_id = client_id.split(":", 1)[1] if ":" in client_id else client_id
-                                    
-                                    if state == "delta" and (text or reasoning):
-                                        payload = {"type": "chunk", "message": text}
-                                        if reasoning:
-                                            payload["reasoning"] = reasoning
-                                        await manager.send_personal_message(payload, client_id)
-
-                                    elif state in ["final", "done", "complete"]:
-                                        full_text = ""
-                                        if "message" in chat_payload:
-                                            content = chat_payload["message"].get("content", [])
-                                            if content and isinstance(content, list):
-                                                full_text = content[0].get("text", "") if content[0].get("type") == "text" else ""
-                                        if full_text:
-                                            chat_db = manager.app.state.chat_db
-                                            chat_db.add_message(db_session_id, "agent", full_text)
-                                        # Clear busy flag safely after agent run finished
-                                        asyncio.create_task(self.delayed_unlock(manager, client_id))
-                                        await manager.send_personal_message({"type": "done"}, client_id)
-
-                                    elif state == "error":
-                                        error_message = chat_payload.get("errorMessage", "unknown error")
-                                        
-                                        if "Exec failed:" in error_message or "⚠️ 🛠️" in error_message:
-                                            logger.info(f"Filtered out internal tool error for {client_id}")
-                                            continue
-
-                                        if "initialization conflicted" in error_message.lower():
-                                            logger.info(f"Session initialization conflicted for {client_id} (async). Session is locked by a background process. Triggering abort.")
-                                            req_info = getattr(self, 'active_runs', {}).get(client_id)
-                                            if req_info:
-                                                payload = req_info.get("payload")
-                                                if payload:
-                                                    session_key = payload.get("params", {}).get("sessionKey")
-                                                    if session_key:
-                                                        abort_req_id = str(uuid.uuid4())
-                                                        abort_payload = {
-                                                            "type": "req",
-                                                            "id": abort_req_id,
-                                                            "method": "chat.abort",
-                                                            "params": {
-                                                                "sessionKey": session_key,
-                                                            }
-                                                        }
-                                                        try:
-                                                            await self.websocket.send(json.dumps(abort_payload))
-                                                        except Exception as e:
-                                                            logger.error(f"Failed to send abort for locked session: {e}")
-                                            
-                                            error_message = "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
-                                            # Fall through to the error handler below
-
-                                        logger.warning(f"Agent run error for session {client_id}: {error_message}")
-                                        # Clear busy flag safely after agent run errored out
-                                        asyncio.create_task(self.delayed_unlock(manager, client_id))
-                                        # Persist the error to chat history with a clear prefix
-                                        chat_db = manager.app.state.chat_db
-                                        chat_db.add_message(db_session_id, "agent", f"[Error] {error_message}")
-                                        # Forward the raw error to the frontend for classification/display
-                                        await manager.send_personal_message(
-                                            {"type": "error", "message": error_message},
-                                            client_id
-                                        )
+                        await self._handle_event(data, manager)
 
 
             except Exception as e:

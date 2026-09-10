@@ -3,19 +3,17 @@ from typing import Optional
 import uuid
 import json
 import asyncio
-from .auth_routes import get_current_username, build_session_key
+import logging
+from .auth_routes import get_optional_username_from_header, build_session_key
+
+logger = logging.getLogger("ModelRoutes")
 
 router = APIRouter()
 
-# Global variable to store models, ideally should be handled better
-available_models = []
+import time
 
 @router.get("/init-session")
-async def init_session(session_id: str, request: Request, authorization: Optional[str] = FastAPIHeader(None)):
-    # Extract username from token for per-user session isolation
-    username = None
-    if authorization and authorization.startswith("Bearer "):
-        username = get_current_username(authorization.split(" ", 1)[1])
+async def init_session(session_id: str, request: Request, username: Optional[str] = Depends(get_optional_username_from_header)):
 
     # 1. Fetch available models
     models_response = await get_models(request, username)
@@ -33,17 +31,17 @@ async def init_session(session_id: str, request: Request, authorization: Optiona
         "thinkingLevels": session_data.get("thinkingLevels")
     }
 @router.get("/available-models")
-async def get_models(request: Request, username: str = None, authorization: Optional[str] = FastAPIHeader(None)):
-    if not username and authorization and authorization.startswith("Bearer "):
-        username = get_current_username(authorization.split(" ", 1)[1])
-    global available_models
-    if available_models:
-        return {"models": available_models}
+async def get_models(request: Request, username: Optional[str] = Depends(get_optional_username_from_header)):
+    # Cache models for 5 minutes
+    CACHE_TTL = 300
+    current_time = time.time()
+    if request.app.state.models_cache and (current_time - request.app.state.models_cache_time < CACHE_TTL):
+        return {"models": request.app.state.models_cache}
 
     gateway_client = request.app.state.gateway_client
 
     request_id = str(uuid.uuid4())
-    print(f"DEBUG: Sending models.list with ID: {request_id}")
+    logger.debug(f"Sending models.list with ID: {request_id}")
     await gateway_client.websocket.send(json.dumps({
         "type": "req",
         "id": request_id,
@@ -51,76 +49,73 @@ async def get_models(request: Request, username: str = None, authorization: Opti
         "params": {"view": "all"}
     }))
     
-    # Ensure pending_responses dict exists
-    if not hasattr(request.app.state, 'pending_responses'):
-        request.app.state.pending_responses = {}
+    # Wait for response using asyncio.Event
+    event = asyncio.Event()
+    request.app.state.pending_responses[request_id] = {"event": event, "data": None}
 
-    # Wait for response (up to a timeout)
-    timeout = 5
-    start_time = asyncio.get_event_loop().time()
-    while (asyncio.get_event_loop().time() - start_time) < timeout:
-        resp = request.app.state.pending_responses.get(request_id)
-        if resp:
-            # Clean up
-            del request.app.state.pending_responses[request_id]
+    try:
+        await asyncio.wait_for(event.wait(), timeout=5.0)
+        resp = request.app.state.pending_responses[request_id]["data"]
+    except asyncio.TimeoutError:
+        resp = None
+    finally:
+        del request.app.state.pending_responses[request_id]
 
-            payload = resp.get('payload') or {}
-            models_data = payload.get('models', [])
+    if resp:
+        payload = resp.get('payload') or {}
+        models_data = payload.get('models', [])
 
-            # Filter to strictly display gemini-3.1-flash-lite and nemotron models
-            filtered_models = [
-                m for m in models_data
-                if "gemini-3.1-flash-lite" in m.get('key', m.get('id', '')).lower() or "nemotron" in m.get('key', m.get('id', '')).lower()
-            ]
+        # Filter to strictly display gemini-3.1-flash-lite and nemotron models
+        filtered_models = [
+            m for m in models_data
+            if "gemini-3.1-flash-lite" in m.get('key', m.get('id', '')).lower() or "nemotron" in m.get('key', m.get('id', '')).lower()
+        ]
 
-            # Group models by provider
-            providers = {}
-            for m in filtered_models:
-                key = m.get('key', m.get('id', ''))
-                parts = key.split('/', 1)
-                p = parts[0] if len(parts) > 1 else 'unknown'
-                
-                # fallback for old provider field just in case
-                p = m.get('provider', p)
-                
-                if p not in providers:
-                    providers[p] = []
-                providers[p].append(m)
-            models = []
-            for provider, provider_models in providers.items():
-                # Add Header
+        # Group models by provider
+        providers = {}
+        for m in filtered_models:
+            key = m.get('key', m.get('id', ''))
+            parts = key.split('/', 1)
+            p = parts[0] if len(parts) > 1 else 'unknown'
+            
+            # fallback for old provider field just in case
+            p = m.get('provider', p)
+            
+            if p not in providers:
+                providers[p] = []
+            providers[p].append(m)
+        models = []
+        for provider, provider_models in providers.items():
+            # Add Header
+            models.append({
+                "id": f"header-{provider}",
+                "name": provider.upper(),
+                "isHeader": True
+            })
+            # Add Models
+            for m in provider_models:
+                raw_id = m.get('key', m.get('id', ''))
                 models.append({
-                    "id": f"header-{provider}",
-                    "name": provider.upper(),
-                    "isHeader": True
+                    "id": f"{provider}/{raw_id}" if '/' not in raw_id else raw_id,
+                    "name": m.get('name', '')
                 })
-                # Add Models
-                for m in provider_models:
-                    raw_id = m.get('key', m.get('id', ''))
-                    models.append({
-                        "id": f"{provider}/{raw_id}" if '/' not in raw_id else raw_id,
-                        "name": m.get('name', '')
-                    })
-            available_models = models
-            return {"models": models}
-        await asyncio.sleep(0.5)
-
-    print(f"DEBUG: Timeout reached waiting for models.list")
+        request.app.state.models_cache = models
+        request.app.state.models_cache_time = time.time()
+        return {"models": models}
+        
     return {"models": []}
 
 @router.post("/set-model")
-async def set_model(request: Request, authorization: Optional[str] = FastAPIHeader(None)):
-    data = await request.json()
-    session_id = data.get("sessionId")
-    model = data.get("model")
+async def set_model(request: Request, body: dict, username: Optional[str] = Depends(get_optional_username_from_header)):
+    session_id = body.get("sessionId")
+    model = body.get("model")
     gateway_client = request.app.state.gateway_client
 
-    # Extract username from token
-    username = None
-    if authorization and authorization.startswith("Bearer "):
-        username = get_current_username(authorization.split(" ", 1)[1])
-
-    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
+    if username:
+        session_key = build_session_key(username, session_id)
+        await gateway_client.ensure_user_agent(username)
+    else:
+        session_key = f"main:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({
@@ -133,21 +128,18 @@ async def set_model(request: Request, authorization: Optional[str] = FastAPIHead
         }
     }))
 
-    # Wait for the response from the gateway
-    if not hasattr(request.app.state, 'pending_responses'):
-        request.app.state.pending_responses = {}
+    # Wait for response using asyncio.Event
+    event = asyncio.Event()
+    request.app.state.pending_responses[request_id] = {"event": event, "data": None}
 
-    timeout = 5
-    start_time = asyncio.get_event_loop().time()
-    while (asyncio.get_event_loop().time() - start_time) < timeout:
-        resp = request.app.state.pending_responses.get(request_id)
-        if resp:
-            del request.app.state.pending_responses[request_id]
-            # resp is: {'type': 'res', 'id': ..., 'ok': True/False, 'error': ...}
-            return resp
-        await asyncio.sleep(0.5)
-
-    return {"ok": False, "error": {"message": "Timed out waiting for model update"}}
+    try:
+        await asyncio.wait_for(event.wait(), timeout=5.0)
+        resp = request.app.state.pending_responses[request_id]["data"]
+        return resp
+    except asyncio.TimeoutError:
+        return {"ok": False, "error": {"message": "Timed out waiting for model update"}}
+    finally:
+        request.app.state.pending_responses.pop(request_id, None)
 
 @router.post("/set-thinking-level")
 async def set_thinking_level(request: Request):
@@ -166,27 +158,24 @@ async def set_thinking_level(request: Request):
         "params": data
     }))
 
-    # Wait for the response from the gateway
-    if not hasattr(request.app.state, 'pending_responses'):
-        request.app.state.pending_responses = {}
+    # Wait for response using asyncio.Event
+    event = asyncio.Event()
+    request.app.state.pending_responses[request_id] = {"event": event, "data": None}
 
-    timeout = 5
-    start_time = asyncio.get_event_loop().time()
-    while (asyncio.get_event_loop().time() - start_time) < timeout:
-        resp = request.app.state.pending_responses.get(request_id)
-        if resp:
-            del request.app.state.pending_responses[request_id]
-            # resp is: {'type': 'res', 'id': ..., 'ok': True/False, 'error': ...}
-            return resp
-        await asyncio.sleep(0.5)
-
-    return {"ok": False, "error": {"message": "Timed out waiting for thinking level update"}}
+    try:
+        await asyncio.wait_for(event.wait(), timeout=5.0)
+        resp = request.app.state.pending_responses[request_id]["data"]
+        return resp
+    except asyncio.TimeoutError:
+        return {"ok": False, "error": {"message": "Timed out waiting for thinking level update"}}
+    finally:
+        request.app.state.pending_responses.pop(request_id, None)
 
 @router.get("/get-session-model")
 async def get_session_model(session_id: str, request: Request, username: str = None):
     gateway_client = request.app.state.gateway_client
 
-    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
+    session_key = build_session_key(username, session_id) if username else f"main:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({
@@ -198,31 +187,25 @@ async def get_session_model(session_id: str, request: Request, username: str = N
         }
     }))
 
-    # Wait for response
-    timeout = 5
-    start_time = asyncio.get_event_loop().time()
+    # Wait for response using asyncio.Event
+    event = asyncio.Event()
+    request.app.state.pending_responses[request_id] = {"event": event, "data": None}
 
-    # Ensure pending_responses dict exists
-    if not hasattr(request.app.state, 'pending_responses'):
-        request.app.state.pending_responses = {}
-
-    while (asyncio.get_event_loop().time() - start_time) < timeout:
-        resp = request.app.state.pending_responses.get(request_id)
-        if resp:
-            # Clean up
-            del request.app.state.pending_responses[request_id]
-
-            session_data = (resp.get('payload') or {}).get('session')
-            model = session_data.get('model') if session_data else None
-            return {"model": model}
-        await asyncio.sleep(0.5)
-
-    return {"model": None}
+    try:
+        await asyncio.wait_for(event.wait(), timeout=5.0)
+        resp = request.app.state.pending_responses[request_id]["data"]
+        session_data = (resp.get('payload') or {}).get('session')
+        model = session_data.get('model') if session_data else None
+        return {"model": model}
+    except asyncio.TimeoutError:
+        return {"model": None}
+    finally:
+        request.app.state.pending_responses.pop(request_id, None)
 
 async def get_session_data(session_id: str, request: Request, username: str = None):
     gateway_client = request.app.state.gateway_client
 
-    session_key = build_session_key(username, session_id) if username else f"agent:main:webchat:{session_id}"
+    session_key = build_session_key(username, session_id) if username else f"main:{session_id}"
 
     request_id = str(uuid.uuid4())
     await gateway_client.websocket.send(json.dumps({
@@ -234,23 +217,20 @@ async def get_session_data(session_id: str, request: Request, username: str = No
         }
     }))
 
-    # Wait for response
-    timeout = 5
-    start_time = asyncio.get_event_loop().time()
+    # Wait for response using asyncio.Event
+    event = asyncio.Event()
+    request.app.state.pending_responses[request_id] = {"event": event, "data": None}
 
-    if not hasattr(request.app.state, 'pending_responses'):
-        request.app.state.pending_responses = {}
-
-    while (asyncio.get_event_loop().time() - start_time) < timeout:
-        resp = request.app.state.pending_responses.get(request_id)
-        if resp:
-            del request.app.state.pending_responses[request_id]
-            session = (resp.get('payload') or {}).get('session') or {}
-            return {
-                "thinkingLevel": session.get("thinkingLevel"),
-                "thinkingLevels": session.get("thinkingLevels")
-            }
-        await asyncio.sleep(0.5)
-
-    return {"thinkingLevel": None, "thinkingLevels": []}
+    try:
+        await asyncio.wait_for(event.wait(), timeout=5.0)
+        resp = request.app.state.pending_responses[request_id]["data"]
+        session = (resp.get('payload') or {}).get('session') or {}
+        return {
+            "thinkingLevel": session.get("thinkingLevel"),
+            "thinkingLevels": session.get("thinkingLevels")
+        }
+    except asyncio.TimeoutError:
+        return {"thinkingLevel": None, "thinkingLevels": []}
+    finally:
+        request.app.state.pending_responses.pop(request_id, None)
 

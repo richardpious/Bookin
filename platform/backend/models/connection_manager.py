@@ -1,5 +1,8 @@
 from fastapi import WebSocket
 from typing import Dict, List
+import logging
+
+logger = logging.getLogger("ConnectionManager")
 
 class ConnectionManager:
     def __init__(self):
@@ -26,8 +29,8 @@ class ConnectionManager:
             for connection in connections:
                 try:
                     await connection.send_json(message)
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Failed to broadcast to connection: {e}")
 
     async def send_personal_message(self, message: dict, client_id: str):
         if client_id in self.active_connections:
@@ -35,7 +38,7 @@ class ConnectionManager:
             for connection in self.active_connections[client_id]:
                 try:
                     await connection.send_json(message)
-                except:
+                except Exception:
                     dead_connections.append(connection)
             for dead in dead_connections:
                 if dead in self.active_connections[client_id]:

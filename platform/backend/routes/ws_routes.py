@@ -47,7 +47,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
         while True:
             message_text = await websocket.receive_text()
 
-            print(f"DEBUG: [WebSocket Received] {message_text}")
+            logger.debug(f"[WebSocket Received] {message_text}")
 
             # Check if it's a JSON command
             is_silent = False
@@ -91,7 +91,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                                     "type": "user-message",
                                     "message": message
                                 }))
-                            except:
+                            except Exception:
                                 pass
 
                 # Guard: prevent sending while an agent run is already in-flight
@@ -107,38 +107,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str, token: str = 
                 # Ensure the user has an agent registered in OpenClaw config
                 await gateway_client.ensure_user_agent(username)
                 
-                # Write .current_session marker so setupCommand can create the symlink
-                session_title = chat_db.get_session_title(client_id)
-                if session_title:
-                    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-                    marker_path = os.path.join(project_root, "logs", username, ".current_session")
-                    try:
-                        with open(marker_path, "w") as f:
-                            f.write(session_title)
-                    except Exception as e:
-                        logger.warning(f"Failed to write .current_session marker: {e}")
-                
                 # Send the message through the persistent Gateway WebSocket connection
                 busy_sessions.add(compound_key)
-                req_id = str(uuid.uuid4())
-                payload = {
-                    "type": "req",
-                    "id": req_id,
-                    "method": "chat.send",
-                    "params": {
-                        "sessionKey": build_session_key(username, client_id),
-                        "sessionId": compound_key,
-                        "message": message,
-                        "deliver": False,
-                        "idempotencyKey": str(uuid.uuid4())
-                    }
-                }
-                gateway_client.pending_chat_requests[req_id] = {
-                    "compound_key": compound_key,
-                    "payload": payload,
-                    "retry_count": 0
-                }
-                await gateway_client.websocket.send(json.dumps(payload))
+                try:
+                    await gateway_client.send_agent_message(message, client_id, username, chat_db)
+                except Exception as e:
+                    logger.error(f"Failed to send message to agent: {e}")
+                    busy_sessions.discard(compound_key)
                 
             except Exception as e:
                 # Clear busy flag on send failure so the session isn't permanently stuck

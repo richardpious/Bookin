@@ -720,27 +720,13 @@ class VCDIndex:
             return ny * self.k + nx
         return -1  # out of bounds (edge of mesh)
 
-
-def _get_root_dir():
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+from paths import get_project_root, sanitize_path
 
 
 def _resolve_path(path: str) -> Optional[str]:
-    """Resolve a relative path to an absolute path under the project root."""
-    root = _get_root_dir()
-
-    if os.path.isabs(path):
-        abs_path = os.path.normpath(path)
-    else:
-        # Strip leading ../
-        while path.startswith('../'):
-            path = path[3:]
-        if path.startswith('./'):
-            path = path[2:]
-        abs_path = os.path.normpath(os.path.join(root, path))
-
-    # Security: must be under root
-    if not abs_path.startswith(root):
+    """Resolve a relative path to an absolute VCD file path under the project root."""
+    abs_path = sanitize_path(path)
+    if abs_path is None:
         return None
     if not os.path.isfile(abs_path):
         return None
