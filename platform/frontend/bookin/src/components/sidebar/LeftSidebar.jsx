@@ -44,7 +44,7 @@ export const LeftSidebar = React.memo(({ width, onFileClick, activeFile, session
           onError={onError}
         />
       </div>
-      <div style={{ display: 'flex', borderTop: '1px solid var(--border-light)' }}>
+      <div style={{ display: 'flex', borderTop: '1px solid var(--border-light)', paddingBottom: '12px' }}>
         <div
           onClick={() => onFileClick('docs/index.md')}
           className="sidebar-docs-link"

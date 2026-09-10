@@ -50,10 +50,7 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
       {/* Left — Logo */}
       <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <img src="/icon.svg" alt="iNoCSim Icon" style={{ width: '24px', height: '24px' }} />
-        <div style={{ width: '2px', height: '20px', background: '#5B8DEF', borderRadius: '1px' }}></div>
-        <div style={{ fontFamily: "'Unbounded', sans-serif", fontWeight: 800, fontSize: '19px', letterSpacing: '-0.02em', color: '#F5F6F8', transform: 'scaleX(0.85)', transformOrigin: 'left center' }}>
-          iNoCSim
-        </div>
+        <img src="/inocsim-pixel.svg" alt="iNoCSim Logo" style={{ height: '24px', filter: 'brightness(1.45)', marginTop: '2px' }} />
       </div>
 
       {/* Center empty space to keep layout balanced */}
