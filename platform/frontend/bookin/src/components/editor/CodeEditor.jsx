@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import 'github-markdown-css/github-markdown-dark.css';
 
-export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileClick, onToast, onEditContent, onUpdateFile }) => {
+export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileClick, onToast, onEditContent, onUpdateFile, onEditorReady }) => {
   const editorRef = useRef(null);
   const monaco = useMonaco();
   const saveFile = async (currentContent) => {
@@ -24,6 +24,10 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
 
   const onMount = (editor, monacoInstance) => {
     editorRef.current = editor;
+    
+    if (onEditorReady) {
+      onEditorReady(() => editor.getValue());
+    }
 
     editor.addCommand(monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.KeyS, () => {
       saveFile(editor.getValue());
@@ -100,12 +104,11 @@ export const CodeEditor = React.memo(({ filePath, content, activeLine, onFileCli
 
   return (
     <Editor
-      key={filePath}
       height="100%"
       path={filePath}
       onMount={onMount}
       defaultLanguage={filePath.endsWith('.json') ? 'json' : 'javascript'}
-      value={displayContent}
+      defaultValue={displayContent}
       theme="vs-dark"
       options={{
         readOnly: false,

@@ -35,15 +35,15 @@ const getRouterCoords = (routerId, k, width, height, margin = 40) => {
 
 const PAGE_SIZE = 200; // Cycles per API request page
 
-export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar }) => {
+export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar, initialState, onStateChange }) => {
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [currentCycle, setCurrentCycle] = useState(0);
+  const [currentCycle, setCurrentCycle] = useState(initialState?.currentCycle ?? 0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1); // 1x, 2x, 5x, 10x cycles per tick
-  const [cycleInput, setCycleInput] = useState('0');
+  const [cycleInput, setCycleInput] = useState(initialState?.cycleInput ?? '0');
 
   // Cycle cache: Map<pageNumber, Object>
   const cycleCacheRef = useRef(new Map());
@@ -54,13 +54,13 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
   const [hoveredFlit, setHoveredFlit] = useState(null);
   const [hoveredRouter, setHoveredRouter] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-  const [selectedRouter, setSelectedRouter] = useState(null);
-  const [selectedFlit, setSelectedFlit] = useState(null);
+  const [selectedRouter, setSelectedRouter] = useState(initialState?.selectedRouter ?? null);
+  const [selectedFlit, setSelectedFlit] = useState(initialState?.selectedFlit ?? null);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [actualRoute, setActualRoute] = useState(null);
 
   // Sidebar resizing state
-  const [sidebarWidth, setSidebarWidth] = useState(450);
+  const [sidebarWidth, setSidebarWidth] = useState(initialState?.sidebarWidth ?? 450);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     };
   }, [isResizingSidebar]);
   // Zoom & Pan state
-  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [transform, setTransform] = useState(initialState?.transform ?? { x: 0, y: 0, scale: 1 });
   const [transformTransition, setTransformTransition] = useState('transform 0.1s ease-out');
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -234,10 +234,15 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
           setError(data.error);
         } else {
           setMeta(data);
-          const start = data.timeline.startCycle;
-          setCurrentCycle(start);
-          const startDisplay = data.timeline.ticks?.find(t => t.tick === start)?.display || String(start);
-          setCycleInput(startDisplay);
+          if (initialState?.currentCycle !== undefined && initialState.currentCycle !== null) {
+            setCurrentCycle(initialState.currentCycle);
+            setCycleInput(initialState.cycleInput ?? String(initialState.currentCycle));
+          } else {
+            const start = data.timeline.startCycle;
+            setCurrentCycle(start);
+            const startDisplay = data.timeline.ticks?.find(t => t.tick === start)?.display || String(start);
+            setCycleInput(startDisplay);
+          }
         }
       })
       .catch(err => {
@@ -254,6 +259,25 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
       fetch(`/api/vcd/cache?path=${encodeURIComponent(filePath)}`, { method: 'DELETE' }).catch(() => { });
     };
   }, [filePath]);
+
+  // Push state up on unmount
+  const stateRef = useRef({ currentCycle, cycleInput, selectedRouter, selectedFlit, sidebarWidth, transform });
+  useEffect(() => {
+    stateRef.current = { currentCycle, cycleInput, selectedRouter, selectedFlit, sidebarWidth, transform };
+  }, [currentCycle, cycleInput, selectedRouter, selectedFlit, sidebarWidth, transform]);
+
+  const onStateChangeRef = useRef(onStateChange);
+  useEffect(() => {
+    onStateChangeRef.current = onStateChange;
+  }, [onStateChange]);
+
+  useEffect(() => {
+    return () => {
+      if (onStateChangeRef.current) {
+        onStateChangeRef.current(stateRef.current);
+      }
+    };
+  }, []);
 
   const [dataVersion, setDataVersion] = useState(0);
 

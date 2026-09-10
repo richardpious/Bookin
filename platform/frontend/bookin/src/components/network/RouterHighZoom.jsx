@@ -1,4 +1,4 @@
-
+import React, { useMemo } from 'react';
 const FILLED_VC_COLOR = '#59e160ff';
 
 export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {

@@ -228,8 +228,7 @@ export const useFileManagement = () => {
   };
 
   const handleEditContent = (path, newContent) => {
-    // Only update the live content & compute dirty boolean vs saved hash
-    setFileContents(prev => ({ ...prev, [path]: newContent }));
+    // Only compute dirty boolean vs saved hash, DO NOT duplicate live text string to React state
     const savedHash = savedHashesRef.current[path];
     const isDirty = savedHash !== undefined ? fastHash(newContent) !== savedHash : false;
     setDirtyFiles(prev => prev[path] === isDirty ? prev : { ...prev, [path]: isDirty });

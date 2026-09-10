@@ -1,4 +1,4 @@
-import { useState, Suspense, lazy } from 'react';
+import { useState, useRef, Suspense, lazy } from 'react';
 import { MainContentHome } from './MainContentHome';
 import { X, List, Play } from 'lucide-react';
 
@@ -10,6 +10,8 @@ const SimulationRunner = lazy(() => import('../simulation/SimulationRunner').the
 
 export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast, leftCollapsed, onToggleLeftSidebar, sessions, sessionId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [vizStates, setVizStates] = useState({});
+  const getEditorValueRef = useRef(null);
 
   if (openFiles.length === 0) {
     return (
@@ -54,15 +56,17 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
       </div>
       <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
         <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>Loading...</div>}>
-        {openFiles.filter(p => p.endsWith('.vcd') || p.endsWith('.vcd.gz')).map(vcdPath => (
-          <div key={vcdPath} style={{ display: activeFile === vcdPath ? 'block' : 'none', height: '100%' }}>
+        {activeFile && (activeFile.endsWith('.vcd') || activeFile.endsWith('.vcd.gz')) && (
+          <div style={{ height: '100%' }}>
             <NetworkVisualizer 
-              filePath={vcdPath} 
+              filePath={activeFile} 
               leftCollapsed={leftCollapsed} 
               onToggleLeftSidebar={onToggleLeftSidebar} 
+              initialState={vizStates[activeFile]}
+              onStateChange={(state) => setVizStates(prev => ({...prev, [activeFile]: state}))}
             />
           </div>
-        ))}
+        )}
 
         {activeFile && !activeFile.endsWith('.vcd') && !activeFile.endsWith('.vcd.gz') ? (
           activeFile.startsWith('simulation-runner:') ? (
@@ -78,6 +82,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
               onToast={onToast}
               onEditContent={onEditContent}
               onUpdateFile={onUpdateFile}
+              onEditorReady={(getter) => { getEditorValueRef.current = getter; }}
             />
           )
         ) : null}
@@ -141,7 +146,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAddParameter={(param) => {
-          const currentContent = fileContents[activeFile] || '';
+          const currentContent = getEditorValueRef.current ? getEditorValueRef.current() : (fileContents[activeFile] || '');
           const newLine = `${param.name} = ${param.defaultValue || '""'};`;
           // Match an existing line for this parameter (handles optional spaces around '=')
           const regex = new RegExp(`^${param.name}\\s*=.*$`, 'm');
