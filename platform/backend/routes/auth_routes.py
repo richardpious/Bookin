@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, status
+from fastapi import APIRouter, Request, HTTPException, status, Header
 from pydantic import BaseModel
 import jwt
 import os
@@ -37,7 +37,7 @@ def get_current_username(token: str):
     except jwt.PyJWTError:
         return None
 
-def get_optional_username_from_header(authorization: str = None) -> str | None:
+def get_optional_username_from_header(authorization: str = Header(None)) -> str | None:
     """FastAPI dependency to extract username from the Authorization header, if present."""
     if not authorization or not authorization.startswith("Bearer "):
         return None

@@ -35,6 +35,19 @@ function App() {
 
   const { sessions, sessionsLoaded, setSessions, sessionId, setSessionId, deleteSession, createSession } = useSessionManagement(token);
 
+  useEffect(() => {
+    if (sessionId && sessions?.length > 0) {
+      const currentSession = sessions.find(s => s.id === sessionId);
+      if (currentSession) {
+        document.title = `INoCSim - ${currentSession.title || currentSession.id}`;
+      } else {
+        document.title = 'INoCSim';
+      }
+    } else {
+      document.title = 'INoCSim';
+    }
+  }, [sessionId, sessions]);
+
   const [approvalRequest, setApprovalRequest] = useState(null)
   const [searchResults, setSearchResults] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
