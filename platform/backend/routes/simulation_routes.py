@@ -78,7 +78,7 @@ async def run_simulation(request: Request, payload: dict = Body(...)):
 
 @router.get("/config-parameters")
 async def get_config_parameters():
-    root_dir = get_root_dir()
+    root_dir = get_project_root()
     config_path = os.path.join(root_dir, 'booksim', 'src', 'booksim_config.cpp')
     
     # Parameters to exclude from the UI
@@ -152,7 +152,7 @@ async def get_config_parameters():
 
 @router.get("/run-stats")
 async def get_run_stats(path: str):
-    root_dir = get_root_dir()
+    root_dir = get_project_root()
     
     # Normalize and resolve path safely
     while path.startswith('../'):
