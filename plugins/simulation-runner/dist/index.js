@@ -4456,6 +4456,18 @@ var index_default = defineToolPlugin({
               sessionPath = `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
             }
           }
+          let sessionDirName = sessionPath;
+          try {
+            const markerRes = await context.agent.exec(`cat /sandbox/runs/.current_session`);
+            if (markerRes.code === 0 && markerRes.stdout.trim()) {
+              sessionDirName = markerRes.stdout.trim();
+              console.log(`[run_simulation] Read session name from .current_session marker: '${sessionDirName}'`);
+            } else {
+              console.log(`[run_simulation] .current_session marker empty or missing, falling back to derived sessionPath: '${sessionPath}'`);
+            }
+          } catch (e) {
+            console.log(`[run_simulation] Could not read .current_session marker, using derived sessionPath: '${sessionPath}'`);
+          }
           const absoluteConfigPath = await resolveConfigPathRemote(rawConfigPath, projectRoot, context);
           if (!absoluteConfigPath) {
             return {
@@ -4463,7 +4475,7 @@ var index_default = defineToolPlugin({
               error: `Config file not found. Checked candidate locations for: '${rawConfigPath}'`
             };
           }
-          const baseSessionDir = path.posix.join(projectRoot, "runs");
+          const baseSessionDir = path.posix.join(projectRoot, "runs", sessionDirName);
           await context.agent.exec(`mkdir -p "${baseSessionDir}"`);
           const lsRes = await context.agent.exec(`ls -1 "${baseSessionDir}"`);
           const existingEntries = (lsRes.stdout || "").split("\n").filter((v) => v.trim() !== "");

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ChevronRight, Brain } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import './ReasoningBlock.css';
 
 export const ReasoningBlock = ({ reasoning }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,20 +11,43 @@ export const ReasoningBlock = ({ reasoning }) => {
   if (!reasoning) return null;
 
   return (
-    <div className="reasoning-block" style={{ marginBottom: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', overflow: 'hidden' }}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)} 
-        style={{ width: '100%', padding: '0.5rem', cursor: 'pointer', background: '#f9f9f9', border: 'none', textAlign: 'left', fontWeight: 'bold' }}
+    <div className="reasoning-accordion">
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="reasoning-accordion-btn"
       >
-        {isOpen ? '▼ Hide Thinking' : '▶ Show Thinking'}
-      </button>
-      {isOpen && (
-        <div style={{ padding: '0.5rem', background: '#fff', fontSize: '0.9rem', color: '#555' }}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {reasoning}
-          </ReactMarkdown>
-        </div>
-      )}
+        <span className="reasoning-accordion-left">
+          <motion.span
+            animate={{ rotate: isOpen ? 15 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="reasoning-accordion-icon-wrapper"
+          >
+            <Brain size={14} className="reasoning-accordion-icon" />
+          </motion.span>
+          <span>Thinking</span>
+        </span>
+        <span className="reasoning-accordion-right">
+          {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </span>
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="reasoning-accordion-content"
+          >
+            <div className="reasoning-accordion-body">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {reasoning}
+              </ReactMarkdown>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

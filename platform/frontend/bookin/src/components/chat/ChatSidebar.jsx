@@ -77,7 +77,7 @@ export const ChatSidebar = React.memo(({ width, messages, isLoading, isConnectin
               msg.isToolGroup ? (
                 <ToolAccordion key={msg.id} tools={msg.tools} />
               ) : (
-                <ChatMessage key={msg.id} sender={msg.sender === 'agent' ? 'bot' : msg.sender} text={msg.text} isError={msg.isError} />
+                <ChatMessage key={msg.id} sender={msg.sender === 'agent' ? 'bot' : msg.sender} text={msg.text} isError={msg.isError} reasoning={msg.reasoning} />
               )
             ))}
             {isLoading && (

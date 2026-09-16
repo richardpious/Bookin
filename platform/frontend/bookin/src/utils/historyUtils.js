@@ -1,3 +1,5 @@
+import { getFriendlyErrorMessage } from './errorUtils';
+
 export const fetchChatHistory = async (sessionId, token) => {
   try {
     const response = await fetch(`/history/${sessionId}?t=${Date.now()}`, {
@@ -7,8 +9,9 @@ export const fetchChatHistory = async (sessionId, token) => {
       throw new Error('Failed to fetch chat history');
     }
     const data = await response.json();
+    
     // Convert backend format to frontend format
-    return data.history.map((msg, index) => {
+    const mappedData = data.history.map((msg, index) => {
       if (msg.sender === 'tool') {
         try {
           const parsed = JSON.parse(msg.message);
@@ -40,17 +43,35 @@ export const fetchChatHistory = async (sessionId, token) => {
       }
 
       const isError = msg.sender === 'agent' && msg.message.startsWith('[Error] ');
+      let text = msg.message;
+      if (isError) {
+        text = getFriendlyErrorMessage(text.replace('[Error] ', ''));
+      }
+
       return {
         id: index,
         sender: msg.sender === 'agent' ? 'bot' : 'user',
-        text: msg.message,
+        text: text,
         isComplete: true,
         ...(isError && { isError: true }),
       };
     }).filter(Boolean);
+
+    // Deduplicate consecutive errors
+    const processedHistory = [];
+    for (const item of mappedData) {
+      if (item.isError && processedHistory.length > 0) {
+        const last = processedHistory[processedHistory.length - 1];
+        if (last.isError && last.text === item.text) {
+          continue; // skip duplicate error
+        }
+      }
+      processedHistory.push(item);
+    }
+
+    return processedHistory;
   } catch (error) {
     console.error('Error fetching chat history:', error);
     return [];
   }
 };
-

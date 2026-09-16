@@ -65,21 +65,22 @@ async def get_models(request: Request, username: Optional[str] = Depends(get_opt
         payload = resp.get('payload') or {}
         models_data = payload.get('models', [])
 
-        # Filter to strictly display gemini-3.1-flash-lite and nemotron models
-        filtered_models = [
-            m for m in models_data
-            if "gemini-3.1-flash-lite" in m.get('key', m.get('id', '')).lower() or "nemotron" in m.get('key', m.get('id', '')).lower()
-        ]
+        # Allow Gemini and Nemotron models by checking their native ID prefix
+        filtered_models = []
+        for m in models_data:
+            key = m.get('key', m.get('id', '')).lower()
+            if key.startswith("google/gemini-") or (key.startswith("nvidia/") and "nemotron" in key):
+                filtered_models.append(m)
 
-        # Group models by provider
+        # Group models by their native provider (the first part of their ID)
         providers = {}
         for m in filtered_models:
             key = m.get('key', m.get('id', ''))
             parts = key.split('/', 1)
             p = parts[0] if len(parts) > 1 else 'unknown'
             
-            # fallback for old provider field just in case
-            p = m.get('provider', p)
+            # We explicitly ignore m.get('provider') here so that OpenRouter/Ollama
+            # models are grouped under their native prefix (e.g. 'google' or 'nvidia')
             
             if p not in providers:
                 providers[p] = []
@@ -99,6 +100,7 @@ async def get_models(request: Request, username: Optional[str] = Depends(get_opt
                     "id": f"{provider}/{raw_id}" if '/' not in raw_id else raw_id,
                     "name": m.get('name', '')
                 })
+        logger.info(f"Returning {len(models)} models to frontend. Providers: {list(providers.keys())}")
         request.app.state.models_cache = models
         request.app.state.models_cache_time = time.time()
         return {"models": models}

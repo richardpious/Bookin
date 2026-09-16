@@ -259,7 +259,7 @@ class OpenClawGatewayClient:
             if is_tool_event:
                 if session_key and ":" in session_key:
                     parts = session_key.split(":")
-                    if len(parts) >= 4:
+                    if len(parts) >= 3:
                         db_session_id = parts[-1]
                         tool_call_id = evt_data.get("toolCallId") or evt_data.get("itemId") or evt_data.get("id")
                         if tool_call_id:

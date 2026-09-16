@@ -2,13 +2,14 @@ import React, { useMemo } from 'react';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { EmbeddedFile } from '../editor/EmbeddedFile';
+import { ReasoningBlock } from './ReasoningBlock';
 
 const EMBED_REGEX = /\[embed\s+([^\]]+)\s*\/\]/g;
 const ATTR_REGEX = /(\w+)="([^"]*)"/g;
 
 const remarkPlugins = [remarkGfm];
 
-export const ChatMessage = React.memo(({ sender, text, isError }) => {
+export const ChatMessage = React.memo(({ sender, text, isError, reasoning }) => {
   // Memoize the embed parsing so it only re-runs when `text` changes
   const parts = useMemo(() => {
     const result = [];
@@ -45,6 +46,7 @@ export const ChatMessage = React.memo(({ sender, text, isError }) => {
   if (parts.length === 1 && parts[0].type === 'text') {
     return (
       <div className={`message-row ${sender}`}>
+        {reasoning && <ReasoningBlock reasoning={reasoning} />}
         <div className={`message-bubble ${sender}${isError ? ' message-error' : ''}`}>
           <ReactMarkdown remarkPlugins={remarkPlugins}>
             {text}
@@ -56,6 +58,7 @@ export const ChatMessage = React.memo(({ sender, text, isError }) => {
 
   return (
     <div className={`message-row ${sender}`}>
+      {reasoning && <ReasoningBlock reasoning={reasoning} />}
       <div className={`message-bubble ${sender}${isError ? ' message-error' : ''}`}>
         {parts.map((part, i) => {
           if (part.type === 'text') {

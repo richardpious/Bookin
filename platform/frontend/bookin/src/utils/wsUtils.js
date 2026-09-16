@@ -1,3 +1,5 @@
+import { getFriendlyErrorMessage } from './errorUtils';
+
 export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFilePreview, onFileSilentUpdate, onRequireApproval) => {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const url = `${wsProtocol}//${window.location.host}/ws/${client_id}${token ? `?token=${token}` : ''}`;
@@ -161,20 +163,7 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
     } else if (data.type === 'error') {
       console.error("Agent Error:", data.message);
       const raw = data.message || 'Unknown error';
-      let display = `Error: ${raw}`;
-      if (/rate.?limit|too many requests|429/i.test(raw)) {
-        display = '⚠️ Rate limit reached. Please wait a moment and try again.';
-      } else if (/context.?length|too many tokens|token.?limit|context_window/i.test(raw)) {
-        display = '⚠️ Message too long — the context window is full. Try starting a new session.';
-      } else if (/timeout|etimedout/i.test(raw)) {
-        display = '⚠️ The request timed out. Please try again.';
-      } else if (/billing|payment|quota/i.test(raw)) {
-        display = '⚠️ Billing or quota issue with the AI provider. Check your account.';
-      } else if (/overloaded|503|service.?unavailable/i.test(raw)) {
-        display = '⚠️ The AI service is temporarily overloaded. Please try again in a moment.';
-      } else if (/auth|unauthorized|401|403/i.test(raw)) {
-        display = '⚠️ Authentication failed. Check provider credentials.';
-      }
+      const display = getFriendlyErrorMessage(raw);
       setMessages((prev) => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.isError && lastMsg.text === display) return prev;
