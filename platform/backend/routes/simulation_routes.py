@@ -4,10 +4,39 @@ import re
 import shutil
 import subprocess
 import logging
+import asyncio
 from paths import get_project_root
 
 logger = logging.getLogger("SimulationRoutes")
 router = APIRouter()
+
+async def monitor_simulation(process, rel_run_dir, manager, log_file_path, log_file):
+    await asyncio.to_thread(process.wait)
+    
+    if not log_file.closed:
+        log_file.close()
+        
+    if process.returncode != 0:
+        error_details = ""
+        try:
+            with open(log_file_path, "r", errors="ignore") as f:
+                f.seek(0, os.SEEK_END)
+                file_size = f.tell()
+                if file_size > 4096:
+                    f.seek(file_size - 4096, os.SEEK_SET)
+                else:
+                    f.seek(0, os.SEEK_SET)
+                error_details = f.read().strip()
+        except Exception:
+            pass
+            
+        await manager.broadcast({
+            "type": "simulation-error",
+            "path": rel_run_dir,
+            "message": f"Simulation failed with exit code {process.returncode}.",
+            "details": error_details
+        })
+
 @router.post("/run-simulation")
 async def run_simulation(request: Request, payload: dict = Body(...)):
     config_path = payload.get("config_path")
@@ -71,6 +100,9 @@ async def run_simulation(request: Request, payload: dict = Body(...)):
             "process": process,
             "log_file": log_file
         }
+        
+        manager = request.app.state.manager
+        asyncio.create_task(monitor_simulation(process, rel_run_dir, manager, log_file_path, log_file))
         
         return {"success": True, "run_directory": rel_run_dir}
     except Exception as e:

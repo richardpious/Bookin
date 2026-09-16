@@ -23,7 +23,9 @@ body.is-resizing * {
   left: 0;
   right: 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   z-index: 2000;
   pointer-events: none;
 }
@@ -37,8 +39,9 @@ body.is-resizing * {
   box-shadow: var(--shadow);
   font-size: 0.9rem;
   font-weight: 500;
-  text-align: center;
-  animation: slideIn 0.2s ease-out, fadeOut 0.5s ease-out 2.5s;
+  text-align: left;
+  white-space: pre-wrap;
+  animation: slideIn 0.2s ease-out, fadeOut 0.5s ease-out 2.5s forwards;
 }
 
 .toast.toast-error {

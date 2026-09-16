@@ -69,18 +69,19 @@ async def get_models(request: Request, username: Optional[str] = Depends(get_opt
         filtered_models = []
         for m in models_data:
             key = m.get('key', m.get('id', '')).lower()
-            if key.startswith("google/gemini-") or (key.startswith("nvidia/") and "nemotron" in key):
+            if "gemini-" in key or "nemotron" in key:
                 filtered_models.append(m)
 
-        # Group models by their native provider (the first part of their ID)
+        # Group models by their native provider
         providers = {}
         for m in filtered_models:
             key = m.get('key', m.get('id', ''))
             parts = key.split('/', 1)
-            p = parts[0] if len(parts) > 1 else 'unknown'
             
-            # We explicitly ignore m.get('provider') here so that OpenRouter/Ollama
-            # models are grouped under their native prefix (e.g. 'google' or 'nvidia')
+            if len(parts) > 1:
+                p = parts[0]
+            else:
+                p = m.get('provider') or 'unknown'
             
             if p not in providers:
                 providers[p] = []

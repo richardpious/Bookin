@@ -4,9 +4,7 @@ import './Header.css';
 import { ModelSelector } from './ModelSelector';
 import { ThinkingLevelSelector } from './ThinkingLevelSelector';
 
-export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch, username, onLogout, token, onOpenSimulationRunner }) => {
-  const [toast, setToast] = useState(null);
-  const [toastType, setToastType] = useState('success');
+export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSearch, username, onLogout, token, onOpenSimulationRunner, onToast }) => {
   const [sessionData, setSessionData] = useState(null);
 
   const refreshSessionData = () => {
@@ -37,11 +35,7 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
     return result;
   };
 
-  const showToast = (message, type = 'success') => {
-    setToast(message);
-    setToastType(type);
-    setTimeout(() => setToast(null), 3000);
-  };
+
 
   return (
     <header className="app-header">
@@ -80,14 +74,14 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
           initialModel={sessionData?.model}
           availableModels={sessionData?.models}
           onModelChange={handleModelChange}
-          onToast={showToast}
+          onToast={onToast}
         />
         <ThinkingLevelSelector
           sessionId={sessionId}
           initialLevel={sessionData?.thinkingLevel}
           availableLevels={sessionData?.thinkingLevels}
           onLevelChange={onThinkingLevelChange}
-          onToast={showToast}
+          onToast={onToast}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -109,14 +103,6 @@ export const Header = ({ onModelChange, onThinkingLevelChange, sessionId, onSear
           </button>
         </div>
       </div>
-
-      {toast && (
-        <div className="toast-container">
-          <div className={`toast ${toastType === 'error' ? 'toast-error' : ''}`}>
-            {toast}
-          </div>
-        </div>
-      )}
     </header>
   );
 };

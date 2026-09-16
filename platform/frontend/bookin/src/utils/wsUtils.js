@@ -170,6 +170,15 @@ export const setupWebSocket = (client_id, token, setMessages, setIsLoading, onFi
         return [...prev, { id: Date.now(), sender: 'bot', text: display, isComplete: true, isError: true }];
       });
       setIsLoading(false);
+    } else if (data.type === 'simulation-error') {
+      console.error("Simulation Error:", data.message, data.details);
+      window.dispatchEvent(new CustomEvent('app-toast', { 
+        detail: { 
+          message: `Simulation Failed in ${data.path}\n\n${data.details || data.message}`, 
+          type: 'error' 
+        } 
+      }));
+      setIsLoading(false);
     } else if (data.type === 'user-message') {
       setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: data.message }]);
     } else if (data.message) {

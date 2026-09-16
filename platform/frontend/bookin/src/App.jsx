@@ -52,14 +52,15 @@ function App() {
   const [searchResults, setSearchResults] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeLine, setActiveLine] = useState(null)
-  const [toast, setToast] = useState(null);
-  const [toastType, setToastType] = useState('success');
+  const [toasts, setToasts] = useState([]);
 
-  const showToast = (message, type = 'success') => {
-    setToast(message);
-    setToastType(type);
-    setTimeout(() => setToast(null), 3000);
-  };
+  const showToast = useCallback((message, type = 'success') => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter(t => t.id !== id));
+    }, 4000);
+  }, []);
 
   const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing, leftCollapsed, rightCollapsed, toggleLeftCollapsed, toggleRightCollapsed } = useResizer();
   const { openFiles, activeFile, fileContents, dirtyFiles, hasUnreadLogs, clearUnreadLogs, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
@@ -98,6 +99,14 @@ function App() {
   const handleRequireApproval = useCallback((data) => {
     setApprovalRequest(data);
   }, []);
+
+  useEffect(() => {
+    const handleAppToast = (e) => {
+      showToast(e.detail.message, e.detail.type);
+    };
+    window.addEventListener('app-toast', handleAppToast);
+    return () => window.removeEventListener('app-toast', handleAppToast);
+  }, [showToast]);
   const { messages, isLoading, isConnecting, handleSend, handleAbort, setMessages, messagesEndRef } = useChatManagement(
     sessionId,
     handleOpenFilePreview,
@@ -140,6 +149,7 @@ function App() {
         onLogout={handleLogout}
         token={token}
         onOpenSimulationRunner={() => handleFileClick('simulation-runner:')}
+        onToast={showToast}
       />
       <ApprovalModal
         isOpen={!!approvalRequest}
@@ -228,11 +238,13 @@ function App() {
           collapsed={rightCollapsed}
           onToggleCollapse={toggleRightCollapsed}
         />
-        {toast && (
+        {toasts.length > 0 && (
           <div className="toast-container">
-            <div className={`toast ${toastType === 'error' ? 'toast-error' : ''}`}>
-              {toast}
-            </div>
+            {toasts.map(t => (
+              <div key={t.id} className={`toast ${t.type === 'error' ? 'toast-error' : ''}`}>
+                {t.message}
+              </div>
+            ))}
           </div>
         )}
     </div>
