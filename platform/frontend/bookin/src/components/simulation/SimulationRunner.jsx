@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Play, Settings, Cpu } from 'lucide-react';
-import { fetchFiles, readFileContent, updateFileContent, runSimulationAPI } from '../../utils/fileUtils';
+import { useState, useEffect, useRef } from 'react';
+import { Play, Settings, Cpu, Plus, Trash2 } from 'lucide-react';
+import { fetchFiles, readFileContent, updateFileContent, runSimulationAPI, deleteItem } from '../../utils/fileUtils';
+import ConfigParametersModal from '../modals/ConfigParametersModal';
 import './SimulationRunner.css';
 
 export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
@@ -10,22 +11,48 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
   const [configParams, setConfigParams] = useState({});
   const [rawContent, setRawContent] = useState('');
   const [isLoadingParams, setIsLoadingParams] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newConfigName, setNewConfigName] = useState('');
+  const [isConfigDropdownOpen, setIsConfigDropdownOpen] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState(null);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsConfigDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const loadConfigs = async () => {
+      let configDir = 'configs';
+      const username = localStorage.getItem('username');
+      
+      if (username && sessions && sessionId) {
+        const currentSession = sessions.find(s => s.id === sessionId);
+        if (currentSession) {
+          configDir = `logs/${username}/${currentSession.title}/configs`;
+        }
+      }
+
       try {
-        const files = await fetchFiles('configs');
+        const files = await fetchFiles(configDir);
         const cfgFiles = files.filter(f => f.name.endsWith('.cfg'));
         setConfigs(cfgFiles);
         if (cfgFiles.length > 0) {
           setSelectedConfig(cfgFiles[0].path);
         }
       } catch (err) {
-        console.error("Failed to load configs", err);
+        console.error(`Failed to load configs from ${configDir}`, err);
       }
     };
     loadConfigs();
-  }, []);
+  }, [sessions, sessionId]);
 
   useEffect(() => {
     const loadParams = async () => {
@@ -93,6 +120,162 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
     }
   };
 
+  const handleAddParameter = async (param) => {
+    const key = param.name;
+    const value = param.defaultValue;
+
+    setConfigParams(prev => ({ ...prev, [key]: value }));
+
+    let keyExists = false;
+    const lines = rawContent.split('\n');
+    const newLines = lines.map(line => {
+      const cleaned = line.split('//')[0].trim();
+      if (!cleaned) return line;
+
+      const parts = cleaned.split('=');
+      if (parts.length === 2 && parts[0].trim() === key) {
+        keyExists = true;
+        const commentPart = line.includes('//') ? ' //' + line.split('//').slice(1).join('//') : '';
+        const match = line.match(/^(\s*)/);
+        const indent = match ? match[1] : '';
+        return `${indent}${key} = ${value};${commentPart}`;
+      }
+      return line;
+    });
+
+    if (!keyExists) {
+      newLines.push(`${key} = ${value};`);
+    }
+
+    const newContent = newLines.join('\n');
+    setRawContent(newContent);
+    try {
+      await updateFileContent(selectedConfig, newContent);
+    } catch (err) {
+      console.error("Failed to update config file", err);
+      if (onToast) onToast('Failed to add parameter: ' + key, 'error');
+    }
+  };
+
+  const handleDeleteParameter = async (key) => {
+    // 1. Update local state
+    const newParams = { ...configParams };
+    delete newParams[key];
+    setConfigParams(newParams);
+
+    // 2. Remove from raw content
+    const lines = rawContent.split('\n');
+    const newLines = lines.filter(line => {
+      const cleaned = line.split('//')[0].trim();
+      if (!cleaned) return true; // keep empty lines and pure comments
+
+      const parts = cleaned.split('=');
+      // If this line defines the parameter, remove it by returning false
+      if (parts.length === 2 && parts[0].trim() === key) {
+        return false;
+      }
+      return true;
+    });
+
+    const newContent = newLines.join('\n');
+    setRawContent(newContent);
+    try {
+      await updateFileContent(selectedConfig, newContent);
+      if (onToast) onToast(`Deleted parameter: ${key}`, 'success');
+    } catch (err) {
+      console.error("Failed to update config file", err);
+      if (onToast) onToast('Failed to delete parameter: ' + key, 'error');
+    }
+  };
+
+  const openCreateModal = () => {
+    setNewConfigName('');
+    setIsCreateModalOpen(true);
+  };
+
+  const submitCreateConfig = async () => {
+    let filename = newConfigName;
+    if (!filename) return;
+    
+    filename = filename.trim();
+    if (!filename.endsWith('.cfg')) {
+      filename += '.cfg';
+    }
+    
+    // Check for invalid characters (basic check)
+    if (/[^a-zA-Z0-9_\-\.]/.test(filename)) {
+      if (onToast) onToast('Invalid filename. Use alphanumeric characters, dashes, and underscores.', 'error');
+      return;
+    }
+
+    const username = localStorage.getItem('username');
+    if (!username || !sessions || !sessionId) {
+      if (onToast) onToast('Cannot create config outside of an active session.', 'error');
+      return;
+    }
+
+    const currentSession = sessions.find(s => s.id === sessionId);
+    if (!currentSession) return;
+
+    const configDir = `logs/${username}/${currentSession.title}/configs`;
+    const newConfigPath = `${configDir}/${filename}`;
+
+    // Check if it already exists in the current list
+    if (configs.find(c => c.name === filename)) {
+      if (onToast) onToast('A configuration with this name already exists.', 'error');
+      return;
+    }
+
+    const defaultContent = `topology = mesh;\nk = 4;\nn = 2;\nrouting_function = dim_order;\n`;
+
+    try {
+      await updateFileContent(newConfigPath, defaultContent);
+      
+      // Update local state to include the new config
+      const newConfigObj = {
+        name: filename,
+        path: newConfigPath,
+        isDir: false,
+        modifiedAt: new Date().toISOString()
+      };
+      
+      setConfigs(prev => [...prev, newConfigObj]);
+      setSelectedConfig(newConfigPath);
+      setIsCreateModalOpen(false);
+      if (onToast) onToast(`Created new config: ${filename}`, 'success');
+    } catch (err) {
+      console.error("Failed to create config file", err);
+      if (onToast) onToast(`Failed to create config file: ${err.message}`, 'error');
+    }
+  };
+
+  const confirmDeleteConfig = async () => {
+    if (!configToDelete) return;
+    try {
+      await deleteItem(configToDelete.path);
+      
+      const newConfigs = configs.filter(c => c.path !== configToDelete.path);
+      setConfigs(newConfigs);
+      
+      if (selectedConfig === configToDelete.path) {
+        if (newConfigs.length > 0) {
+          setSelectedConfig(newConfigs[0].path);
+        } else {
+          setSelectedConfig('');
+          setRawContent('');
+          setConfigParams({});
+        }
+      }
+      
+      if (onToast) onToast(`Deleted config: ${configToDelete.name}`, 'success');
+    } catch (err) {
+      console.error("Failed to delete config file", err);
+      if (onToast) onToast(`Failed to delete config: ${err.message}`, 'error');
+    } finally {
+      setConfigToDelete(null);
+    }
+  };
+
   const handleRun = async () => {
     if (!selectedConfig) return;
     const username = localStorage.getItem('username');
@@ -135,15 +318,51 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
           <div className="simulation-card-body">
             <div className="form-group">
               <label>Select Configuration File</label>
-              <select
-                value={selectedConfig}
-                onChange={(e) => setSelectedConfig(e.target.value)}
-                className="config-select"
-              >
-                {configs.map(c => (
-                  <option key={c.path} value={c.path}>{c.name}</option>
-                ))}
-              </select>
+              <div className="config-select-group">
+                <div style={{ position: 'relative', flex: 1 }} ref={dropdownRef}>
+                  <div 
+                    className="custom-select" 
+                    onClick={() => setIsConfigDropdownOpen(!isConfigDropdownOpen)}
+                  >
+                    <span>{configs.find(c => c.path === selectedConfig)?.name || 'Select a config'}</span>
+                    <span className="arrow">▼</span>
+                  </div>
+                  {isConfigDropdownOpen && (
+                    <div className="custom-select-dropdown">
+                      {configs.map(c => (
+                        <div
+                          key={c.path}
+                          className={`custom-select-item ${c.path === selectedConfig ? 'selected' : ''}`}
+                          onClick={() => {
+                            setSelectedConfig(c.path);
+                            setIsConfigDropdownOpen(false);
+                          }}
+                        >
+                          <span className="config-name">{c.name}</span>
+                          <button 
+                            className="delete-config-btn" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfigToDelete(c);
+                              setIsConfigDropdownOpen(false);
+                            }}
+                            title="Delete configuration"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button 
+                  className="create-config-btn" 
+                  onClick={openCreateModal}
+                  title="Create new configuration file"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -160,7 +379,16 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
               <div className="params-grid">
                 {Object.entries(configParams).map(([key, value]) => (
                   <div key={key} className="param-item">
-                    <span className="param-key">{key}</span>
+                    <div className="param-item-header">
+                      <span className="param-key">{key}</span>
+                      <button 
+                        className="delete-param-btn" 
+                        onClick={() => handleDeleteParameter(key)}
+                        title="Delete parameter"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                     <input
                       type="text"
                       className="param-input"
@@ -170,6 +398,14 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
                     />
                   </div>
                 ))}
+                <div 
+                  className="param-item add-param-item" 
+                  onClick={() => setIsConfigModalOpen(true)}
+                  title="Add parameter"
+                >
+                  <Plus size={24} />
+                  <span>Add Parameter</span>
+                </div>
               </div>
             ) : (
               <p className="placeholder-text">No parameters found or file empty.</p>
@@ -197,6 +433,53 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
           )}
         </button>
       </div>
+
+      <ConfigParametersModal 
+        isOpen={isConfigModalOpen} 
+        onClose={() => setIsConfigModalOpen(false)} 
+        onAddParameter={handleAddParameter} 
+      />
+
+      {isCreateModalOpen && (
+        <div className="create-modal-overlay" onClick={() => setIsCreateModalOpen(false)}>
+          <div className="create-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>New Configuration</h3>
+            <input 
+              type="text" 
+              placeholder="e.g., my_config" 
+              value={newConfigName} 
+              onChange={(e) => setNewConfigName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && submitCreateConfig()}
+              autoFocus
+            />
+            <div className="create-modal-actions">
+              <button className="create-modal-btn secondary" onClick={() => setIsCreateModalOpen(false)}>Cancel</button>
+              <button className="create-modal-btn primary" onClick={submitCreateConfig}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {configToDelete && (
+        <div className="create-modal-overlay" onClick={() => setConfigToDelete(null)}>
+          <div className="create-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete Configuration</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
+              Are you sure you want to delete <strong>{configToDelete.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="create-modal-actions">
+              <button className="create-modal-btn secondary" onClick={() => setConfigToDelete(null)}>Cancel</button>
+              <button 
+                className="create-modal-btn primary" 
+                style={{ background: '#ef4444', borderColor: '#ef4444' }}
+                onClick={confirmDeleteConfig}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
