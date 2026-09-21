@@ -207,7 +207,7 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
   const currentDisplay = useMemo(() => {
     if (!meta?.timeline?.ticks) return String(currentCycle);
     const match = meta.timeline.ticks.find(t => t.tick === currentCycle);
-    return match ? match.display : String(currentCycle);
+    return match ? String(match.baseCycle ?? match.display) : String(currentCycle);
   }, [currentCycle, meta]);
 
   // Sync cycleInput when currentCycle changes and user is not focused on input
@@ -240,7 +240,8 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
           } else {
             const start = data.timeline.startCycle;
             setCurrentCycle(start);
-            const startDisplay = data.timeline.ticks?.find(t => t.tick === start)?.display || String(start);
+            const startTick = data.timeline.ticks?.find(t => t.tick === start);
+            const startDisplay = startTick ? String(startTick.baseCycle ?? startTick.display) : String(start);
             setCycleInput(startDisplay);
           }
         }
@@ -350,12 +351,8 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
     if (!meta) return null;
     const str = String(inputVal).trim();
     if (meta.timeline?.ticks) {
-      const exactMatch = meta.timeline.ticks.find(t => t.display === str);
+      const exactMatch = meta.timeline.ticks.find(t => String(t.baseCycle) === str || t.display === str);
       if (exactMatch) return exactMatch.tick;
-      const baseMatch = meta.timeline.ticks.find(t => t.display === str + '.0');
-      if (baseMatch) return baseMatch.tick;
-      const partialMatch = meta.timeline.ticks.find(t => t.display.startsWith(str));
-      if (partialMatch) return partialMatch.tick;
     }
     const val = parseInt(str, 10);
     return isNaN(val) ? null : val;
@@ -1227,7 +1224,10 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
                 className="seekbar-hover-tooltip"
                 style={{ left: `${seekHoverX}px` }}
               >
-                Cycle {meta?.timeline?.ticks?.find(t => t.tick === seekHoverCycle)?.display || seekHoverCycle}
+                {(() => {
+                  const match = meta?.timeline?.ticks?.find(t => t.tick === seekHoverCycle);
+                  return `Cycle ${match ? String(match.baseCycle ?? match.display) : seekHoverCycle}`;
+                })()}
               </div>
             )}
           </div>
@@ -1280,19 +1280,50 @@ export const NetworkVisualizer = ({ filePath, leftCollapsed, onToggleLeftSidebar
             </div>
 
             {/* Cycle Counter & Jump Input */}
-            <div className="cycle-display">
-              <span>Cycle:</span>
-              <input
-                type="text"
-                className="cycle-input"
-                value={cycleInput}
-                onChange={(e) => setCycleInput(e.target.value)}
-                onKeyDown={handleCycleSubmit}
-                onFocus={() => setIsInputFocused(true)}
-                onBlur={handleCycleBlur}
-              />
-              <span className="cycle-total">/ {meta?.timeline?.ticks?.[meta.timeline.ticks.length - 1]?.display || meta?.timeline?.endCycle || 0}</span>
-              {fetchingRange && <span className="cycle-events">Loading data...</span>}
+            <div className="cycle-display" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span>Cycle:</span>
+                <input
+                  type="text"
+                  className="cycle-input"
+                  value={cycleInput}
+                  onChange={(e) => setCycleInput(e.target.value)}
+                  onKeyDown={handleCycleSubmit}
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={handleCycleBlur}
+                />
+                {(() => {
+                  const ticks = meta?.timeline?.ticks;
+                  const lastTick = ticks?.[ticks.length - 1];
+                  const totalDisp = lastTick ? String(lastTick.baseCycle ?? lastTick.display) : (meta?.timeline?.endCycle || 0);
+                  return <span className="cycle-total">/ {totalDisp}</span>;
+                })()}
+              </div>
+              {(() => {
+                if (!meta?.timeline?.ticks) return null;
+                const match = meta.timeline.ticks.find(t => t.tick === currentCycle);
+                if (!match || match.subIndex === undefined) return null;
+                const subcycles = meta.timeline.ticks.filter(t => t.baseCycle === match.baseCycle);
+                if (subcycles.length <= 1) return null;
+                return (
+                  <div style={{ display: 'flex', gap: '4px', position: 'absolute', bottom: '-8px', height: '6px' }}>
+                    {subcycles.map((sc, i) => (
+                      <div
+                        key={i}
+                        title={`Subcycle ${i}`}
+                        style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          backgroundColor: sc.tick <= currentCycle ? '#3b82f6' : '#334155',
+                          transition: 'background-color 0.2s'
+                        }}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
+              {fetchingRange && <span className="cycle-events" style={{ position: 'absolute', bottom: '-16px', fontSize: '10px' }}>Loading data...</span>}
             </div>
           </div>
         </div>

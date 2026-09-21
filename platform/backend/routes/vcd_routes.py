@@ -148,9 +148,18 @@ class VCDIndex:
                         else:
                             sub_idx += 1
                         display_str = str(sim_cyc) if sub_idx == 0 else f"{sim_cyc}.{sub_idx}"
+                        base_cycle = sim_cyc
+                        sub_index = sub_idx
                     else:
                         display_str = str(current_cycle_num)
-                    self.time_tick_displays.append({"tick": current_cycle_num, "display": display_str})
+                        base_cycle = current_cycle_num
+                        sub_index = 0
+                    self.time_tick_displays.append({
+                        "tick": current_cycle_num, 
+                        "display": display_str,
+                        "baseCycle": base_cycle,
+                        "subIndex": sub_index
+                    })
 
                 try:
                     current_cycle_num = int(line[1:])
@@ -205,9 +214,18 @@ class VCDIndex:
                 else:
                     sub_idx += 1
                 display_str = str(sim_cyc) if sub_idx == 0 else f"{sim_cyc}.{sub_idx}"
+                base_cycle = sim_cyc
+                sub_index = sub_idx
             else:
                 display_str = str(current_cycle_num)
-            self.time_tick_displays.append({"tick": current_cycle_num, "display": display_str})
+                base_cycle = current_cycle_num
+                sub_index = 0
+            self.time_tick_displays.append({
+                "tick": current_cycle_num, 
+                "display": display_str,
+                "baseCycle": base_cycle,
+                "subIndex": sub_index
+            })
 
         # Build final flit routes by sorting each flit's routers by first-seen cycle
         route_entries = {}  # flit_id -> list of (cycle, router)
