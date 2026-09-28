@@ -13,6 +13,11 @@ import re
 import time
 from typing import Dict, List, Optional, Tuple
 
+# Pre-compiled regex patterns for topology derivation
+NODE_PATTERN = re.compile(r'node_(\d+)\.')
+ROUTER_PORT_PATTERN = re.compile(r'router_(\d+)\.(in|link)_(\d+)\.')
+ROUTER_VC_PATTERN = re.compile(r'router_(\d+)\.in_(\d+)\.vc_(\d+)\.')
+
 router = APIRouter(prefix="/api/vcd", tags=["vcd"])
 
 # ---------------------------------------------------------------------------
@@ -250,18 +255,18 @@ class VCDIndex:
 
         for name in self.signal_name_to_id:
             # node_X.gen.valid
-            m = re.match(r'node_(\d+)\.', name)
+            m = NODE_PATTERN.match(name)
             if m:
                 max_node = max(max_node, int(m.group(1)))
 
             # router_X.in_Y.valid or router_X.link_Y.valid
-            m = re.match(r'router_(\d+)\.(in|link)_(\d+)\.', name)
+            m = ROUTER_PORT_PATTERN.match(name)
             if m:
                 max_router = max(max_router, int(m.group(1)))
                 max_port = max(max_port, int(m.group(3)))
 
             # router_X.in_Y.vc_Z.occupancy
-            m = re.match(r'router_(\d+)\.in_(\d+)\.vc_(\d+)\.', name)
+            m = ROUTER_VC_PATTERN.match(name)
             if m:
                 max_vc = max(max_vc, int(m.group(3)))
 
