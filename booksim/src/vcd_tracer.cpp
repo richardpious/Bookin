@@ -24,7 +24,11 @@ VCDTracer::VCDTracer(Configuration const &config, int nodes, int routers,
       _trace_vc(config.GetInt("vcd_trace_vc") > 0),
       _trace_pipeline(config.GetInt("vcd_trace_pipeline") > 0),
       _trace_credits(config.GetInt("vcd_trace_credits") > 0),
-      _trace_router(config.GetInt("vcd_trace_router")), _use_gzip(false),
+      _trace_speedup(config.GetInt("vcd_trace_speedup") > 0),
+      _trace_router(config.GetInt("vcd_trace_router")),
+      _input_speedup(config.GetInt("input_speedup")),
+      _output_speedup(config.GetInt("output_speedup")),
+      _use_gzip(false),
       _gz_out(NULL), _next_id(0), _last_time(-1),
       _time_tick(0), _current_sub_step(0), _current_cycle(0) {
   if (!_enabled) {
@@ -154,6 +158,19 @@ void VCDTracer::Cycle(int cycle) {
                    _router_pipeline_valid_last[router][stage][inp][vc]);
           }
         }
+      }
+    }
+    // Clear expanded crossbar port signals
+    if (_trace_speedup && !_router_exp_input.empty()) {
+      int exp_inputs = _router_outputs * _input_speedup;
+      for (int ei = 0; ei < exp_inputs; ++ei) {
+        _Clear(_router_exp_input[router][ei],
+               _router_exp_input_valid_last[router][ei]);
+      }
+      int exp_outputs = _router_outputs * _output_speedup;
+      for (int eo = 0; eo < exp_outputs; ++eo) {
+        _Clear(_router_exp_output[router][eo],
+               _router_exp_output_valid_last[router][eo]);
       }
     }
   }
@@ -573,6 +590,12 @@ void VCDTracer::_WriteHeader() {
     _router_ds_available_last.resize(_routers);
     _router_ds_occupancy_count.resize(_routers);
   }
+  if (_trace_speedup && (_input_speedup > 1 || _output_speedup > 1)) {
+    _router_exp_input.resize(_routers);
+    _router_exp_input_valid_last.resize(_routers);
+    _router_exp_output.resize(_routers);
+    _router_exp_output_valid_last.resize(_routers);
+  }
 
   for (int router = 0; router < _routers; ++router) {
     bool trace_this = ShouldTraceRouter(router);
@@ -775,6 +798,37 @@ void VCDTracer::_WriteHeader() {
         }
       }
     }
+
+    // Expanded crossbar port signals (input/output speedup)
+    if (_trace_speedup && trace_this && (_input_speedup > 1 || _output_speedup > 1)) {
+      int exp_inputs = _router_outputs * _input_speedup;
+      _router_exp_input[router].resize(exp_inputs);
+      _router_exp_input_valid_last[router].assign(exp_inputs, false);
+      for (int ei = 0; ei < exp_inputs; ++ei) {
+        std::ostringstream xbar_prefix;
+        xbar_prefix << "router_" << router << ".xbar.exp_in_" << ei;
+        ExpandedPortSignals &eps = _router_exp_input[router][ei];
+        eps.valid = _Register(xbar_prefix.str() + ".valid", 1);
+        eps.flit = _RegisterInteger(xbar_prefix.str() + ".flit_id", 16);
+        eps.packet = _RegisterInteger(xbar_prefix.str() + ".packet_id", 16);
+        eps.phys_port = _RegisterInteger(xbar_prefix.str() + ".phys_input", 8);
+        eps.peer_exp = _RegisterInteger(xbar_prefix.str() + ".exp_output", 8);
+      }
+
+      int exp_outputs = _router_outputs * _output_speedup;
+      _router_exp_output[router].resize(exp_outputs);
+      _router_exp_output_valid_last[router].assign(exp_outputs, false);
+      for (int eo = 0; eo < exp_outputs; ++eo) {
+        std::ostringstream xbar_prefix;
+        xbar_prefix << "router_" << router << ".xbar.exp_out_" << eo;
+        ExpandedPortSignals &eps = _router_exp_output[router][eo];
+        eps.valid = _Register(xbar_prefix.str() + ".valid", 1);
+        eps.flit = _RegisterInteger(xbar_prefix.str() + ".flit_id", 16);
+        eps.packet = _RegisterInteger(xbar_prefix.str() + ".packet_id", 16);
+        eps.phys_port = _RegisterInteger(xbar_prefix.str() + ".phys_output", 8);
+        eps.peer_exp = _RegisterInteger(xbar_prefix.str() + ".from_input", 8);
+      }
+    }
   }
 
   _Write("$upscope $end\n");
@@ -876,6 +930,73 @@ void VCDTracer::_Clear(PipelineSignals const &sigs, char &valid_last) {
   }
 }
 
+void VCDTracer::_Clear(ExpandedPortSignals const &sigs, char &valid_last) {
+  if (valid_last) {
+    _SetBit(sigs.valid, false);
+    valid_last = 0;
+  }
+}
+
+// ---- Expanded crossbar port tracing (input/output speedup) ----
+
+void VCDTracer::TraceExpandedInput(int router, int expanded_input,
+                                   int phys_input, int expanded_output,
+                                   Flit const *f) {
+  if (!_trace_speedup || (_input_speedup <= 1 && _output_speedup <= 1))
+    return;
+  if (!InTraceWindow(GetSimTime()))
+    return;
+  if (router < 0 || router >= _routers)
+    return;
+  if (!ShouldTraceRouter(router) || !ShouldTrace(f))
+    return;
+  if (_router_exp_input.empty() || _router_exp_input[router].empty())
+    return;
+
+  int exp_inputs = _router_outputs * _input_speedup;
+  if (expanded_input < 0 || expanded_input >= exp_inputs)
+    return;
+
+  ExpandedPortSignals &sigs = _router_exp_input[router][expanded_input];
+  _SetBit(sigs.valid, true);
+  _router_exp_input_valid_last[router][expanded_input] = true;
+  _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
+  _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
+  _Set(sigs.phys_port,
+       phys_input < 0 ? ULLONG_MAX : (unsigned long long)phys_input);
+  _Set(sigs.peer_exp,
+       expanded_output < 0 ? ULLONG_MAX : (unsigned long long)expanded_output);
+}
+
+void VCDTracer::TraceExpandedOutput(int router, int expanded_output,
+                                    int phys_output, int expanded_input,
+                                    Flit const *f) {
+  if (!_trace_speedup || (_input_speedup <= 1 && _output_speedup <= 1))
+    return;
+  if (!InTraceWindow(GetSimTime()))
+    return;
+  if (router < 0 || router >= _routers)
+    return;
+  if (!ShouldTraceRouter(router) || !ShouldTrace(f))
+    return;
+  if (_router_exp_output.empty() || _router_exp_output[router].empty())
+    return;
+
+  int exp_outputs = _router_outputs * _output_speedup;
+  if (expanded_output < 0 || expanded_output >= exp_outputs)
+    return;
+
+  ExpandedPortSignals &sigs = _router_exp_output[router][expanded_output];
+  _SetBit(sigs.valid, true);
+  _router_exp_output_valid_last[router][expanded_output] = true;
+  _Set(sigs.flit, f->id < 0 ? ULLONG_MAX : (unsigned long long)f->id);
+  _Set(sigs.packet, f->pid < 0 ? ULLONG_MAX : (unsigned long long)f->pid);
+  _Set(sigs.phys_port,
+       phys_output < 0 ? ULLONG_MAX : (unsigned long long)phys_output);
+  _Set(sigs.peer_exp,
+       expanded_input < 0 ? ULLONG_MAX : (unsigned long long)expanded_input);
+}
+
 // ---- Trace helpers ----
 
 void VCDTracer::_Trace(PacketGenSignals const &sigs, char &valid_last,
@@ -955,6 +1076,21 @@ void VCDTracer::ClearRouterValid(int router) {
         _Clear(_router_pipeline[router][stage][inp][vc],
                _router_pipeline_valid_last[router][stage][inp][vc]);
       }
+    }
+  }
+
+  // Also clear expanded crossbar port signals between sub-steps
+  if (_trace_speedup && !_router_exp_input.empty() &&
+      !_router_exp_input[router].empty()) {
+    int exp_inputs = _router_outputs * _input_speedup;
+    for (int ei = 0; ei < exp_inputs; ++ei) {
+      _Clear(_router_exp_input[router][ei],
+             _router_exp_input_valid_last[router][ei]);
+    }
+    int exp_outputs = _router_outputs * _output_speedup;
+    for (int eo = 0; eo < exp_outputs; ++eo) {
+      _Clear(_router_exp_output[router][eo],
+             _router_exp_output_valid_last[router][eo]);
     }
   }
 }

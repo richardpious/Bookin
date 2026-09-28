@@ -80,6 +80,12 @@ public:
   void SetSubStep(int step);
   void ClearRouterValid(int router);
 
+  // Expanded crossbar port tracing (input/output speedup)
+  void TraceExpandedInput(int router, int expanded_input, int phys_input,
+                          int expanded_output, Flit const * f);
+  void TraceExpandedOutput(int router, int expanded_output, int phys_output,
+                           int expanded_input, Flit const * f);
+
 private:
   struct PacketGenSignals {
     std::string valid;
@@ -129,6 +135,15 @@ private:
     std::string dest;     // 8-bit
   };
 
+  // Expanded crossbar port signals (input/output speedup)
+  struct ExpandedPortSignals {
+    std::string valid;       // 1-bit
+    std::string flit;        // 16-bit
+    std::string packet;      // 16-bit
+    std::string phys_port;   // 8-bit
+    std::string peer_exp;    // 8-bit (expanded output for input, expanded input for output)
+  };
+
   bool _enabled;
   int _start_cycle;
   int _end_cycle;
@@ -143,7 +158,12 @@ private:
   bool _trace_vc;
   bool _trace_pipeline;
   bool _trace_credits;
+  bool _trace_speedup;
   int  _trace_router;  // -1 = all
+
+  // Speedup values (read from config)
+  int _input_speedup;
+  int _output_speedup;
 
   // Gzip output (Component 7)
   bool _use_gzip;
@@ -200,6 +220,12 @@ private:
   std::vector<std::vector<std::vector<int> > > _router_ds_available_last;
   std::vector<std::vector<std::vector<int> > > _router_ds_occupancy_count;
 
+  // Expanded crossbar port signals [router][expanded_port]
+  std::vector<std::vector<ExpandedPortSignals> > _router_exp_input;
+  std::vector<std::vector<char> > _router_exp_input_valid_last;
+  std::vector<std::vector<ExpandedPortSignals> > _router_exp_output;
+  std::vector<std::vector<char> > _router_exp_output_valid_last;
+
   std::string _AllocId();
   std::string _Register(std::string const & name, int width);
   std::string _RegisterInteger(std::string const & name, int width);
@@ -211,6 +237,7 @@ private:
   void _Clear(LinkSignals const & sigs, char & valid_last);
   void _Clear(EjectSignals const & sigs, char & valid_last);
   void _Clear(PipelineSignals const & sigs, char & valid_last);
+  void _Clear(ExpandedPortSignals const & sigs, char & valid_last);
   void _Trace(PacketGenSignals const & sigs, char & valid_last, int packet_id, int src, int dest,
               int flit_id_start, int flit_id_end);
   void _Trace(LinkSignals const & sigs, char & valid_last, Flit const * f);

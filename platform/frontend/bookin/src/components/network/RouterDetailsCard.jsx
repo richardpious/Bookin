@@ -39,6 +39,8 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
   const vcStates = events?.vc_state?.filter(v => v.router === routerId) || [];
   const pipeline = events?.pipeline?.filter(p => p.router === routerId) || [];
   const xbar = events?.xbar?.filter(x => x.router === routerId) || [];
+  const expIn = events?.exp_in?.filter(x => x.router === routerId) || [];
+  const expOut = events?.exp_out?.filter(x => x.router === routerId) || [];
 
   // Compute effective per-VC stats: occupancy = max(rawOcc, detectedFlits)
   // This ensures the count, flit list, and progress bar all agree.
@@ -256,20 +258,35 @@ export const RouterDetailsCard = ({ routerId, events, meta, selectedFlit, onFlit
           <div className="rdc-xbar-list">
             {xbar.map((x, idx) => {
               const isHighlighted = selectedFlit && x.flit === selectedFlit.flit && (x.pkt == null || selectedFlit.pkt == null || x.pkt === selectedFlit.pkt);
+              
+              const matchExpIn = expIn.find(e => e.flit === x.flit);
+              const matchExpOut = expOut.find(e => e.flit === x.flit);
+              
               return (
               <div 
                 key={idx} 
                 className={`rdc-xbar-item ${isHighlighted ? 'rdc-highlight-row' : ''}`}
                 onClick={() => onFlitSelect && onFlitSelect({ flit: x.flit, pkt: x.pkt })}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', flexWrap: 'wrap' }}
               >
-                <ArrowRightLeft size={14} className="rdc-xbar-icon" />
-                <div className="rdc-xbar-details">
-                  <span>In {x.input} (V{x.vc})</span>
-                  <span className="rdc-xbar-arrow">→</span>
-                  <span>Out {x.output}</span>
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ArrowRightLeft size={14} className="rdc-xbar-icon" />
+                    <div className="rdc-xbar-details">
+                      <span>In {x.input} (V{x.vc})</span>
+                      <span className="rdc-xbar-arrow">→</span>
+                      <span>Out {x.output}</span>
+                    </div>
+                  </div>
+                  <div className="rdc-xbar-flit">Flit {x.flit}</div>
                 </div>
-                <div className="rdc-xbar-flit">Flit {x.flit}</div>
+                
+                {(matchExpIn || matchExpOut) && (
+                  <div style={{ width: '100%', marginTop: '6px', fontSize: '11px', color: '#9ca3af', display: 'flex', gap: '12px', paddingLeft: '22px' }}>
+                    {matchExpIn && <span>[Exp In: {matchExpIn.exp_in}]</span>}
+                    {matchExpOut && <span>[Exp Out: {matchExpOut.exp_out}]</span>}
+                  </div>
+                )}
               </div>
               );
             })}

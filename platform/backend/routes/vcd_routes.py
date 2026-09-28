@@ -423,9 +423,44 @@ class VCDIndex:
                     })
                 ports_ds.append(ds_vcs)
                 
+            # Expanded crossbar port signals
+            exp_in_ids = []
+            ei = 0
+            while True:
+                prefix = f"router_{router}.xbar.exp_in_{ei}"
+                if self.signal_name_to_id.get(f"{prefix}.valid") is None:
+                    break
+                exp_in_ids.append({
+                    "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                    "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
+                    "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                    "phys_port": self.signal_name_to_id.get(f"{prefix}.phys_input"),
+                    "exp_peer": self.signal_name_to_id.get(f"{prefix}.exp_output")
+                })
+                ei += 1
+                
+            exp_out_ids = []
+            eo = 0
+            while True:
+                prefix = f"router_{router}.xbar.exp_out_{eo}"
+                if self.signal_name_to_id.get(f"{prefix}.valid") is None:
+                    break
+                exp_out_ids.append({
+                    "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                    "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
+                    "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                    "phys_port": self.signal_name_to_id.get(f"{prefix}.phys_output"),
+                    "exp_peer": self.signal_name_to_id.get(f"{prefix}.from_input")
+                })
+                eo += 1
+                
             self.router_vc_state_ids.append(ports_vc_state)
             self.router_pipe_ids.append(ports_pipe)
             self.router_ds_ids.append(ports_ds)
+            self.router_xbar_ids.append({
+                "exp_in": exp_in_ids,
+                "exp_out": exp_out_ids
+            })
 
     def get_cycle_index(self, cycle: int) -> Optional[int]:
         """Binary search for the index of a cycle in byte_offsets."""
@@ -530,7 +565,9 @@ class VCDIndex:
             "xbar": [],
             "credits": [],
             "inject": [],
-            "eject": []
+            "eject": [],
+            "exp_in": [],
+            "exp_out": []
         }
 
         # Helper to get signal value directly by short_id
@@ -698,6 +735,30 @@ class VCDIndex:
                         events["credits"].append({
                             "router": router, "output": port, "vc": vc,
                             "occ": occ, "avail": avail
+                        })
+
+            # Expanded crossbar port events
+            if hasattr(self, "router_xbar_ids") and router < len(self.router_xbar_ids):
+                xbar = self.router_xbar_ids[router]
+                for ei, xid in enumerate(xbar["exp_in"]):
+                    if val(xid["valid"]) == 1:
+                        events["exp_in"].append({
+                            "router": router,
+                            "exp_in": ei,
+                            "phys_port": val(xid["phys_port"]) or 0,
+                            "exp_out": val(xid["exp_peer"]) or 0,
+                            "flit": val(xid["flit"]) or 0,
+                            "pkt": val(xid["pkt"]) or 0
+                        })
+                for eo, xid in enumerate(xbar["exp_out"]):
+                    if val(xid["valid"]) == 1:
+                        events["exp_out"].append({
+                            "router": router,
+                            "exp_out": eo,
+                            "phys_port": val(xid["phys_port"]) or 0,
+                            "exp_in": val(xid["exp_peer"]) or 0,
+                            "flit": val(xid["flit"]) or 0,
+                            "pkt": val(xid["pkt"]) or 0
                         })
 
         return events
