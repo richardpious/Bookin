@@ -80,7 +80,11 @@ async def run_simulation(request: Request, payload: dict = Body(...)):
     shutil.copy(source_path, target_config_path)
     
     # 5. Spawn subprocess
-    booksim_binary = os.path.join(root_dir, "booksim", "src", "booksim")
+    session_booksim_binary = os.path.join(base_log_dir, "booksim", "src", "booksim")
+    if os.path.isfile(session_booksim_binary):
+        booksim_binary = session_booksim_binary
+    else:
+        booksim_binary = os.path.join(root_dir, "booksim", "src", "booksim")
     log_file_path = os.path.join(run_dir, "simulation_output.log")
     
     try:
