@@ -1101,6 +1101,13 @@ void IQRouter::_SWHoldUpdate( )
 		   << "." << (expanded_output % _output_speedup)
 		   << "." << endl;
       }
+
+      if(gVCDTracer && (_input_speedup > 1 || _output_speedup > 1)) {
+        gVCDTracer->TraceExpandedInput(_id, expanded_input,
+            input, expanded_output, f);
+        gVCDTracer->TraceExpandedOutput(_id, expanded_output,
+            output, expanded_input, f);
+      }
       
       cur_buf->RemoveFlit(vc);
 
@@ -2014,6 +2021,12 @@ void IQRouter::_SWAllocUpdate( )
 
       if(gVCDTracer) {
         gVCDTracer->TracePipelineSA(_id, input, vc, f, VCDTracer::PIPE_SUCCESS, output);
+        if(_input_speedup > 1 || _output_speedup > 1) {
+          gVCDTracer->TraceExpandedInput(_id, expanded_input,
+              input, expanded_output, f);
+          gVCDTracer->TraceExpandedOutput(_id, expanded_output,
+              output, expanded_input, f);
+        }
       }
 
       cur_buf->RemoveFlit(vc);
@@ -2200,6 +2213,12 @@ void IQRouter::_SwitchEvaluate( )
     if(gVCDTracer) {
       gVCDTracer->TraceCrossbarBegin(_id, expanded_input / _input_speedup, expanded_output / _output_speedup, f);
       gVCDTracer->TracePipelineST(_id, expanded_input / _input_speedup, expanded_output / _output_speedup, f, true);
+      if(_input_speedup > 1 || _output_speedup > 1) {
+        gVCDTracer->TraceExpandedInput(_id, expanded_input,
+            expanded_input / _input_speedup, expanded_output, f);
+        gVCDTracer->TraceExpandedOutput(_id, expanded_output,
+            expanded_output / _output_speedup, expanded_input, f);
+      }
     }
       
     if(f->watch) {

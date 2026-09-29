@@ -247,7 +247,7 @@ BookSimConfig::BookSimConfig( )
 
   _int_map["deadlock_warn_timeout"] = 256;
 
-  _int_map["viewer_trace"] = 1;
+  _int_map["viewer_trace"] = 0;
 
   AddStrField("watch_file", "");
   
@@ -287,6 +287,7 @@ BookSimConfig::BookSimConfig( )
   _int_map["vcd_trace_vc"] = 0;
   _int_map["vcd_trace_pipeline"] = 0;
   _int_map["vcd_trace_credits"] = 0;
+  _int_map["vcd_trace_speedup"] = 0;  // 1 to enable expanded crossbar port tracing
   _int_map["vcd_trace_router"] = -1;
 
   //==================Power model params=====================

@@ -10,6 +10,50 @@ from paths import get_project_root
 logger = logging.getLogger("SimulationRoutes")
 router = APIRouter()
 
+# --- PRE-COMPILED REGEXES ---
+RUN_DIR_PATTERN = re.compile(r'run_(\d+)')
+CONFIG_STR_PATTERN = re.compile(r'AddStrField\s*\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*\)')
+CONFIG_INT_PATTERN = re.compile(r'_int_map\s*\[\s*"([^"]+)"\s*\]\s*=\s*([^;]+);')
+CONFIG_FLOAT_PATTERN = re.compile(r'_float_map\s*\[\s*"([^"]+)"\s*\]\s*=\s*([^;]+);')
+
+STATS_TOPOLOGY_PATTERN = re.compile(r'topology\s*=\s*([^;]+);')
+STATS_TRAFFIC_PATTERN = re.compile(r'traffic\s*=\s*([^;]+);')
+
+def _get_stat_block_pattern(label):
+    return re.compile(
+        re.escape(label) + r' average = ([\d\.]+).*?\n'
+        r'\s+minimum = ([\d\.]+).*?\n'
+        r'\s+maximum = ([\d\.]+)'
+    )
+
+STATS_BLOCK_PATTERNS = {
+    'packetLatency': _get_stat_block_pattern('Packet latency'),
+    'networkLatency': _get_stat_block_pattern('Network latency'),
+    'flitLatency': _get_stat_block_pattern('Flit latency'),
+    'fragmentation': _get_stat_block_pattern('Fragmentation'),
+    'injectedPacketRate': _get_stat_block_pattern('Injected packet rate'),
+    'acceptedPacketRate': _get_stat_block_pattern('Accepted packet rate'),
+    'injectedFlitRate': _get_stat_block_pattern('Injected flit rate'),
+    'acceptedFlitRate': _get_stat_block_pattern('Accepted flit rate'),
+}
+
+STATS_SIMPLE_PATTERNS = {
+    'cycles': (re.compile(r'Time taken is (\d+) cycles'), int),
+    'hopsAvg': (re.compile(r'Hops average = ([\d\.]+)'), float),
+    'injectedPacketSizeAvg': (re.compile(r'Injected packet size average = ([\d\.]+)'), float),
+    'acceptedPacketSizeAvg': (re.compile(r'Accepted packet size average = ([\d\.]+)'), float),
+    'bufferBusyStallRate': (re.compile(r'Buffer busy stall rate = ([\d\.]+)'), float),
+    'bufferConflictStallRate': (re.compile(r'Buffer conflict stall rate = ([\d\.]+)'), float),
+    'bufferFullStallRate': (re.compile(r'Buffer full stall rate = ([\d\.]+)'), float),
+    'bufferReservedStallRate': (re.compile(r'Buffer reserved stall rate = ([\d\.]+)'), float),
+    'crossbarConflictStallRate': (re.compile(r'Crossbar conflict stall rate = ([\d\.]+)'), float),
+    'totalRunTime': (re.compile(r'Total run time ([\d\.]+)'), float),
+}
+
+# --- CACHES ---
+_CONFIG_PARAMS_CACHE = None
+
+
 async def monitor_simulation(process, rel_run_dir, manager, log_file_path, log_file):
     await asyncio.to_thread(process.wait)
     
@@ -62,7 +106,7 @@ async def run_simulation(request: Request, payload: dict = Body(...)):
     try:
         entries = os.listdir(base_log_dir)
         for entry in entries:
-            match = re.match(r'run_(\d+)', entry)
+            match = RUN_DIR_PATTERN.match(entry)
             if match:
                 num = int(match.group(1))
                 if num > max_run_num:
@@ -80,7 +124,11 @@ async def run_simulation(request: Request, payload: dict = Body(...)):
     shutil.copy(source_path, target_config_path)
     
     # 5. Spawn subprocess
-    booksim_binary = os.path.join(root_dir, "booksim", "src", "booksim")
+    session_booksim_binary = os.path.join(base_log_dir, "booksim", "src", "booksim")
+    if os.path.isfile(session_booksim_binary):
+        booksim_binary = session_booksim_binary
+    else:
+        booksim_binary = os.path.join(root_dir, "booksim", "src", "booksim")
     log_file_path = os.path.join(run_dir, "simulation_output.log")
     
     try:
@@ -110,6 +158,10 @@ async def run_simulation(request: Request, payload: dict = Body(...)):
 
 @router.get("/config-parameters")
 async def get_config_parameters():
+    global _CONFIG_PARAMS_CACHE
+    if _CONFIG_PARAMS_CACHE is not None:
+        return {"parameters": _CONFIG_PARAMS_CACHE}
+
     root_dir = get_project_root()
     config_path = os.path.join(root_dir, 'booksim', 'src', 'booksim_config.cpp')
     
@@ -131,7 +183,7 @@ async def get_config_parameters():
         parameters = []
         
         # Parse AddStrField
-        str_matches = re.finditer(r'AddStrField\s*\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*\)', content)
+        str_matches = CONFIG_STR_PATTERN.finditer(content)
         for match in str_matches:
             if match.group(1) not in excluded_params:
                 parameters.append({
@@ -141,7 +193,7 @@ async def get_config_parameters():
                 })
             
         # Parse _int_map
-        int_matches = re.finditer(r'_int_map\s*\[\s*"([^"]+)"\s*\]\s*=\s*([^;]+);', content)
+        int_matches = CONFIG_INT_PATTERN.finditer(content)
         for match in int_matches:
             if match.group(1) not in excluded_params:
                 parameters.append({
@@ -151,7 +203,7 @@ async def get_config_parameters():
                 })
                 
         # Parse _float_map
-        float_matches = re.finditer(r'_float_map\s*\[\s*"([^"]+)"\s*\]\s*=\s*([^;]+);', content)
+        float_matches = CONFIG_FLOAT_PATTERN.finditer(content)
         for match in float_matches:
             if match.group(1) not in excluded_params:
                 parameters.append({
@@ -178,6 +230,7 @@ async def get_config_parameters():
         final_parameters = list(merged_params.values())
         final_parameters.sort(key=lambda x: x['name'])
             
+        _CONFIG_PARAMS_CACHE = final_parameters
         return {"parameters": final_parameters}
     except Exception as e:
         return {"error": str(e)}
@@ -232,55 +285,26 @@ async def get_run_stats(path: str):
         full_text = header_text + "\n" + tail_text
         stats = {}
         
-        # Generic parser for stats that follow the pattern:
-        #   Stat name average = <val> (N samples)
-        #           minimum = <val> (N samples)
-        #           maximum = <val> (N samples)
-        def parse_stat_block(label, key_prefix):
-            pattern = (
-                re.escape(label) + r' average = ([\d\.]+).*?\n'
-                r'\s+minimum = ([\d\.]+).*?\n'
-                r'\s+maximum = ([\d\.]+)'
-            )
-            m = re.search(pattern, tail_text)
+        # Parse all stat blocks with avg/min/max
+        for key_prefix, pattern in STATS_BLOCK_PATTERNS.items():
+            m = pattern.search(tail_text)
             if m:
                 stats[key_prefix + 'Avg'] = float(m.group(1))
                 stats[key_prefix + 'Min'] = float(m.group(2))
                 stats[key_prefix + 'Max'] = float(m.group(3))
         
-        # Parse all stat blocks with avg/min/max
-        parse_stat_block('Packet latency', 'packetLatency')
-        parse_stat_block('Network latency', 'networkLatency')
-        parse_stat_block('Flit latency', 'flitLatency')
-        parse_stat_block('Fragmentation', 'fragmentation')
-        parse_stat_block('Injected packet rate', 'injectedPacketRate')
-        parse_stat_block('Accepted packet rate', 'acceptedPacketRate')
-        parse_stat_block('Injected flit rate', 'injectedFlitRate')
-        parse_stat_block('Accepted flit rate', 'acceptedFlitRate')
-        
         # Parse simple single-value stats
-        def parse_simple(pattern, key, cast=float):
-            m = re.search(pattern, tail_text)
+        for key, (pattern, cast) in STATS_SIMPLE_PATTERNS.items():
+            m = pattern.search(tail_text)
             if m:
                 stats[key] = cast(m.group(1))
-        
-        parse_simple(r'Time taken is (\d+) cycles', 'cycles', int)
-        parse_simple(r'Hops average = ([\d\.]+)', 'hopsAvg')
-        parse_simple(r'Injected packet size average = ([\d\.]+)', 'injectedPacketSizeAvg')
-        parse_simple(r'Accepted packet size average = ([\d\.]+)', 'acceptedPacketSizeAvg')
-        parse_simple(r'Buffer busy stall rate = ([\d\.]+)', 'bufferBusyStallRate')
-        parse_simple(r'Buffer conflict stall rate = ([\d\.]+)', 'bufferConflictStallRate')
-        parse_simple(r'Buffer full stall rate = ([\d\.]+)', 'bufferFullStallRate')
-        parse_simple(r'Buffer reserved stall rate = ([\d\.]+)', 'bufferReservedStallRate')
-        parse_simple(r'Crossbar conflict stall rate = ([\d\.]+)', 'crossbarConflictStallRate')
-        parse_simple(r'Total run time ([\d\.]+)', 'totalRunTime')
             
         # Parse header config parameters if present
-        top_match = re.search(r'topology\s*=\s*([^;]+);', full_text)
+        top_match = STATS_TOPOLOGY_PATTERN.search(full_text)
         if top_match:
             stats['topology'] = top_match.group(1).strip()
             
-        traffic_match = re.search(r'traffic\s*=\s*([^;]+);', full_text)
+        traffic_match = STATS_TRAFFIC_PATTERN.search(full_text)
         if traffic_match:
             stats['traffic'] = traffic_match.group(1).strip()
 

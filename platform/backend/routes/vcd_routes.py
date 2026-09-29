@@ -13,6 +13,11 @@ import re
 import time
 from typing import Dict, List, Optional, Tuple
 
+# Pre-compiled regex patterns for topology derivation
+NODE_PATTERN = re.compile(r'node_(\d+)\.')
+ROUTER_PORT_PATTERN = re.compile(r'router_(\d+)\.(in|link)_(\d+)\.')
+ROUTER_VC_PATTERN = re.compile(r'router_(\d+)\.in_(\d+)\.vc_(\d+)\.')
+
 router = APIRouter(prefix="/api/vcd", tags=["vcd"])
 
 # ---------------------------------------------------------------------------
@@ -148,9 +153,18 @@ class VCDIndex:
                         else:
                             sub_idx += 1
                         display_str = str(sim_cyc) if sub_idx == 0 else f"{sim_cyc}.{sub_idx}"
+                        base_cycle = sim_cyc
+                        sub_index = sub_idx
                     else:
                         display_str = str(current_cycle_num)
-                    self.time_tick_displays.append({"tick": current_cycle_num, "display": display_str})
+                        base_cycle = current_cycle_num
+                        sub_index = 0
+                    self.time_tick_displays.append({
+                        "tick": current_cycle_num, 
+                        "display": display_str,
+                        "baseCycle": base_cycle,
+                        "subIndex": sub_index
+                    })
 
                 try:
                     current_cycle_num = int(line[1:])
@@ -205,9 +219,18 @@ class VCDIndex:
                 else:
                     sub_idx += 1
                 display_str = str(sim_cyc) if sub_idx == 0 else f"{sim_cyc}.{sub_idx}"
+                base_cycle = sim_cyc
+                sub_index = sub_idx
             else:
                 display_str = str(current_cycle_num)
-            self.time_tick_displays.append({"tick": current_cycle_num, "display": display_str})
+                base_cycle = current_cycle_num
+                sub_index = 0
+            self.time_tick_displays.append({
+                "tick": current_cycle_num, 
+                "display": display_str,
+                "baseCycle": base_cycle,
+                "subIndex": sub_index
+            })
 
         # Build final flit routes by sorting each flit's routers by first-seen cycle
         route_entries = {}  # flit_id -> list of (cycle, router)
@@ -232,18 +255,18 @@ class VCDIndex:
 
         for name in self.signal_name_to_id:
             # node_X.gen.valid
-            m = re.match(r'node_(\d+)\.', name)
+            m = NODE_PATTERN.match(name)
             if m:
                 max_node = max(max_node, int(m.group(1)))
 
             # router_X.in_Y.valid or router_X.link_Y.valid
-            m = re.match(r'router_(\d+)\.(in|link)_(\d+)\.', name)
+            m = ROUTER_PORT_PATTERN.match(name)
             if m:
                 max_router = max(max_router, int(m.group(1)))
                 max_port = max(max_port, int(m.group(3)))
 
             # router_X.in_Y.vc_Z.occupancy
-            m = re.match(r'router_(\d+)\.in_(\d+)\.vc_(\d+)\.', name)
+            m = ROUTER_VC_PATTERN.match(name)
             if m:
                 max_vc = max(max_vc, int(m.group(3)))
 
@@ -405,9 +428,44 @@ class VCDIndex:
                     })
                 ports_ds.append(ds_vcs)
                 
+            # Expanded crossbar port signals
+            exp_in_ids = []
+            ei = 0
+            while True:
+                prefix = f"router_{router}.xbar.exp_in_{ei}"
+                if self.signal_name_to_id.get(f"{prefix}.valid") is None:
+                    break
+                exp_in_ids.append({
+                    "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                    "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
+                    "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                    "phys_port": self.signal_name_to_id.get(f"{prefix}.phys_input"),
+                    "exp_peer": self.signal_name_to_id.get(f"{prefix}.exp_output")
+                })
+                ei += 1
+                
+            exp_out_ids = []
+            eo = 0
+            while True:
+                prefix = f"router_{router}.xbar.exp_out_{eo}"
+                if self.signal_name_to_id.get(f"{prefix}.valid") is None:
+                    break
+                exp_out_ids.append({
+                    "valid": self.signal_name_to_id.get(f"{prefix}.valid"),
+                    "flit": self.signal_name_to_id.get(f"{prefix}.flit_id"),
+                    "pkt": self.signal_name_to_id.get(f"{prefix}.packet_id"),
+                    "phys_port": self.signal_name_to_id.get(f"{prefix}.phys_output"),
+                    "exp_peer": self.signal_name_to_id.get(f"{prefix}.from_input")
+                })
+                eo += 1
+                
             self.router_vc_state_ids.append(ports_vc_state)
             self.router_pipe_ids.append(ports_pipe)
             self.router_ds_ids.append(ports_ds)
+            self.router_xbar_ids.append({
+                "exp_in": exp_in_ids,
+                "exp_out": exp_out_ids
+            })
 
     def get_cycle_index(self, cycle: int) -> Optional[int]:
         """Binary search for the index of a cycle in byte_offsets."""
@@ -512,7 +570,9 @@ class VCDIndex:
             "xbar": [],
             "credits": [],
             "inject": [],
-            "eject": []
+            "eject": [],
+            "exp_in": [],
+            "exp_out": []
         }
 
         # Helper to get signal value directly by short_id
@@ -680,6 +740,30 @@ class VCDIndex:
                         events["credits"].append({
                             "router": router, "output": port, "vc": vc,
                             "occ": occ, "avail": avail
+                        })
+
+            # Expanded crossbar port events
+            if hasattr(self, "router_xbar_ids") and router < len(self.router_xbar_ids):
+                xbar = self.router_xbar_ids[router]
+                for ei, xid in enumerate(xbar["exp_in"]):
+                    if val(xid["valid"]) == 1:
+                        events["exp_in"].append({
+                            "router": router,
+                            "exp_in": ei,
+                            "phys_port": val(xid["phys_port"]) or 0,
+                            "exp_out": val(xid["exp_peer"]) or 0,
+                            "flit": val(xid["flit"]) or 0,
+                            "pkt": val(xid["pkt"]) or 0
+                        })
+                for eo, xid in enumerate(xbar["exp_out"]):
+                    if val(xid["valid"]) == 1:
+                        events["exp_out"].append({
+                            "router": router,
+                            "exp_out": eo,
+                            "phys_port": val(xid["phys_port"]) or 0,
+                            "exp_in": val(xid["exp_peer"]) or 0,
+                            "flit": val(xid["flit"]) or 0,
+                            "pkt": val(xid["pkt"]) or 0
                         })
 
         return events

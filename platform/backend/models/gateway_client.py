@@ -23,6 +23,7 @@ class OpenClawGatewayClient:
         self.websocket = None
         self.pending_chat_requests = {}  # req_id -> compound_key
         self.active_runs = {}  # compound_key -> req_info for retries
+        self.registered_agents = set()  # username cache to prevent redundant disk I/O
 
     async def connect(self):
         """Connects to the Gateway and performs the mandatory handshake."""
@@ -76,8 +77,30 @@ class OpenClawGatewayClient:
     # Global lock to prevent concurrent config file modifications
     config_lock = asyncio.Lock()
 
+    async def _abort_locked_session(self, session_key, log_identifier, is_async=False):
+        """Sends an abort request for a session locked by a background process."""
+        async_str = " (async)" if is_async else ""
+        logger.info(f"Session initialization conflicted for {log_identifier}{async_str}. Session is locked by a background process. Triggering abort.")
+        if session_key:
+            abort_payload = {
+                "type": "req",
+                "id": str(uuid.uuid4()),
+                "method": "chat.abort",
+                "params": {
+                    "sessionKey": session_key,
+                }
+            }
+            try:
+                await self.websocket.send(json.dumps(abort_payload))
+            except Exception as e:
+                logger.error(f"Failed to send abort for locked session: {e}")
+        return "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
+
     async def ensure_user_agent(self, username: str):
         """Ensures an agent exists for this user in openclaw.json."""
+        if username in self.registered_agents:
+            return username
+
         config_path = os.path.expanduser("~/.openclaw/openclaw.json")
         
         async with OpenClawGatewayClient.config_lock:
@@ -98,6 +121,7 @@ class OpenClawGatewayClient:
             
             # Check if already registered
             if agent_id in config["agents"]["entries"]:
+                self.registered_agents.add(agent_id)
                 return agent_id
                     
             # Register new user agent
@@ -134,6 +158,7 @@ class OpenClawGatewayClient:
             with open(config_path, "w") as f:
                 json.dump(config, f, indent=2)
                 
+            self.registered_agents.add(agent_id)
             return agent_id
 
     async def send_agent_message(self, message: str, session_id: str, username: str = None, chat_db=None):
@@ -206,23 +231,8 @@ class OpenClawGatewayClient:
                 err_msg = err_info.get("message", "Failed to start agent run")
 
                 if "initialization conflicted" in err_msg.lower():
-                    logger.info(f"Session initialization conflicted for {compound_key}. Session is locked by a background process. Triggering abort.")
-                    abort_req_id = str(uuid.uuid4())
                     session_key = payload.get("params", {}).get("sessionKey") if payload else None
-                    if session_key:
-                        abort_payload = {
-                            "type": "req",
-                            "id": abort_req_id,
-                            "method": "chat.abort",
-                            "params": {
-                                "sessionKey": session_key,
-                            }
-                        }
-                        try:
-                            await self.websocket.send(json.dumps(abort_payload))
-                        except Exception as e:
-                            logger.error(f"Failed to send abort for locked session: {e}")
-                    err_msg = "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
+                    err_msg = await self._abort_locked_session(session_key, compound_key)
                     # Fall through to the error handler below
                 logger.warning(f"chat.send rejected for {compound_key}: {err_msg}")
                 if manager and hasattr(manager, 'app'):
@@ -341,28 +351,12 @@ class OpenClawGatewayClient:
                             continue
 
                         if "initialization conflicted" in error_message.lower():
-                            logger.info(f"Session initialization conflicted for {client_id} (async). Session is locked by a background process. Triggering abort.")
+                            session_key = None
                             req_info = getattr(self, 'active_runs', {}).get(client_id)
-                            if req_info:
-                                payload = req_info.get("payload")
-                                if payload:
-                                    session_key = payload.get("params", {}).get("sessionKey")
-                                    if session_key:
-                                        abort_req_id = str(uuid.uuid4())
-                                        abort_payload = {
-                                            "type": "req",
-                                            "id": abort_req_id,
-                                            "method": "chat.abort",
-                                            "params": {
-                                                "sessionKey": session_key,
-                                            }
-                                        }
-                                        try:
-                                            await self.websocket.send(json.dumps(abort_payload))
-                                        except Exception as e:
-                                            logger.error(f"Failed to send abort for locked session: {e}")
+                            if req_info and req_info.get("payload"):
+                                session_key = req_info["payload"].get("params", {}).get("sessionKey")
                             
-                            error_message = "The session was locked by a background process. It has been forcefully aborted. Please try sending your message again in a moment."
+                            error_message = await self._abort_locked_session(session_key, client_id, is_async=True)
                             # Fall through to the error handler below
 
                         logger.warning(f"Agent run error for session {client_id}: {error_message}")

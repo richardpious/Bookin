@@ -8,8 +8,18 @@ export const RouterHighZoom = ({ routerId, events, meta, selectedFlit }) => {
 
   // --- Dynamic sizing based on VC dimensions ---
   const length = 1.2;       // Block size along flow direction
-  const thickness = 3.0;    // Block size across flow direction
-  const spacing = 0.8;      // Inter-VC gap
+  let thickness = 3.0;    // Block size across flow direction
+  let spacing = 0.8;      // Inter-VC gap
+  
+  // Constrain the total VC span so a huge number of VCs doesn't overflow the router visual bounds
+  const MAX_SPAN = 20.0;
+  let rawSpan = numVCs * (thickness + spacing);
+  if (rawSpan > MAX_SPAN) {
+    const scale = MAX_SPAN / rawSpan;
+    thickness *= scale;
+    spacing *= scale;
+  }
+  
   const blockStep = length + 0.2;
 
   // How far the buffers extend along the flow direction from the port origin
