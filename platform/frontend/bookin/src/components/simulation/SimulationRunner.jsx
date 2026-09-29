@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Settings, Cpu, Plus, Trash2 } from 'lucide-react';
+import { Play, Settings, Cpu, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { fetchFiles, readFileContent, updateFileContent, runSimulationAPI, deleteItem } from '../../utils/fileUtils';
 import ConfigParametersModal from '../modals/ConfigParametersModal';
+import MeshTopologyViz from '../topology/MeshTopologyViz';
 import './SimulationRunner.css';
 
 export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
@@ -9,6 +10,7 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
   const [configs, setConfigs] = useState([]);
   const [selectedConfig, setSelectedConfig] = useState('');
   const [configParams, setConfigParams] = useState({});
+  const [committedParams, setCommittedParams] = useState({});
   const [rawContent, setRawContent] = useState('');
   const [isLoadingParams, setIsLoadingParams] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -16,7 +18,9 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
   const [newConfigName, setNewConfigName] = useState('');
   const [isConfigDropdownOpen, setIsConfigDropdownOpen] = useState(false);
   const [configToDelete, setConfigToDelete] = useState(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
   const dropdownRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -26,6 +30,28 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (containerRef.current) {
+        // Hide indicator if scrolled down more than 50px
+        setShowScrollIndicator(containerRef.current.scrollTop < 50);
+      }
+    };
+    
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      // Check initial state
+      handleScroll();
+    }
+    
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -63,9 +89,11 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
         setRawContent(content);
         const params = parseConfig(content);
         setConfigParams(params);
+        setCommittedParams(params);
       } catch (err) {
         console.error("Failed to read config", err);
         setConfigParams({});
+        setCommittedParams({});
       } finally {
         setIsLoadingParams(false);
       }
@@ -112,6 +140,9 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
 
     const newContent = newLines.join('\n');
     setRawContent(newContent);
+    // Update committed params only on blur
+    setCommittedParams(prev => ({ ...prev, [key]: configParams[key] }));
+    
     try {
       await updateFileContent(selectedConfig, newContent);
     } catch (err) {
@@ -125,6 +156,7 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
     const value = param.defaultValue;
 
     setConfigParams(prev => ({ ...prev, [key]: value }));
+    setCommittedParams(prev => ({ ...prev, [key]: value }));
 
     let keyExists = false;
     const lines = rawContent.split('\n');
@@ -162,6 +194,10 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
     const newParams = { ...configParams };
     delete newParams[key];
     setConfigParams(newParams);
+    
+    const newCommittedParams = { ...committedParams };
+    delete newCommittedParams[key];
+    setCommittedParams(newCommittedParams);
 
     // 2. Remove from raw content
     const lines = rawContent.split('\n');
@@ -264,6 +300,7 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
           setSelectedConfig('');
           setRawContent('');
           setConfigParams({});
+          setCommittedParams({});
         }
       }
       
@@ -303,8 +340,14 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
     }
   };
 
+  const handleScrollDown = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ top: window.innerHeight / 2, behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="simulation-runner-container">
+    <div className="simulation-runner-container" ref={containerRef}>
       <div className="simulation-header">
         <h2>Run Simulation</h2>
       </div>
@@ -412,6 +455,13 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
             )}
           </div>
         </div>
+
+        {committedParams.topology === 'mesh' && committedParams.k && committedParams.n && (
+          <MeshTopologyViz
+            k={parseInt(committedParams.k) || 4}
+            n={parseInt(committedParams.n) || 2}
+          />
+        )}
       </div>
 
       <div className="simulation-actions">
@@ -480,6 +530,10 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
           </div>
         </div>
       )}
+
+      <div className={`scroll-down-indicator ${showScrollIndicator ? 'visible' : 'hidden'}`} onClick={handleScrollDown}>
+        <ChevronDown size={24} className="bounce" />
+      </div>
     </div>
   );
 };
