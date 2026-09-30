@@ -20,7 +20,7 @@ import './AnynetEditorMode.css';
  * @param {Function} props.onCancel - () => void
  * @param {Function} props.onToast - (message, type) => void
  */
-const AnynetEditorMode = ({ initialK = 4, initialN = 2, anynetFilePath, onDone, onCancel, onToast }) => {
+const AnynetEditorMode = ({ initialK = 4, initialN = 2, initialTopology = 'mesh', anynetFilePath, onDone, onCancel, onToast }) => {
   const canvasRef = useRef(null);
   const svgRef = useRef(null);
   const [canvasSize, setCanvasSize] = useState({ 
@@ -82,7 +82,7 @@ const AnynetEditorMode = ({ initialK = 4, initialN = 2, anynetFilePath, onDone, 
         let layoutContent = layoutRes.status === 'fulfilled' ? layoutRes.value.content : null;
 
         if (!anynetContent) {
-          initFromMesh(initialK, initialN, canvasSize.width, canvasSize.height);
+          initFromMesh(initialK, initialN, canvasSize.width, canvasSize.height, initialTopology);
           return;
         }
 
@@ -106,13 +106,13 @@ const AnynetEditorMode = ({ initialK = 4, initialN = 2, anynetFilePath, onDone, 
         setNodes(autoNodes);
         setEdges(autoEdges);
       }).catch(err => {
-        console.error('Failed to load anynet file, falling back to mesh', err);
-        initFromMesh(initialK, initialN, canvasSize.width, canvasSize.height);
+        console.error('Failed to load anynet file, falling back to mesh/torus', err);
+        initFromMesh(initialK, initialN, canvasSize.width, canvasSize.height, initialTopology);
       });
     } else {
-      initFromMesh(initialK, initialN, canvasSize.width, canvasSize.height);
+      initFromMesh(initialK, initialN, canvasSize.width, canvasSize.height, initialTopology);
     }
-  }, [canvasSize, anynetFilePath, initialK, initialN, initFromMesh, setNodes, setEdges]);
+  }, [canvasSize, anynetFilePath, initialK, initialN, initialTopology, initFromMesh, setNodes, setEdges]);
 
   // Keyboard shortcuts
   useEffect(() => {

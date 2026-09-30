@@ -11,7 +11,7 @@ import './MeshTopologyViz.css';
  * @param {number} props.k - Nodes per dimension (radix)
  * @param {number} props.n - Number of dimensions (1, 2, or 3+)
  */
-const MeshTopologyViz = ({ k, n, onEnterEditMode, showEditButton }) => {
+const MeshTopologyViz = ({ k, n, topology = 'mesh', onEnterEditMode, showEditButton }) => {
   const containerRef = useRef(null);
   const [canvasSize, setCanvasSize] = useState({ width: 600, height: 400 });
 
@@ -35,11 +35,14 @@ const MeshTopologyViz = ({ k, n, onEnterEditMode, showEditButton }) => {
     return () => observer.disconnect();
   }, []);
 
-  // Compute mesh nodes and edges
+  const isTorus = topology === 'torus';
+
+  // Compute mesh/torus nodes and edges
   const { nodes, edges, totalNodes, totalEdges, displayLabel } = useMemo(() => {
     const safeK = Math.max(1, Math.min(k, 32));
     const safeN = Math.max(1, Math.min(n, 8));
     const total = Math.pow(safeK, safeN);
+    const topoName = isTorus ? 'Torus' : 'Mesh';
 
     // Scaling guard: if too many nodes, don't compute
     if (total > 256) {
@@ -48,7 +51,7 @@ const MeshTopologyViz = ({ k, n, onEnterEditMode, showEditButton }) => {
         edges: [],
         totalNodes: total,
         totalEdges: 0,
-        displayLabel: `${safeK}${'×' + safeK}`.repeat(safeN - 1) + ` Mesh — ${total} routers (too large to visualize)`,
+        displayLabel: `${safeK}${'×' + safeK}`.repeat(safeN - 1) + ` ${topoName} — ${total} routers (too large to visualize)`,
       };
     }
 
@@ -56,8 +59,8 @@ const MeshTopologyViz = ({ k, n, onEnterEditMode, showEditButton }) => {
     const resultEdges = [];
 
     if (safeN === 1) {
-      // 1D mesh: horizontal line
-      const padding = 40;
+      // 1D mesh/torus: horizontal line / ring
+      const padding = 60;
       const availableWidth = canvasSize.width - padding * 2;
       const spacing = safeK > 1 ? availableWidth / (safeK - 1) : 0;
       const yCenter = canvasSize.height / 2;
@@ -74,18 +77,28 @@ const MeshTopologyViz = ({ k, n, onEnterEditMode, showEditButton }) => {
         }
       }
 
+      if (isTorus && safeK > 1) {
+        resultEdges.push({
+          source: safeK - 1,
+          target: 0,
+          isWrapAround: true,
+          axis: 'horizontal',
+          index: 0,
+        });
+      }
+
       return {
         nodes: resultNodes,
         edges: resultEdges,
         totalNodes: safeK,
-        totalEdges: resultEdges.length,
-        displayLabel: `1×${safeK} Mesh`,
+        totalEdges: isTorus ? safeK : resultEdges.length,
+        displayLabel: `1×${safeK} ${isTorus ? 'Ring / Torus' : 'Mesh'}`,
       };
     }
 
     if (safeN === 2) {
-      // 2D mesh: k × k grid
-      const padding = 40;
+      // 2D grid
+      const padding = 60;
       const availableWidth = canvasSize.width - padding * 2;
       const availableHeight = canvasSize.height - padding * 2;
       const spacingX = safeK > 1 ? availableWidth / (safeK - 1) : 0;
@@ -111,25 +124,46 @@ const MeshTopologyViz = ({ k, n, onEnterEditMode, showEditButton }) => {
           // Right neighbor
           if (col < safeK - 1) {
             resultEdges.push({ source: id, target: id + 1 });
+          } else if (isTorus && safeK > 1) {
+            // Horizontal wrap-around link from col k-1 back to col 0
+            resultEdges.push({
+              source: id,
+              target: row * safeK,
+              isWrapAround: true,
+              axis: 'horizontal',
+              index: row,
+            });
           }
+
           // Bottom neighbor
           if (row < safeK - 1) {
             resultEdges.push({ source: id, target: id + safeK });
+          } else if (isTorus && safeK > 1) {
+            // Vertical wrap-around link from row k-1 back to row 0
+            resultEdges.push({
+              source: id,
+              target: col,
+              isWrapAround: true,
+              axis: 'vertical',
+              index: col,
+            });
           }
         }
       }
+
+      const calculatedEdges = isTorus ? (2 * safeK * safeK) : resultEdges.length;
 
       return {
         nodes: resultNodes,
         edges: resultEdges,
         totalNodes: safeK * safeK,
-        totalEdges: resultEdges.length,
-        displayLabel: `${safeK}×${safeK} Mesh`,
+        totalEdges: calculatedEdges,
+        displayLabel: `${safeK}×${safeK} ${topoName}`,
       };
     }
 
     // n >= 3: show one 2D slice and note the total
-    const padding = 40;
+    const padding = 60;
     const availableWidth = canvasSize.width - padding * 2;
     const availableHeight = canvasSize.height - padding * 2;
     const spacingX = safeK > 1 ? availableWidth / (safeK - 1) : 0;
@@ -152,25 +186,42 @@ const MeshTopologyViz = ({ k, n, onEnterEditMode, showEditButton }) => {
         });
         if (col < safeK - 1) {
           resultEdges.push({ source: id, target: id + 1 });
+        } else if (isTorus && safeK > 1) {
+          resultEdges.push({
+            source: id,
+            target: row * safeK,
+            isWrapAround: true,
+            axis: 'horizontal',
+            index: row,
+          });
         }
         if (row < safeK - 1) {
           resultEdges.push({ source: id, target: id + safeK });
+        } else if (isTorus && safeK > 1) {
+          resultEdges.push({
+            source: id,
+            target: col,
+            isWrapAround: true,
+            axis: 'vertical',
+            index: col,
+          });
         }
       }
     }
 
     const dims = Array(safeN).fill(safeK).join('×');
-    // Count total edges in an n-dimensional mesh: n * k^(n-1) * (k-1)
-    const totalMeshEdges = safeN * Math.pow(safeK, safeN - 1) * (safeK - 1);
+    const totalEdgesCount = isTorus
+      ? (safeN * Math.pow(safeK, safeN))
+      : (safeN * Math.pow(safeK, safeN - 1) * (safeK - 1));
 
     return {
       nodes: resultNodes,
       edges: resultEdges,
       totalNodes: total,
-      totalEdges: totalMeshEdges,
-      displayLabel: `${dims} Mesh`,
+      totalEdges: totalEdgesCount,
+      displayLabel: `${dims} ${topoName}`,
     };
-  }, [k, n, canvasSize]);
+  }, [k, n, topology, isTorus, canvasSize]);
 
   const isTooLarge = Math.pow(Math.max(1, Math.min(k, 32)), Math.max(1, Math.min(n, 8))) > 256;
   const isSliced = n >= 3 && !isTooLarge;

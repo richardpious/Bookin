@@ -200,9 +200,10 @@ export const useGraphEditor = (initialNodes = [], initialEdges = []) => {
     setLinkStart(null);
   }, []);
 
-  // --- Initialize from mesh ---
-  const initFromMesh = useCallback((k, n, canvasWidth, canvasHeight) => {
+  // --- Initialize from mesh / torus ---
+  const initFromMesh = useCallback((k, n, canvasWidth, canvasHeight, topology = 'mesh') => {
     const safeK = Math.max(1, Math.min(k, 16));
+    const isTorus = topology === 'torus';
     const newNodes = [];
     const newEdges = [];
     let idCounter = 0;
@@ -236,7 +237,7 @@ export const useGraphEditor = (initialNodes = [], initialEdges = []) => {
       }
     }
 
-    // Create edges (mesh connections)
+    // Create edges (mesh / torus connections)
     let edgeCounter = 0;
     for (let row = 0; row < safeK; row++) {
       for (let col = 0; col < safeK; col++) {
@@ -249,7 +250,18 @@ export const useGraphEditor = (initialNodes = [], initialEdges = []) => {
             target: routerGrid[idx + 1],
             latency: 1,
           });
+        } else if (isTorus && safeK > 1) {
+          newEdges.push({
+            id: `edge-${edgeCounter++}`,
+            source: routerGrid[idx],
+            target: routerGrid[row * safeK],
+            latency: 1,
+            isWrapAround: true,
+            axis: 'horizontal',
+            index: row,
+          });
         }
+
         // Bottom neighbor
         if (row < safeK - 1) {
           newEdges.push({
@@ -257,6 +269,16 @@ export const useGraphEditor = (initialNodes = [], initialEdges = []) => {
             source: routerGrid[idx],
             target: routerGrid[idx + safeK],
             latency: 1,
+          });
+        } else if (isTorus && safeK > 1) {
+          newEdges.push({
+            id: `edge-${edgeCounter++}`,
+            source: routerGrid[idx],
+            target: routerGrid[col],
+            latency: 1,
+            isWrapAround: true,
+            axis: 'vertical',
+            index: col,
           });
         }
       }

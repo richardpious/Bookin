@@ -564,6 +564,7 @@ export const SimulationRunner = ({ sessions, sessionId, onToast, forceCollapseBo
             <MeshTopologyViz
               k={parseInt(committedParams.k) || 4}
               n={parseInt(committedParams.n) || 2}
+              topology={currentTopology === 'torus' ? 'torus' : 'mesh'}
               onEnterEditMode={enterEditMode}
               showEditButton={true}
             />
@@ -647,6 +648,7 @@ export const SimulationRunner = ({ sessions, sessionId, onToast, forceCollapseBo
           <AnynetEditorMode
             initialK={parseInt(committedParams.k) || 4}
             initialN={parseInt(committedParams.n) || 2}
+            initialTopology={currentTopology}
             anynetFilePath={isAnynet ? getAnynetPath() : null}
             onDone={handleEditorDone}
             onCancel={exitEditMode}

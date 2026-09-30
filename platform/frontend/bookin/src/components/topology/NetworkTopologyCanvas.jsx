@@ -2,24 +2,42 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import './NetworkTopologyCanvas.css';
 
 /**
- * NetworkTopologyCanvas — A reusable, topology-agnostic SVG canvas.
- *
- * Renders nodes and edges with pan/zoom support.
- * In read-only mode (interactive=false), only hover highlighting is active.
- * In interactive mode (interactive=true), nodes can be dragged and
- * click callbacks are fired — to be used by the future Network Builder.
- *
- * @param {Object} props
- * @param {Array<{id: number|string, x: number, y: number, label?: string}>} props.nodes
- * @param {Array<{source: number|string, target: number|string}>} props.edges
- * @param {boolean} [props.interactive=false]
- * @param {Function} [props.onNodeDrag] - (id, x, y) => void
- * @param {Function} [props.onNodeClick] - (id) => void
- * @param {Function} [props.onEdgeClick] - (source, target) => void
- * @param {number} [props.width=600]
- * @param {number} [props.height=400]
- * @param {string} [props.className]
+ * Helper to compute smooth outer curved path for torus wrap-around edges.
  */
+const computeTorusPath = (src, tgt, axis, index) => {
+  if (axis === 'horizontal') {
+    const left = src.x < tgt.x ? src : tgt;
+    const right = src.x < tgt.x ? tgt : src;
+
+    const xL = left.x;
+    const xR = right.x;
+    const y = left.y;
+
+    const loopW = 40;
+    const dy = (index % 2 === 0 ? 18 : -18);
+
+    return `M ${xR} ${y} ` +
+           `C ${xR + loopW} ${y}, ${xR + loopW} ${y + dy}, ${xR + loopW / 2} ${y + dy} ` +
+           `L ${xL - loopW / 2} ${y + dy} ` +
+           `C ${xL - loopW} ${y + dy}, ${xL - loopW} ${y}, ${xL} ${y}`;
+  } else {
+    const top = src.y < tgt.y ? src : tgt;
+    const bottom = src.y < tgt.y ? tgt : src;
+
+    const yT = top.y;
+    const yB = bottom.y;
+    const x = top.x;
+
+    const loopH = 40;
+    const dx = (index % 2 === 0 ? -18 : 18);
+
+    return `M ${x} ${yT} ` +
+           `C ${x} ${yT - loopH}, ${x + dx} ${yT - loopH}, ${x + dx} ${yT - loopH / 2} ` +
+           `L ${x + dx} ${yB + loopH / 2} ` +
+           `C ${x + dx} ${yB + loopH}, ${x} ${yB + loopH}, ${x} ${yB}`;
+  }
+};
+
 const NetworkTopologyCanvas = ({
   nodes = [],
   edges = [],
@@ -230,6 +248,20 @@ const NetworkTopologyCanvas = ({
             if (!src || !tgt) return null;
 
             const isHighlighted = hoveredNodeEdges.has(idx);
+
+            if (edge.isWrapAround) {
+              const pathD = computeTorusPath(src, tgt, edge.axis || 'horizontal', edge.index || 0);
+              return (
+                <path
+                  key={`edge-${edge.source}-${edge.target}`}
+                  className={`topo-edge wrap-around ${isHighlighted ? 'highlighted' : ''} ${hoveredEdge === idx ? 'hovered' : ''}`}
+                  d={pathD}
+                  onClick={() => handleEdgeClick(edge.source, edge.target)}
+                  onMouseEnter={() => setHoveredEdge(idx)}
+                  onMouseLeave={() => setHoveredEdge(null)}
+                />
+              );
+            }
 
             return (
               <line

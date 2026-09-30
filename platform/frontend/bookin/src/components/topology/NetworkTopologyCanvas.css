@@ -33,6 +33,18 @@
   stroke-width: 4;
 }
 
+.topo-edge.wrap-around {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.25);
+  stroke-width: 2.5;
+}
+
+.topo-edge.wrap-around.highlighted,
+.topo-edge.wrap-around.hovered {
+  stroke: rgba(16, 185, 129, 1);
+  stroke-width: 4;
+}
+
 .topo-edge.dimmed {
   opacity: 0.15;
 }
@@ -87,8 +99,15 @@
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 /* --- Node labels --- */
