@@ -16,21 +16,21 @@
 
 /* --- Edges --- */
 .topo-edge {
-  stroke: rgba(255, 255, 255, 0.15);
-  stroke-width: 1.5;
+  stroke: rgba(255, 255, 255, 0.25);
+  stroke-width: 2.5;
   transition: stroke 0.2s, opacity 0.2s, stroke-width 0.2s;
   cursor: default;
   pointer-events: stroke;
 }
 
 .topo-edge.highlighted {
-  stroke: rgba(16, 185, 129, 0.7);
-  stroke-width: 2;
+  stroke: rgba(16, 185, 129, 0.85);
+  stroke-width: 3.5;
 }
 
 .topo-edge.hovered {
-  stroke: rgba(16, 185, 129, 0.9);
-  stroke-width: 2.5;
+  stroke: rgba(16, 185, 129, 1);
+  stroke-width: 4;
 }
 
 .topo-edge.dimmed {
@@ -40,22 +40,36 @@
 /* --- Nodes --- */
 .topo-node {
   fill: #1e293b;
-  stroke: rgba(255, 255, 255, 0.2);
-  stroke-width: 1.5;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 2;
   transition: fill 0.2s, stroke 0.2s, transform 0.15s;
+  cursor: pointer;
+}
+
+.topo-node-processing {
+  fill: #1a1a2e;
+  stroke: #6366f1;
+  stroke-width: 2;
+  transition: fill 0.2s, stroke 0.2s;
   cursor: pointer;
 }
 
 .topo-node-group.hovered .topo-node {
   fill: #10b981;
   stroke: #34d399;
-  stroke-width: 2;
+  stroke-width: 2.5;
+}
+
+.topo-node-group.hovered .topo-node-processing {
+  fill: #6366f1;
+  stroke: #818cf8;
+  stroke-width: 2.5;
 }
 
 .topo-node-group.neighbor .topo-node {
   fill: #1a3a2e;
-  stroke: rgba(16, 185, 129, 0.5);
-  stroke-width: 2;
+  stroke: rgba(16, 185, 129, 0.6);
+  stroke-width: 2.5;
 }
 
 .topo-node-group.dimmed .topo-node {

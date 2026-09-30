@@ -197,9 +197,9 @@ const NetworkTopologyCanvas = ({
     autoCenterView();
   }, [autoCenterView]);
 
-  // Determine node size based on count
-  const nodeRadius = nodes.length > 100 ? 8 : nodes.length > 36 ? 10 : 14;
-  const fontSize = nodes.length > 100 ? 6 : nodes.length > 36 ? 7 : 9;
+  // Determine node size based on count (made significantly larger for visibility)
+  const nodeRadius = nodes.length > 100 ? 12 : nodes.length > 36 ? 16 : 22;
+  const fontSize = nodes.length > 100 ? 9 : nodes.length > 36 ? 11 : 14;
 
   return (
     <div className={`network-topology-canvas ${className}`}>
@@ -270,13 +270,24 @@ const NetworkTopologyCanvas = ({
                   />
                 )}
 
-                {/* Node circle */}
-                <circle
-                  className="topo-node"
-                  cx={node.x}
-                  cy={node.y}
-                  r={nodeRadius}
-                />
+                {/* Shape: circle for router, rounded rect for processing node */}
+                {node.type === 'node' ? (
+                  <rect
+                    className="topo-node-processing"
+                    x={node.x - nodeRadius * 0.9}
+                    y={node.y - nodeRadius * 0.9}
+                    width={nodeRadius * 1.8}
+                    height={nodeRadius * 1.8}
+                    rx={5}
+                  />
+                ) : (
+                  <circle
+                    className="topo-node"
+                    cx={node.x}
+                    cy={node.y}
+                    r={nodeRadius}
+                  />
+                )}
 
                 {/* Node label */}
                 <text

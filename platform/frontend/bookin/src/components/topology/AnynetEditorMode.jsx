@@ -304,9 +304,9 @@ const AnynetEditorMode = ({ initialK = 4, initialN = 2, anynetFilePath, onDone, 
     onDone(content, { nodes, edges });
   }, [nodes, edges, onDone]);
 
-  // --- Sizing ---
-  const nodeRadius = nodes.length > 100 ? 8 : nodes.length > 36 ? 10 : 14;
-  const fontSize = nodes.length > 100 ? 6 : nodes.length > 36 ? 7 : 9;
+  // --- Sizing (make elements significantly bigger for clarity) ---
+  const nodeRadius = nodes.length > 100 ? 12 : nodes.length > 36 ? 16 : 22;
+  const fontSize = nodes.length > 100 ? 9 : nodes.length > 36 ? 11 : 14;
   const procNodeSize = nodeRadius * 0.9;
 
   // Get selected element info for properties panel
