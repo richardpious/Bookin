@@ -92,6 +92,34 @@ export const useResizer = () => {
     });
   }, []);
 
+  const forceCollapseBoth = useCallback(() => {
+    if (!leftCollapsed) {
+      setLeftCollapsed(true);
+      setLeftWidth(0);
+      document.documentElement.style.setProperty('--left-sidebar-width', '0px');
+    }
+    if (!rightCollapsed) {
+      setRightCollapsed(true);
+      setRightWidth(0);
+      document.documentElement.style.setProperty('--right-sidebar-width', '0px');
+    }
+  }, [leftCollapsed, rightCollapsed]);
+
+  const forceExpandBoth = useCallback(() => {
+    if (leftCollapsed) {
+      const restored = savedLeftWidth.current || 260;
+      setLeftCollapsed(false);
+      setLeftWidth(restored);
+      document.documentElement.style.setProperty('--left-sidebar-width', `${restored}px`);
+    }
+    if (rightCollapsed) {
+      const restored = savedRightWidth.current || 500;
+      setRightCollapsed(false);
+      setRightWidth(restored);
+      document.documentElement.style.setProperty('--right-sidebar-width', `${restored}px`);
+    }
+  }, [leftCollapsed, rightCollapsed]);
+
   return {
     leftWidth,
     rightWidth,
@@ -101,6 +129,8 @@ export const useResizer = () => {
     leftCollapsed,
     rightCollapsed,
     toggleLeftCollapsed,
-    toggleRightCollapsed
+    toggleRightCollapsed,
+    forceCollapseBoth,
+    forceExpandBoth,
   };
 };

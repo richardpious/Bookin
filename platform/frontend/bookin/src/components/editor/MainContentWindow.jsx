@@ -8,7 +8,7 @@ const ConfigParametersModal = lazy(() => import('../modals/ConfigParametersModal
 const NetworkVisualizer = lazy(() => import('../network/NetworkVisualizer'));
 const SimulationRunner = lazy(() => import('../simulation/SimulationRunner').then(m => ({ default: m.SimulationRunner })));
 
-export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast, leftCollapsed, onToggleLeftSidebar, sessions, sessionId }) => {
+export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileContents, dirtyFiles, isLoading, onTabClick, onCloseTab, onUpdateFile, onEditContent, onFileClick, onSendMessage, onAddMessage, onToast, leftCollapsed, onToggleLeftSidebar, forceCollapseBoth, forceExpandBoth, sessions, sessionId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [vizStates, setVizStates] = useState({});
   const getEditorValueRef = useRef(null);
@@ -70,7 +70,7 @@ export const MainContentWindow = ({ openFiles, activeFile, activeLine, fileConte
 
         {activeFile && !activeFile.endsWith('.vcd') && !activeFile.endsWith('.vcd.gz') ? (
           activeFile.startsWith('simulation-runner:') ? (
-            <SimulationRunner sessions={sessions} sessionId={sessionId} onToast={onToast} />
+            <SimulationRunner sessions={sessions} sessionId={sessionId} onToast={onToast} forceCollapseBoth={forceCollapseBoth} forceExpandBoth={forceExpandBoth} />
           ) : activeFile.startsWith('logs-viewer:') ? (
             <LogsViewer session={activeFile.split(':')[1]} onFileClick={onFileClick} />
           ) : (

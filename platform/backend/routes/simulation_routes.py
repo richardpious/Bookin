@@ -122,6 +122,53 @@ async def run_simulation(request: Request, payload: dict = Body(...)):
     # 4. Copy config file
     target_config_path = os.path.join(run_dir, "config.cfg")
     shutil.copy(source_path, target_config_path)
+
+    # 4b. If network_file parameter exists in config, resolve, copy, and format cleanly for BookSim
+    try:
+        with open(target_config_path, "r", encoding="utf-8") as f:
+            cfg_text = f.read()
+
+        match = re.search(r'^\s*network_file\s*=\s*([^;\n]+);', cfg_text, re.MULTILINE)
+        if match:
+            raw_net_val = match.group(1).strip().strip('"').strip("'")
+            if '//' in raw_net_val:
+                raw_net_val = raw_net_val.split('//')[0].strip().strip('"').strip("'")
+
+            if raw_net_val:
+                source_dir = os.path.dirname(source_path)
+                candidate_paths = [
+                    os.path.normpath(os.path.join(root_dir, raw_net_val)),
+                    os.path.normpath(os.path.join(source_dir, raw_net_val)),
+                    os.path.normpath(raw_net_val)
+                ]
+                found_net_file = None
+                for cp in candidate_paths:
+                    if os.path.isfile(cp):
+                        found_net_file = cp
+                        break
+
+                if found_net_file:
+                    net_basename = os.path.basename(found_net_file)
+                    dest_net_file = os.path.join(run_dir, net_basename)
+                    shutil.copy(found_net_file, dest_net_file)
+
+                    layout_src = f"{found_net_file}.layout.json"
+                    if os.path.isfile(layout_src):
+                        shutil.copy(layout_src, f"{dest_net_file}.layout.json")
+
+                    # BookSim config parser does NOT support quotes around string parameters.
+                    cfg_text = re.sub(
+                        r'^\s*network_file\s*=.*$',
+                        f'network_file = {net_basename};',
+                        cfg_text,
+                        flags=re.MULTILINE
+                    )
+                    with open(target_config_path, "w", encoding="utf-8") as f:
+                        f.write(cfg_text)
+                else:
+                    logger.warning(f"Could not locate network file on disk for path: {raw_net_val}")
+    except Exception as e:
+        logger.warning(f"Error handling network_file for simulation: {e}")
     
     # 5. Spawn subprocess
     session_booksim_binary = os.path.join(base_log_dir, "booksim", "src", "booksim")

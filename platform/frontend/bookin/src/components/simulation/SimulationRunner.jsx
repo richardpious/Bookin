@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Play, Settings, Cpu, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { fetchFiles, readFileContent, updateFileContent, runSimulationAPI, deleteItem } from '../../utils/fileUtils';
 import ConfigParametersModal from '../modals/ConfigParametersModal';
 import MeshTopologyViz from '../topology/MeshTopologyViz';
+import AnynetTopologyViz from '../topology/AnynetTopologyViz';
+const AnynetEditorMode = lazy(() => import('../topology/AnynetEditorMode'));
 import './SimulationRunner.css';
 
-export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
+export const SimulationRunner = ({ sessions, sessionId, onToast, forceCollapseBoth, forceExpandBoth }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [configs, setConfigs] = useState([]);
   const [selectedConfig, setSelectedConfig] = useState('');
@@ -19,6 +21,7 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
   const [isConfigDropdownOpen, setIsConfigDropdownOpen] = useState(false);
   const [configToDelete, setConfigToDelete] = useState(null);
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+  const [isEditorMode, setIsEditorMode] = useState(false);
   const dropdownRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -346,6 +349,100 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
     }
   };
 
+  const enterEditMode = () => {
+    setIsEditorMode(true);
+    if (forceCollapseBoth) forceCollapseBoth();
+  };
+
+  const exitEditMode = () => {
+    setIsEditorMode(false);
+    if (forceExpandBoth) forceExpandBoth();
+  };
+
+  const handleEditorDone = async (anynetContent, layoutData) => {
+    // 1. Determine save path
+    const username = localStorage.getItem('username');
+    if (!username || !sessions || !sessionId) {
+      if (onToast) onToast('Cannot save: no active session.', 'error');
+      return;
+    }
+    const currentSession = sessions.find(s => s.id === sessionId);
+    if (!currentSession) return;
+
+    const configDir = `logs/${username}/${currentSession.title}/configs`;
+    const anynetFilename = 'custom_topology.anynet';
+    const anynetPath = `${configDir}/${anynetFilename}`;
+    const layoutPath = `${anynetPath}.layout.json`;
+
+    try {
+      // 2. Save the anynet file and layout JSON
+      await updateFileContent(anynetPath, anynetContent);
+      if (layoutData) {
+        await updateFileContent(layoutPath, JSON.stringify(layoutData, null, 2));
+      }
+
+      // 3. Update the current config to use anynet topology
+      if (selectedConfig) {
+        const { content } = await readFileContent(selectedConfig);
+        let newContent = content;
+
+        // Helper to set a param in the config content
+        const setParam = (c, key, value) => {
+          const regex = new RegExp(`^(\\s*)${key}\\s*=.*$`, 'm');
+          if (regex.test(c)) {
+            return c.replace(regex, `$1${key} = ${value};`);
+          } else {
+            return c + `\n${key} = ${value};\n`;
+          }
+        };
+
+        // Helper to remove a param from the config content
+        const removeParam = (c, key) => {
+          const regex = new RegExp(`^\\s*${key}\\s*=.*\\n?`, 'gm');
+          return c.replace(regex, '');
+        };
+
+        newContent = setParam(newContent, 'topology', 'anynet');
+        newContent = setParam(newContent, 'network_file', anynetPath);
+        newContent = setParam(newContent, 'routing_function', 'min');
+        // Remove mesh-specific params that don't apply to anynet
+        newContent = removeParam(newContent, 'k');
+        newContent = removeParam(newContent, 'n');
+
+        await updateFileContent(selectedConfig, newContent);
+
+        // 4. Reload params
+        setRawContent(newContent);
+        const params = parseConfig(newContent);
+        setConfigParams(params);
+        setCommittedParams(params);
+      }
+
+      if (onToast) onToast('Custom topology saved! Config updated to use anynet.', 'success');
+    } catch (err) {
+      console.error('Failed to save anynet topology', err);
+      if (onToast) onToast('Failed to save topology: ' + err.message, 'error');
+    }
+
+    exitEditMode();
+  };
+
+  const currentTopology = committedParams.topology?.replace(/^"|"$/g, '').trim().toLowerCase();
+  const isAnynet = currentTopology === 'anynet';
+
+  const getAnynetPath = () => {
+    if (!committedParams.network_file) return null;
+    let file = committedParams.network_file.replace(/^"|"$/g, '').trim();
+    if (!file) return null;
+    if (!file.startsWith('/') && !file.startsWith('configs/') && !file.startsWith('logs/') && !file.startsWith('booksim/') && !file.startsWith('docs/')) {
+      if (selectedConfig && selectedConfig.includes('/')) {
+        const dir = selectedConfig.substring(0, selectedConfig.lastIndexOf('/'));
+        file = `${dir}/${file}`;
+      }
+    }
+    return file;
+  };
+
   return (
     <div className="simulation-runner-container" ref={containerRef}>
       <div className="simulation-header">
@@ -456,11 +553,21 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
           </div>
         </div>
 
-        {committedParams.topology === 'mesh' && committedParams.k && committedParams.n && (
-          <MeshTopologyViz
-            k={parseInt(committedParams.k) || 4}
-            n={parseInt(committedParams.n) || 2}
+        {isAnynet ? (
+          <AnynetTopologyViz
+            anynetFilePath={getAnynetPath()}
+            onEnterEditMode={enterEditMode}
+            showEditButton={true}
           />
+        ) : (
+          (committedParams.k && committedParams.n || !committedParams.topology || currentTopology === 'mesh' || currentTopology === 'torus') && (
+            <MeshTopologyViz
+              k={parseInt(committedParams.k) || 4}
+              n={parseInt(committedParams.n) || 2}
+              onEnterEditMode={enterEditMode}
+              showEditButton={true}
+            />
+          )
         )}
       </div>
 
@@ -534,6 +641,19 @@ export const SimulationRunner = ({ sessions, sessionId, onToast }) => {
       <div className={`scroll-down-indicator ${showScrollIndicator ? 'visible' : 'hidden'}`} onClick={handleScrollDown}>
         <ChevronDown size={24} className="bounce" />
       </div>
+
+      {isEditorMode && (
+        <Suspense fallback={<div style={{ position: 'absolute', inset: 0, background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', zIndex: 40 }}>Loading editor...</div>}>
+          <AnynetEditorMode
+            initialK={parseInt(committedParams.k) || 4}
+            initialN={parseInt(committedParams.n) || 2}
+            anynetFilePath={isAnynet ? getAnynetPath() : null}
+            onDone={handleEditorDone}
+            onCancel={exitEditMode}
+            onToast={onToast}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

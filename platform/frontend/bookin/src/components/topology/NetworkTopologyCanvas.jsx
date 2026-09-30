@@ -157,11 +157,45 @@ const NetworkTopologyCanvas = ({
     if (onEdgeClick) onEdgeClick(source, target);
   }, [onEdgeClick]);
 
+  // --- Auto-center and fit nodes ---
+  const autoCenterView = useCallback(() => {
+    if (!nodes || nodes.length === 0 || width <= 0 || height <= 0) return;
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    nodes.forEach(n => {
+      if (n.x < minX) minX = n.x;
+      if (n.x > maxX) maxX = n.x;
+      if (n.y < minY) minY = n.y;
+      if (n.y > maxY) maxY = n.y;
+    });
+
+    const graphCenterX = (minX + maxX) / 2;
+    const graphCenterY = (minY + maxY) / 2;
+    const canvasCenterX = width / 2;
+    const canvasCenterY = height / 2;
+
+    const graphW = Math.max(maxX - minX, 1);
+    const graphH = Math.max(maxY - minY, 1);
+    const padding = 60;
+    const scaleX = (width - padding * 2) / graphW;
+    const scaleY = (height - padding * 2) / graphH;
+    const fitZoom = Math.min(Math.min(scaleX, scaleY), 1.2);
+
+    setZoom(fitZoom);
+    setPan({
+      x: canvasCenterX - graphCenterX * fitZoom,
+      y: canvasCenterY - graphCenterY * fitZoom,
+    });
+  }, [nodes, width, height]);
+
+  useEffect(() => {
+    autoCenterView();
+  }, [autoCenterView]);
+
   // --- Reset view ---
   const resetView = useCallback(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  }, []);
+    autoCenterView();
+  }, [autoCenterView]);
 
   // Determine node size based on count
   const nodeRadius = nodes.length > 100 ? 8 : nodes.length > 36 ? 10 : 14;

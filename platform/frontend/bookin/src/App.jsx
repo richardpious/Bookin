@@ -62,7 +62,7 @@ function App() {
     }, 4000);
   }, []);
 
-  const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing, leftCollapsed, rightCollapsed, toggleLeftCollapsed, toggleRightCollapsed } = useResizer();
+  const { leftWidth, rightWidth, isResizingLeft, isResizingRight, startResizing, leftCollapsed, rightCollapsed, toggleLeftCollapsed, toggleRightCollapsed, forceCollapseBoth, forceExpandBoth } = useResizer();
   const { openFiles, activeFile, fileContents, dirtyFiles, hasUnreadLogs, clearUnreadLogs, handleFileClick, handleOpenFilePreview, handleSilentFileUpdate, handleCloseFile, handleUpdateFileContent, handleEditContent, setActiveFile } = useFileManagement();
 
   // Ref to the chat input textarea, used for global auto-focus
@@ -205,6 +205,8 @@ function App() {
           onToast={showToast}
           leftCollapsed={leftCollapsed}
           onToggleLeftSidebar={toggleLeftCollapsed}
+          forceCollapseBoth={forceCollapseBoth}
+          forceExpandBoth={forceExpandBoth}
           sessions={sessions}
           sessionId={sessionId}
           onAddMessage={(msg) => {

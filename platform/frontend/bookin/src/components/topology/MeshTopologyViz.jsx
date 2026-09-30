@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { Network } from 'lucide-react';
+import { Network, Pencil } from 'lucide-react';
 import NetworkTopologyCanvas from './NetworkTopologyCanvas';
 import './MeshTopologyViz.css';
 
@@ -11,7 +11,7 @@ import './MeshTopologyViz.css';
  * @param {number} props.k - Nodes per dimension (radix)
  * @param {number} props.n - Number of dimensions (1, 2, or 3+)
  */
-const MeshTopologyViz = ({ k, n }) => {
+const MeshTopologyViz = ({ k, n, onEnterEditMode, showEditButton }) => {
   const containerRef = useRef(null);
   const [canvasSize, setCanvasSize] = useState({ width: 600, height: 400 });
 
@@ -180,6 +180,12 @@ const MeshTopologyViz = ({ k, n }) => {
       <div className="simulation-card-header">
         <Network size={20} />
         <h3>Network Topology</h3>
+        {showEditButton && onEnterEditMode && (
+          <button className="edit-topology-btn" onClick={onEnterEditMode}>
+            <Pencil size={14} />
+            Edit
+          </button>
+        )}
       </div>
 
       <div className="mesh-viz-body">
